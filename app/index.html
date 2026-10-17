@@ -753,6 +753,40 @@ function weekLabel(i){const a=WEEKS[i],s=new Date(a.getFullYear(),a.getMonth(),a
   return `${s.getMonth()+1}/${s.getDate()}(土)・${u.getMonth()+1}/${u.getDate()}(日)${hol}`}
 function weekMonth(i){const a=WEEKS[i];return new Date(a.getFullYear(),a.getMonth(),a.getDate()+4).getMonth()+1}
 
+
+/* ================= PERSONALITY QUIZ ================= */
+// Seven rider types. Each nudges the starting stats and a few in-ride multipliers.
+const TYPES={
+  sprinter:{name:"脚自慢スプリンター",desc:"とにかく速い。ただ、飛ばしすぎて後半に脚が売り切れがち。",fx:{leg:2,staMax:-10,spiritMul:1.1},note:"巡航+2km/h　持久力-10　気力の減り+10%"},
+  iron:{name:"鉄の心ランドヌール",desc:"雨でも夜でも心が折れない。速さは控えめ。",fx:{leg:-0.5,spiritMul:0.7},note:"気力の減り-30%　巡航-0.5km/h"},
+  climber:{name:"峠ハンター",desc:"坂を見ると血が騒ぐ。体も軽い。",fx:{climb:0.08,body:-4},note:"登坂力+8%　体重-4kg"},
+  night:{name:"夜型ナイトライダー",desc:"夜道こそ本番。眠気に強い。",fx:{sleepMul:0.7},note:"夜の眠気の上がり方-30%"},
+  gourmet:{name:"グルメサイクリスト",desc:"走るのは食べるため。おいしいもので元気が出るが、体重は増えがち。",fx:{foodMul:1.5,body:3},note:"食べたときの気力回復+50%　体重+3kg"},
+  mood:{name:"みんなのムードメーカー",desc:"どこに行っても知り合いがいる。仲間と走ると強い。",fx:{fp:20},note:"仲間全員と友情+20からスタート"},
+  careful:{name:"準備の鬼",desc:"チェックリストは3回見る。トラブルが起きにくい。",fx:{punctMul:0.6,lostMul:0.5,money:30000},note:"パンク-40%　ミスコース-50%　所持金+3万円"},
+};
+const QUIZ=[
+  {q:"休日の朝、まずすることは？",a:[["とりあえず走りに出る","sprinter"],["峠の地図を眺める","climber"],["朝ごはんの店を調べる","gourmet"],["二度寝","night"]]},
+  {q:"ブルベでいちばんの楽しみは？",a:[["速く走りきる達成感","sprinter"],["知らない土地のごはん","gourmet"],["仲間とのおしゃべり","mood"],["夜明けの景色","night"]]},
+  {q:"PCの手前で雨が降ってきた。",a:[["気にせず突っ込む","iron"],["雨雲レーダーを確認する","careful"],["みんなで雨宿り","mood"],["コンビニでおでんを買う","gourmet"]]},
+  {q:"ブルベ前日の夜は？",a:[["チェックリストで荷物を確認","careful"],["だいたいで早めに寝る","iron"],["夜更かししてコースを眺める","night"],["仲間と前夜祭","mood"]]},
+  {q:"目の前に激坂が見えた！",a:[["ダンシングで突っ込む","climber"],["押して歩くのもアリ","iron"],["ギアを一番軽くする","careful"],["前の人の後ろにつく","sprinter"]]},
+  {q:"夜中の2時、あなたは？",a:[["まだまだ走れる","night"],["眠いけど心は折れない","iron"],["開いているラーメン屋を探す","gourmet"],["仲間を起こして出発","mood"]]},
+];
+function trait(){return (P&&P.trait)||{}}
+function runQuiz(done){
+  const score={};let i=0;
+  const ask=()=>{const Q=QUIZ[i];menu({title:`性格診断（${i+1}/${QUIZ.length}）`,text:Q.q,items:Q.a.map(([label,t])=>({label,fn:()=>{score[t]=(score[t]||0)+1;i++;i<QUIZ.length?ask():finish()}}))})};
+  const finish=()=>{
+    const best=Object.keys(TYPES).filter(k=>score[k]).sort((a,b)=>score[b]-score[a]||Math.random()-0.5)[0]||"iron",T=TYPES[best],f=T.fx;
+    P.trait={type:best,spiritMul:f.spiritMul||1,sleepMul:f.sleepMul||1,foodMul:f.foodMul||1,punctMul:f.punctMul||1,lostMul:f.lostMul||1};
+    P.leg+=f.leg||0;P.climb+=f.climb||0;P.staMax+=f.staMax||0;P.body+=f.body||0;P.money+=f.money||0;
+    if(f.fp)for(const id in P.fp)P.fp[id]+=f.fp;
+    SFX.win();say(`あなたは「${T.name}」`,`${T.desc}\n\n${T.note}`,done);
+  };
+  say("性格診断","ブルベに出る前に、あなたのことを少し教えてください。\n6つの質問に答えると、タイプに合わせて最初の能力が決まります。",ask);
+}
+
 /* ================= SAVE ================= */
 const BREAKFASTS=[
   {id:"sukiya",name:"すき家の朝定食",price:450,hunger:100,text:"すき家の朝定食。納豆とオクラとかつおぶしを混ぜる、いつもの食べ方。"},
@@ -942,7 +976,7 @@ function speed(){
 function log(t){R.log.push(t);if(R.log.length>30)R.log.shift();if(!UI.open)renderIdle()}
 function fx(o){if(!o)return;
   if(o.hunger)R.hunger=clamp(R.hunger+o.hunger,0,100);
-  if(o.spirit)R.spirit=clamp(R.spirit+o.spirit,0,100);
+  if(o.spirit)R.spirit=clamp(R.spirit+(o.spirit>0&&o.hunger?o.spirit*(trait().foodMul||1):o.spirit),0,100);
   if(o.stamina)R.stamina=clamp(R.stamina+o.stamina,0,R.staMax);
   if(o.temp)R.temp=clamp(R.temp+o.temp,0,100);
   if(o.sleepy)R.sleepy=clamp(R.sleepy+o.sleepy,0,100);
@@ -974,7 +1008,7 @@ function drain(dm,g,night){
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
   let sp=(night?12:7)*B.comfort*partStat().comfort*(P.gear.jersey?0.85:1);
   const d=tod(R.t)/60;
-  const nightUp=18*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
+  const nightUp=18*(trait().sleepMul||1)*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
   R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp:d<10?-3:2.5),0,100);
   if(R.sleepy>=50)sp+=R.sleepy>=80?12:5;
   if(rain)sp+=R.rainOn?1:5;
@@ -987,7 +1021,7 @@ function drain(dm,g,night){
   if(R.temp<50)sp+=6;
   if(R.hunger<15)sp+=5;
   const rz=zone(R.course.rough,R.km);if(rz&&!P.gear.bib)sp+=rz[3]==="butt"?10:4;
-  R.spirit=clamp(R.spirit-h*sp,0,100);
+  R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1),0,100);
   let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
   eff+=(P.gear.winter?4:0)+(R.windOn?6:0);
   const cold=12-eff;
@@ -1000,8 +1034,8 @@ function randomTrouble(dk,night){
   if(R.repunct&&R.km>=R.repunct){R.repunct=null;R.cool=6;say("またパンク！","やっぱりガラス片が残っていた……。",troublePuncture);return true}
   if(R.cool>0)return false;
   const rz=zone(R.course.rough,R.km),rough=rz?rz[2]:1;
-  const pRate=0.0007*bikeOf().punct*partStat().punct*rough*(raining()?1.5:1);
-  const lostRate=P.gear.navi?0.0006:(R.phone>0?0.0015:0.012);
+  const pRate=0.0007*(trait().punctMul||1)*bikeOf().punct*partStat().punct*rough*(raining()?1.5:1);
+  const lostRate=(trait().lostMul||1)*(P.gear.navi?0.0006:(R.phone>0?0.0015:0.012));
   const deerRate=night&&zone(R.course.deer,R.km)?0.03:0;
   const r=Math.random();
   let acc=pRate*dk;if(r<acc){R.cool=6;troublePuncture();return true}
@@ -1354,7 +1388,7 @@ function title(){
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
 }
-function startNew(){P=newPlayer();menu({title:"どこに住んでいる？",text:"住んでいる場所で、各地のイベントへの交通費が変わる。",items:HOMES.map(h=>({label:`${h.name}（${h.region}）`,fn:()=>{P.home=h.id;say("サイクルショップ",`所持金 ${yen(P.money)}。\nまずはブルベを走る自転車を選ぼう。`,()=>bikeShop(true))}}))})}
+function startNew(){P=newPlayer();menu({title:"どこに住んでいる？",text:"住んでいる場所で、各地のイベントへの交通費が変わる。",items:HOMES.map(h=>({label:`${h.name}（${h.region}）`,fn:()=>{P.home=h.id;runQuiz(()=>say("サイクルショップ",`所持金 ${yen(P.money)}。\nまずはブルベを走る自転車を選ぼう。`,()=>bikeShop(true)))}}))})}
 function bikeShop(first){
   G.bg={scen:"town",tod:13*60,speed:0};
   menu({title:"自転車を選ぶ",text:`所持金 ${yen(P.money)}`,items:[
@@ -1493,7 +1527,7 @@ function status(){
   const parts=Object.entries(PARTS).map(([sl,d])=>d.opts.find(o=>o.id===P.parts[sl]).name).join("、");
   const L=bestLight(),owned=GEAR.filter(g=>P.gear[g.id]).map(g=>g.name).join("、")||"なし";
   const recs=[...COURSES,...EVENTS].filter(c=>P.rec[c.id]).map(c=>{const r=P.rec[c.id];return `${c.name}：完走${r.done} DNF${r.dnf}${r.best!=null?" 最速"+dur(r.best):""}`}).join("\n")||"まだ記録なし";
-  say("ステータス",`${homeOf().name}在住　疲労 ${Math.round(P.fatigue||0)}　総走行 ${P.km.toLocaleString("ja-JP")}km\n愛車 ${bikeOf().name}（${bikeWeight().toFixed(2)}kg）\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}\nパーツ：${parts}\n前照灯 ${L?L.name:"なし"}\n装備：${owned}\n\n${recs}`,hub);
+  say("ステータス",`${P.trait?"タイプ："+TYPES[P.trait.type].name+"\n":""}${homeOf().name}在住　疲労 ${Math.round(P.fatigue||0)}　総走行 ${P.km.toLocaleString("ja-JP")}km\n愛車 ${bikeOf().name}（${bikeWeight().toFixed(2)}kg）\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}\nパーツ：${parts}\n前照灯 ${L?L.name:"なし"}\n装備：${owned}\n\n${recs}`,hub);
 }
 function friendsView(){
   const lines=Object.entries(FRIENDS).map(([id,f])=>{const v=P.fp[id];const hearts="♥".repeat(Math.round(v/20))+"♡".repeat(5-Math.round(v/20));
