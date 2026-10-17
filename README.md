@@ -50,7 +50,12 @@ URLの末尾に `#test` を付けて開くと、日付に関係なく全コー�
 index.html        紹介ページ
 app/index.html    ゲーム本体（1ファイル。フォントは Google Fonts の DotGothic16）
 assets/           アイコン・OGP画像・スクリーンショット・紹介ページのCSS
+assets/goods.json 紹介ページの道具欄の商品情報（画像・価格）
+tools/fetch_goods.py         Amazon Creators API で goods.json を取り直す
+.github/workflows/goods.yml  毎日 03:00 JST に goods.json を更新（Secrets: CREATORS_CLIENT_ID / CREATORS_CLIENT_SECRET）
 ```
+
+紹介ページの道具欄は Amazon アソシエイトのリンクです（Ride on QC と共通）。
 
 ## ライセンス
 

@@ -61,6 +61,7 @@
       <a href="#ride">走り方</a>
       <a href="#trouble">トラブル</a>
       <a href="#friends">仲間</a>
+      <a href="#goods">道具</a>
       <a href="#faq">よくある質問</a>
       <a class="btn btn-main" href="app/">いますぐ走る</a>
     </nav>
@@ -95,6 +96,42 @@
       <div class="spec"><b>スマホで1画面</b><span>ブラウザで開けばスタート地点</span></div>
     </div>
   </div>
+
+  <section class="goods" id="goods">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">GEAR</p>
+        <h2>ゲームの中の道具は、<br>本物のブルベでも。</h2>
+        <p>ゲームに出てくるナビ付きサイコンやレーダー付きテールライトは、実際のブルベでも頼りになる道具です。キューシートアプリ Ride on QC と一緒に使っているものを並べておきます。</p>
+      </div>
+      <div class="goods-grid">
+        <div class="good" data-asin="B08WLL11RK">
+          <p class="gcat">スマホホルダー</p>
+          <h3>ミノウラ iH-700</h3>
+          <p>キューシートを表示するスマホをハンドルに固定。Φ22〜35mm対応で、ゴムバンドが四隅を押さえるので機種を選びません。</p>
+          <a class="glink" href="https://www.amazon.co.jp/dp/B08WLL11RK?tag=redcomet-22" target="_blank" rel="sponsored noopener">Amazonで見る ↗</a>
+        </div>
+        <div class="good" data-asin="B0DKNX3941">
+          <p class="gcat">サイクルコンピュータ</p>
+          <h3>Bryton Rider S510</h3>
+          <p>地図表示とナビ付き。GPXを入れておけば曲がり角で知らせてくれるので、キューシートは確認用に回せます。</p>
+          <a class="glink" href="https://www.amazon.co.jp/dp/B0DKNX3941?tag=redcomet-22" target="_blank" rel="sponsored noopener">Amazonで見る ↗</a>
+        </div>
+        <div class="good" data-asin="B0DZHXSGYZ">
+          <p class="gcat">後方レーダー</p>
+          <h3>iGPSPORT SR mini</h3>
+          <p>後ろから来る車を160m先から検知してサイコンに出すテールライト。夜のブルベで後ろを気にする回数が減ります。</p>
+          <a class="glink" href="https://www.amazon.co.jp/dp/B0DZHXSGYZ?tag=redcomet-22" target="_blank" rel="sponsored noopener">Amazonで見る ↗</a>
+        </div>
+        <div class="good" data-asin="B0C11WCCYD">
+          <p class="gcat">保冷ボトル</p>
+          <h3>Bivo Trio 620ml</h3>
+          <p>真空断熱のステンレスボトル。夏のブルベで、次のPCまで冷たいまま。ストローなしで勢いよく飲めます。</p>
+          <a class="glink" href="https://www.amazon.co.jp/dp/B0C11WCCYD?tag=redcomet-22" target="_blank" rel="sponsored noopener">Amazonで見る ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section id="season">
     <div class="wrap">
@@ -336,6 +373,7 @@
     <a href="https://github.com/pikaring/brevet-quest/blob/main/README.md">README</a>
     <span class="counter">累計アクセス <b id="counter-value">―</b> 回</span>
     <span class="sep">依存ライブラリなし・外部素材なし</span>
+    <span class="disclosure">当サイトはAmazonアソシエイト・プログラムに参加しており、掲載しているリンクから商品が買われると運営者に紹介料が入る場合があります。</span>
   </div>
 </footer>
 
@@ -349,6 +387,35 @@
     .then(function (r) { return r.json(); })
     .then(function (d) { el.textContent = Number(d.count).toLocaleString('ja-JP'); })
     .catch(function () { el.textContent = '―'; });
+})();
+</script>
+<script>
+// Amazon Creators API で取った商品情報（tools/fetch_goods.py が assets/goods.json に書く）。
+// 取れていれば画像と価格を足し、無ければテキストカードのまま。
+(function () {
+  var cards = document.querySelectorAll('.good[data-asin]');
+  if (!cards.length) return;
+  fetch('assets/goods.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (d) {
+    var at = new Date(d.fetchedAt);
+    var stamp = isNaN(at) ? '' : (at.getMonth() + 1) + '/' + at.getDate() + '時点';
+    cards.forEach(function (c) {
+      var it = d.items && d.items[c.dataset.asin];
+      if (!it) return;
+      if (it.image) {
+        var img = document.createElement('img');
+        img.className = 'gimg'; img.src = it.image; img.alt = ''; img.loading = 'lazy';
+        c.insertBefore(img, c.firstChild);
+      }
+      if (it.price) {
+        var p = document.createElement('p');
+        p.className = 'gprice';
+        p.innerHTML = it.price + (stamp ? ' <small>' + stamp + '</small>' : '');
+        var link = c.querySelector('.glink');
+        c.insertBefore(p, link);
+      }
+      if (it.url) { var a = c.querySelector('.glink'); if (a) a.href = it.url; }
+    });
+  }).catch(function () { /* 取れなければ何もしない */ });
 })();
 </script>
 </body>
