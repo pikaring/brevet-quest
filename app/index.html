@@ -120,7 +120,7 @@ const BIKES={
   cromo:{name:"クロモリロード",price:100000,off:0.7,weight:10.2,aero:0.98,punct:0.95,descent:1.02,climb:1.0,comfort:0.85,color:"#a81000",
     desc:"細身のスチールフレーム。少し重いけど、しなって振動を吸収するので長距離でも疲れにくい。壊れても直して長く乗れる。"},
   alu:{name:"アルミロード",price:120000,off:0.66,weight:9.0,aero:1.0,punct:1.0,descent:1.0,climb:1.0,comfort:1.0,color:"#0058f8",
-    desc:"ブルベの定番。平地20km/h巡航の基準になる一台。"},
+    desc:"ブルベの定番。平地巡航の基準になる一台。"},
   ti:{name:"チタンロード",price:450000,off:0.68,weight:7.8,aero:1.03,punct:0.9,descent:1.05,climb:0.95,comfort:0.85,color:"#d8b8f8",
     desc:"軽くてしなやか。長距離でも疲れにくい憧れのチタン。"},
 };
@@ -769,7 +769,7 @@ const SAVE_KEY="brevet-quest-hokkaido-v1";
 let P=null;
 // Famicom palette choices for jersey, helmet and frame.
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
-function newPlayer(){return {money:200000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:20,body:72,climb:0,staMax:100,
+function newPlayer(){return {money:200000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,
   actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:{hayate:0,noro:0,hikari:0,samue:0},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
 function save(){try{localStorage.setItem(P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
@@ -923,12 +923,12 @@ function speed(){
   if(g>0)v=v/(1+g*0.2*Math.pow(m/80,1.5)*B.climb*S.climb*(1-P.climb));
   else if(g<0)v=Math.min(v*(1+(-g)*0.2)*B.descent,45);
   const hw=windNow();
-  if(hw>0)v/=1+hw*0.05*Math.sqrt(80/m)*(dh?0.7:1)*(R.train.length?0.6:1);
+  if(hw>0)v/=1+hw*0.04*Math.sqrt(80/m)*(dh?0.7:1)*(R.train.length?0.6:1);
   else v*=1-hw*0.025;
   if(R.course.offroad)v*=B.off||0.68;
   v*={slow:0.85,normal:1,hard:1.2}[R.pace];
   if(R.stamina<10)v*=0.6;else if(R.stamina<30)v*=0.85;
-  if(R.sleepy>=85)v*=0.7;else if(R.sleepy>=65)v*=0.85;
+  if(R.sleepy>=85)v*=0.8;else if(R.sleepy>=65)v*=0.92;
   if(raining())v*=0.96;
   if(R.hunger<=0)v*=0.45;
   if(R.temp<40)v*=0.85;
@@ -968,13 +968,13 @@ function drain(dm,g,night){
   const h=dm/60,B=bikeOf();
   const tr=R.train.length?1:0;
   const hw=windNow(),rain=raining(),amb=ambient(R.t,R.km);
-  const base={slow:0,normal:9,hard:26}[R.pace],climb={slow:3,normal:5,hard:9}[R.pace];
+  const base={slow:-1,normal:6,hard:22}[R.pace],climb={slow:2.5,normal:4,hard:8}[R.pace];
   const heat=Math.max(0,amb+Math.max(0,g)-26);
   R.stamina=clamp(R.stamina-h*(base+Math.max(0,g)*climb+Math.max(0,hw)*(R.pace==="hard"?1.5:0.5)+heat*1.0)*(tr?0.85:1)*(100/R.staMax),0,R.staMax);
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
   let sp=(night?12:7)*B.comfort*partStat().comfort*(P.gear.jersey?0.85:1);
   const d=tod(R.t)/60;
-  const nightUp=22*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
+  const nightUp=18*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
   R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp:d<10?-3:2.5),0,100);
   if(R.sleepy>=50)sp+=R.sleepy>=80?12:5;
   if(rain)sp+=R.rainOn?1:5;
@@ -1469,7 +1469,7 @@ function testMenu(){
   menu({title:"テストモード",text:`好きなブルベ・イベントを選べる（週は進まない、疲労なし）。\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　愛車 ${bikeOf().name}`,items:[
     ...all.map(it=>({label:`${it.kind==="brm"?it.cls+"km ":`【${KIND_LABEL[it.kind]}】`}${it.name.replace(/^BRM\d+ /,"")}`,note:jpDate(it.ymd).replace(/\(.\)$/,""),desc:eventDesc(it,costOf(it)),fn:()=>enter(it,0)})),
     {label:"サイクルショップ",fn:shopMenu},
-    {label:"能力を変える",desc:"巡航速度を選ぶたびに+2km/h（32で20に戻る）。",fn:()=>{P.leg=P.leg>=31?20:P.leg+2;save();testMenu()}},
+    {label:"能力を変える",desc:"巡航速度を選ぶたびに+2km/h（32で22に戻る）。",fn:()=>{P.leg=P.leg>=31?22:P.leg+2;save();testMenu()}},
     {label:"タイトルへ",fn:title}],keep:true,cancel:title});
 }
 function nextWeek(){
