@@ -864,7 +864,7 @@ addEventListener("keydown",e=>{
 const G={mode:"title",scroll:0,crank:0,ff:1,bg:{scen:"sea",tod:5*60+10,speed:14}};
 let R=null;
 const RATE=4;      // ride: game minutes per real second (×1)
-const PC_RATE=1;   // at PC store: game minutes tick by while you dither
+
 
 function bikeOf(){return BIKES[P.bike]}
 function looks(){return Object.assign({jersey:"#f8b800",helmet:"#fcfcfc",frames:{}},P.looks||{})}
@@ -1208,18 +1208,18 @@ function pcAct(msg,min){R.pcLast=min?`${msg}（${min}分経過）`:msg;beep(1568
 function pcMenu(keep){
   const ev=R.pc,list=[...(STORE[ev.chain]||[]),...STORE.common],items=[];
   const seated=it=>it.fx?{...it.fx,stamina:(it.fx.stamina||0)+Math.round(it.min*1.2)}:it.fx;
-  const buy=it=>{P.money-=it.price;R.receipts[ev.km]=true;if(it.min)R.t+=it.min;fx(seated(it));if(it.pocket)R.pocket.push({...it.pocket});if(it.give)R[it.give]++;R.pcBought.push(it.name.replace(/\(持ち出し\)/,""))};
+  const buy=it=>{P.money-=it.price;R.receipts[ev.km]=true;R.t+=1+(it.min||0);fx(seated(it));if(it.pocket)R.pocket.push({...it.pocket});if(it.give)R[it.give]++;R.pcBought.push(it.name.replace(/\(持ち出し\)/,""))};
   const sec=t=>items.push({header:true,disabled:true,label:t});
   sec("イートインで座って食べる（体力も回復）");
-  for(const it of list.filter(i=>i.fx))items.push({label:`${it.name}　<small>${describeFx(seated(it))}</small>`,note:`${yen(it.price)}・${it.min}分`,disabled:P.money<it.price,
-    fn:()=>{buy(it);pcAct(`${it.name}を座って食べた！ ${describeFx(seated(it))}`,it.min)}});
+  for(const it of list.filter(i=>i.fx))items.push({label:`${it.name}　<small>${describeFx(seated(it))}</small>`,note:`${yen(it.price)}・${it.min+1}分`,disabled:P.money<it.price,
+    fn:()=>{buy(it);pcAct(`${it.name}を座って食べた！ ${describeFx(seated(it))}`,it.min+1)}});
   sec("ポケットに入れて持っていく");
   for(const it of list.filter(i=>i.pocket)){const full=R.pocket.length>=6;
-    items.push({label:`${it.pocket.name}　<small>${full?"ポケットがいっぱい":"走りながら "+describeFx(it.pocket)}</small>`,note:yen(it.price),disabled:P.money<it.price||full,
-      fn:()=>{buy(it);pcAct(`${it.pocket.name}をポケットに入れた。（${R.pocket.length}/6）走行中に「食べる」で食べられる。`)}});}
+    items.push({label:`${it.pocket.name}　<small>${full?"ポケットがいっぱい":"走りながら "+describeFx(it.pocket)}</small>`,note:`${yen(it.price)}・1分`,disabled:P.money<it.price||full,
+      fn:()=>{buy(it);pcAct(`${it.pocket.name}をポケットに入れた。（${R.pocket.length}/6）走行中に「食べる」で食べられる。`,1)}});}
   sec("備品を買う");
   for(const it of list.filter(i=>i.give)){const n=it.give==="kairo"?"カイロ":"単4電池";
-    items.push({label:`${n}　<small>手持ち ${R[it.give]}</small>`,note:yen(it.price),disabled:P.money<it.price,fn:()=>{buy(it);pcAct(`${n}を買った。手持ち ${R[it.give]}。`)}});}
+    items.push({label:`${n}　<small>手持ち ${R[it.give]}</small>`,note:`${yen(it.price)}・1分`,disabled:P.money<it.price,fn:()=>{buy(it);pcAct(`${n}を買った。手持ち ${R[it.give]}。`,1)}});}
   sec("そのほか");
   items.push({label:"トイレを借りる　<small>気力+5</small>",note:"3分",fn:()=>{R.t+=3;fx({spirit:5});pcAct("すっきりした。気力+5",3)}});
   items.push({label:"イートインで仮眠　<small>眠気-20 体温は下がらない</small>",note:"15分",fn:()=>{R.t+=15;R.sleepy=clamp(R.sleepy-20,0,100);fx({spirit:10,stamina:6});pcAct("イートインの隅で15分うとうとした。",15)}});
@@ -1229,7 +1229,7 @@ function pcMenu(keep){
   items.push({label:R.receipts[ev.km]?"出発する！":"出発する！　<small>（レシートなし）</small>",fn:leavePC});
   const st=`満腹 ${Math.round(R.hunger)}　体力 ${Math.round(R.stamina)}　気力 ${Math.round(R.spirit)}　体温 ${Math.round(R.temp)}`;
   menu({title:ev.name,text:`所持金 ${yen(P.money)}　ポケット ${R.pocket.length}/6　レシート ${R.receipts[ev.km]?"あり":"まだ（何か買うともらえる）"}\n${st}${R.pcBought.length?"\n買ったもの："+R.pcBought.join("、"):""}${R.pcLast?`\n<span style="color:var(--gold)">▷ ${R.pcLast}</span>`:""}`,items,keep,
-    live:()=>`⏱ 迷っている間も時間が進む　現在 ${fmt(R.t)}　滞在 ${Math.round(R.t-R.pcArrive)}分　ゴール制限まで ${dur(R.course.start+R.course.limit-R.t)}`});
+    live:()=>`⏱ 1つ買うごとに1分　現在 ${fmt(R.t)}　滞在 ${Math.round(R.t-R.pcArrive)}分　ゴール制限まで ${dur(R.course.start+R.course.limit-R.t)}`});
 }
 function describeFx(f){if(!f)return"";const n={hunger:"満腹",spirit:"気力",stamina:"体力",temp:"体温",sleepy:"眠気",weight:"体重"};return Object.entries(f).filter(([k,v])=>v&&n[k]).map(([k,v])=>k==="weight"?`体重+${v}kg`:`${n[k]}${v>0?"+":""}${v}`).join(" ")}
 function leavePC(){
@@ -1237,11 +1237,6 @@ function leavePC(){
   const go=()=>{G.mode="ride";log(`${ev.name} 出発 ${fmt(R.t)}`);renderIdle()};
   if(!R.receipts[ev.km])return menu({title:"レシートがない！",text:"何か買わないと通過証明にならない。ゴールで失格になるかも。",items:[{label:"お店に戻る",fn:()=>pcMenu(false)},{label:"それでも出発",fn:go}]});
   go();
-}
-function pcTick(dt){
-  if(!UI.open)return;
-  R.t+=dt*PC_RATE;R.stamina=clamp(R.stamina+dt*PC_RATE*0.3,0,R.staMax);R.temp=clamp(R.temp+dt*PC_RATE*0.5,0,100);
-  const el=$("#w-live");if(el&&UI.live)el.textContent=UI.live();
 }
 
 /* ================= RIDE MENUS ================= */
@@ -1691,7 +1686,6 @@ let last=performance.now();
 function frame(now){
   const dt=Math.min(0.1,(now-last)/1000);last=now;
   if(G.mode==="ride"&&!UI.open&&R)rideTick(dt);
-  if(G.mode==="pc"&&R)pcTick(dt);
   draw(dt);updateHUD(dt);
   requestAnimationFrame(frame);
 }
