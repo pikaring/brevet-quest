@@ -1336,9 +1336,11 @@ function goal(ev){
   const C=R.course,close=C.start+C.limit,el=R.t-C.start;
   if(C.race)return raceResult(el);
   if(C.kind==="cafe"){SFX.win();G.mode="goal";P.fp[C.friend]=clamp(P.fp[C.friend]+12,0,100);
-    return endRun("楽しかった！",`${FRIENDS[C.friend].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[C.friend].name}との友情 +12`,{fatigue:4})}
+    const tr=applyTrain(trainFx({id:"cafe",kind:"cafe",dist:C.dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}));
+    return endRun("楽しかった！",`${FRIENDS[C.friend].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[C.friend].name}との友情 +12\n練習効果：${tr}`,{fatigue:4})}
   if(C.kind!=="brm"){SFX.win();G.mode="goal";Object.keys(FRIENDS).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
-    return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
+    const tr=applyTrain(trainFx(C.ev));
+    return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\n練習効果：${tr}\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
   if(R.t>close)return dnf(`${ev.name} ${fmt(R.t)} 着。制限時間 ${fmt(close)} を過ぎての時間外ゴール。認定はもらえなかった……。`);
   const miss=controls().filter(c=>!R.receipts[c.km]);
   if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
@@ -1361,7 +1363,7 @@ function raceResult(el){
   let prize="",bonus={};
   if(rank<=3){prize=`\n表彰台！ 副賞で地元の名産品と賞金 ${yen(10000)} をもらった。`;P.money+=10000}
   else if(rank<=n*0.1)prize="\n上位10%！ 仲間に自慢できる。";
-  if(C.kind==="hill")P.climb=Math.min(0.3,P.climb+0.01);
+  prize+="\n練習効果："+applyTrain(trainFx(C.ev));
   SFX.win();G.mode="goal";
   endRun(`${rank}位 / ${n}人`,`${C.name}　タイム ${Math.floor(el)}分${String(Math.round((el%1)*60)).padStart(2,"0")}秒\n（参考：真ん中くらいの参加者 ${Math.round(ref)}分）${prize}`,{fatigue:15,...bonus});
 }
@@ -1452,7 +1454,7 @@ function hub(){
   items.push({label:"トレーニングする",note:"疲労+12",desc:"ローラー・峠・ロング・ダイエットから選ぶ。",fn:trainingMenu});
   items.push({label:"残業する",note:"+¥40,000",desc:"機材費を稼ぐ。疲労+5。",fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5})});
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
-  items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
+  items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
     menu({title:"誰を誘う？",items:[...Object.entries(FRIENDS).map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1})}})),{label:"もどる",fn:hub}],cancel:hub})}});
   items.push({label:"サイクルショップ（週は進まない）",fn:shopMenu});
   items.push({label:"年間カレンダー",fn:calendarView});
@@ -1463,12 +1465,38 @@ function hub(){
     text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}`,items});
 }
 function seasonSummary(){const d=P.seasonDone||{};const s=[200,300,400,600,1000].filter(k=>d[k]).map(k=>`${k}×${d[k]}`).join(" ");return s||"まだなし"}
+
+// Practice value of non-brevet rides. Derived from distance and climbing, then flavoured per event.
+const TRAIN_SPECIAL={
+  century_tokachi:{staMax:6,label:"160kmの持久戦"},century_sapporo:{staMax:6,label:"160kmの持久戦"},
+  sorachi_gourmet:{body:0.5,label:"食べすぎ注意"},nakasatsunai:{body:0.3,label:"グルメライド"},
+  kiyosato:{staMax:4,climb:0.01,label:"150kmの山岳"},great_earth:{climb:0.01},niseko_discovery:{climb:0.01},
+  niseko_hc:{climb:0.03},kamifurano_hc:{climb:0.04},rusutsu_hc:{climb:0.02},
+  cx_hokkaido:{leg:0.4,label:"高強度のレース"},
+};
+function trainFx(it){
+  const d=it.dist,ratio=(it.gain||0)/d/10,f={leg:0,climb:0,staMax:0,body:0};
+  f.leg=Math.min(0.4,d/350);
+  if(ratio>0.6)f.climb=ratio>1?0.02:0.01;
+  if(it.kind==="gravel"){f.climb+=0.01;f.leg+=0.1}
+  if(d>=120)f.staMax=4;else if(d>=80)f.staMax=2;
+  f.body=-d/250;
+  const sp=TRAIN_SPECIAL[it.id]||{};for(const k of ["leg","climb","staMax","body"])f[k]+=sp[k]||0;
+  return f;
+}
+function trainText(f){const t=[];
+  if(f.leg>=0.005)t.push(`巡航+${f.leg.toFixed(2)}`);if(f.climb)t.push(`登坂+${Math.round(f.climb*100)}%`);if(f.staMax)t.push(`持久力+${f.staMax}`);
+  if(Math.abs(f.body)>=0.05)t.push(`体重${f.body>0?"+":""}${f.body.toFixed(1)}kg`);return t.join("　")}
+// Gains shrink as the rider gets stronger, like the weekly training.
+function applyTrain(f){const g=Math.max(0.3,1-(P.leg-22)/12);
+  P.leg=Math.min(32,P.leg+f.leg*g);P.climb=Math.min(0.3,P.climb+f.climb);P.staMax=Math.min(160,P.staMax+f.staMax);P.body=clamp(P.body+f.body,55,95);
+  return trainText({...f,leg:f.leg*g})}
 function eventDesc(it,c){
   const C=it.kind==="brm"?it:null;
   const head=C?`${C.org}　${C.dist}km　制限 ${dur(C.limit)}　${fmt(C.start)}スタート（${C.startName}）`:`${it.dist}km・獲得標高 約${it.gain}m${it.off?"・未舗装あり":""}`;
   const link=it.blog?`<br><a href="${it.blog}" target="_blank" rel="noopener">走行記（PikaCycling）</a>`:"";
   const link2=it.url?`<br><a href="${it.url}" target="_blank" rel="noopener">主催者のページ</a>`:"";
-  return `${head}\n${it.desc||""}${C&&C.estimated?"\n（PCの位置と標高はゲーム用の推定）":""}\n費用 ${yen(c)}（参加費 ${yen(feeOf(it))}＋交通・宿 ${yen(c-feeOf(it))}${it.oneWay?"、片道なので帰りの輪行代込み":""}）${link}${link2}`;
+  return `${head}\n${it.desc||""}${!C?"\n練習効果："+trainText(trainFx(it)):""}${C&&C.estimated?"\n（PCの位置と標高はゲーム用の推定）":""}\n費用 ${yen(c)}（参加費 ${yen(feeOf(it))}＋交通・宿 ${yen(c-feeOf(it))}${it.oneWay?"、片道なので帰りの輪行代込み":""}）${link}${link2}`;
 }
 function enter(it,c){
   const miss=missingGear(it.kind,it.cls||0);
