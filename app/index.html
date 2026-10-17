@@ -25,8 +25,14 @@ body{background:var(--bg);color:var(--fg);font-family:var(--pixel);font-size:15p
 #app{max-width:560px;margin:0 auto;padding-block:12px 24px;display:flex;flex-direction:column;gap:10px}
 #screen{position:relative;width:100%;aspect-ratio:256/160;max-width:100%;border:3px solid var(--fg);border-radius:4px;overflow:hidden;background:#000}
 #cv{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+#gauges{position:absolute;left:1.5%;top:2%;width:31%;background:rgba(0,0,0,.6);border-radius:3px;padding:3px 5px;display:flex;flex-direction:column;gap:1px;font-size:clamp(8px,2.4vw,11px);line-height:1.15}
+#gauges .g{display:flex;align-items:center;gap:4px;min-width:0}
+#gauges span{flex:0 0 3.1em;color:var(--fg);white-space:nowrap}
+#gauges i{flex:1;height:5px;border:1px solid var(--fg);position:relative;display:block;min-width:0;background:#000}
+#gauges b{position:absolute;inset:0 auto 0 0;display:block}
+#gauges .low span{color:var(--red);animation:blink .6s steps(1) infinite}
 .box{border:3px solid var(--fg);border-radius:8px;padding:10px 12px;background:var(--bg);box-shadow:0 0 0 3px var(--bg),0 0 0 4px var(--mute)}
-#hud{display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums}
+#hud{display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums;padding-block:6px}
 #hud .row{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:space-between}
 #hud .big{font-size:17px}
 #hud .small{font-size:13px;color:var(--dim)}
@@ -36,7 +42,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--pixel);font-size:15p
 .bar label{flex:0 0 auto;width:3.2em;color:var(--dim)}
 .bar i{flex:1;height:8px;border:1px solid var(--fg);display:block;position:relative;min-width:0}
 .bar b{position:absolute;inset:0 auto 0 0;display:block;width:50%}
-#win{min-height:150px;display:flex;flex-direction:column;gap:6px}
+#win{min-height:120px;display:flex;flex-direction:column;gap:6px}
 .w-title{color:var(--gold);font-size:16px;text-wrap:balance}
 .w-text{white-space:pre-line}
 .w-live{color:var(--sky);font-variant-numeric:tabular-nums}
@@ -54,8 +60,8 @@ body{background:var(--bg);color:var(--fg);font-family:var(--pixel);font-size:15p
 .log p{margin:0}
 .log p:last-child{color:var(--fg)}
 .log p:not(:last-child){color:var(--mute)}
-#ctrl{display:flex;flex-wrap:wrap;gap:6px}
-#ctrl button{all:unset;cursor:pointer;border:2px solid var(--fg);border-radius:4px;padding:4px 10px;font-size:14px;flex:1 1 auto;text-align:center}
+#ctrl{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+#ctrl button{all:unset;cursor:pointer;border:2px solid var(--fg);border-radius:4px;padding:6px 0;font-size:clamp(10px,3vw,13px);letter-spacing:-.04em;text-align:center;white-space:nowrap;overflow:hidden;min-width:0}
 #ctrl button.on{background:var(--fg);color:var(--bg)}
 #ctrl button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .help{font-size:12px;color:var(--mute)}
@@ -68,23 +74,16 @@ a{color:var(--sky)}
 </head>
 <body>
 <div id="app">
-  <div id="screen"><canvas id="cv" width="256" height="160" aria-label="ゲーム画面"></canvas></div>
-  <div id="hud" class="box" hidden>
-    <div class="row big"><span id="h-time"></span><span id="h-dist"></span><span id="h-spd"></span></div>
-    <div class="row small" id="h-next"></div>
-    <div class="row small" id="h-wx"></div>
-    <div class="bars">
-      <div class="bar"><label>体力</label><i><b id="b-sta" style="background:var(--green)"></b></i></div>
-      <div class="bar"><label>満腹</label><i><b id="b-hun" style="background:var(--gold)"></b></i></div>
-      <div class="bar"><label>気力</label><i><b id="b-spi" style="background:var(--pink)"></b></i></div>
-      <div class="bar"><label>体温</label><i><b id="b-tmp" style="background:var(--red)"></b></i></div>
-      <div class="bar"><label>ライト</label><i><b id="b-lit" style="background:#fce0a8"></b></i></div>
-      <div class="bar"><label>スマホ</label><i><b id="b-pho" style="background:var(--blue)"></b></i></div>
-      <div class="bar"><label>眠気</label><i><b id="b-slp" style="background:#9878f8"></b></i></div>
-    </div>
-    <div class="row small" id="h-inv"></div>
-  </div>
-  <div id="win" class="box"></div>
+  <div id="screen"><canvas id="cv" width="256" height="160" aria-label="ゲーム画面"></canvas>
+    <div id="gauges" hidden>
+      <div class="g"><span>体力</span><i><b id="g-sta" style="background:var(--green)"></b></i></div>
+      <div class="g"><span>満腹</span><i><b id="g-hun" style="background:var(--gold)"></b></i></div>
+      <div class="g"><span>気力</span><i><b id="g-spi" style="background:var(--pink)"></b></i></div>
+      <div class="g"><span>体温</span><i><b id="g-tmp" style="background:var(--red)"></b></i></div>
+      <div class="g"><span>眠気</span><i><b id="g-slp" style="background:#9878f8"></b></i></div>
+      <div class="g"><span>ライト</span><i><b id="g-lit" style="background:#fce0a8"></b></i></div>
+      <div class="g"><span>スマホ</span><i><b id="g-pho" style="background:var(--blue)"></b></i></div>
+    </div></div>
   <div id="ctrl" hidden>
     <button id="c-slow" data-pace="slow">ゆっくり</button>
     <button id="c-norm" data-pace="normal">ふつう</button>
@@ -93,6 +92,13 @@ a{color:var(--sky)}
     <button id="c-ff">×1</button>
     <button id="c-menu">メニュー</button>
   </div>
+  <div id="hud" class="box" hidden>
+    <div class="row big"><span id="h-time"></span><span id="h-dist"></span><span id="h-spd"></span></div>
+    <div class="row small" id="h-next"></div>
+    <div class="row small" id="h-wx"></div>
+    <div class="row small" id="h-inv"></div>
+  </div>
+  <div id="win" class="box"></div>
   <div class="help">操作：↑↓で選ぶ、Z / Enter で決定、X / Esc で戻る。走行中は 1・2・3 でペース、E で食べる、F で早送り。コースは作者のブログ記録をもとにした概略です（標高・一部地点は推定）。</div>
 </div>
 
@@ -1341,7 +1347,7 @@ function endRun(title,text,o={}){
   save();
   menu({title,text:text+extra+`\n疲労 ${Math.round(P.fatigue)}`,items:[{label:"家に帰る",fn:()=>{R=null;nextWeek()}}]});
 }
-function showRideUI(on){$("#hud").hidden=!on;$("#ctrl").hidden=!on}
+function showRideUI(on){$("#hud").hidden=!on;$("#ctrl").hidden=!on;$("#gauges").hidden=!on}
 
 /* ================= MENUS: TITLE / SHOP / HUB ================= */
 function title(){
@@ -1539,8 +1545,8 @@ function updateHUD(dt){
   if(R.sleepy>=60)tags.push(R.sleepy>=85?'<span class="warn">限界まで眠い</span>':"眠い");
   if(R.lodge!=null){const L=R.course.lodges[R.lodge];if(L.km>R.km)tags.push(`宿：${L.name}（あと${(L.km-R.km).toFixed(0)}km）`)}
   $("#h-wx").innerHTML=`<span>風 ${aw<1.5?"ほぼ無風":(hw>0?'<span class="warn">向かい風</span>':"追い風")+" "+aw.toFixed(1)+"m/s"}（${compass(R.windDay.dir)}の風）${tags.length?"　"+tags.join("　"):""}</span>`;
-  const set=(id,val)=>{$(id).style.width=clamp(val,0,100)+"%"};
-  set("#b-sta",R.stamina/R.staMax*100);set("#b-hun",R.hunger);set("#b-spi",R.spirit);set("#b-tmp",R.temp);set("#b-lit",R.light/R.lightMax*100);set("#b-pho",R.phone);set("#b-slp",R.sleepy);
+  for(const [id,v,inv] of [["sta",R.stamina/R.staMax*100],["hun",R.hunger],["spi",R.spirit],["tmp",R.temp],["slp",R.sleepy,1],["lit",R.light/R.lightMax*100],["pho",R.phone]]){
+    const el=$("#g-"+id);el.style.width=clamp(v,0,100)+"%";el.parentNode.parentNode.classList.toggle("low",inv?v>=70:v<25)}
   const pk={};R.pocket.forEach(p=>pk[p.name]=(pk[p.name]||0)+1);
   $("#h-inv").textContent=`${yen(P.money)}　チューブ${R.tubes}　電池${R.batteries}　カイロ${R.kairo}${R.bank?"　バッテリー"+R.bank:""}　ポケット：${Object.entries(pk).map(([k,n])=>k+"×"+n).join(" ")||"なし"}${R.train.length?"　トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("・"):""}`;
 }
