@@ -225,8 +225,8 @@ const STORE={
 // Restaurant stops along the courses: rich food adds a little body weight.
 const OILY=[[/焼肉|豚丼|天丼|カツ|和牛/,0.15],[/ラーメン|ピザ|ラッキーピエロ|オムカレー|やきとり|パスタ|バーガー|お好み焼き/,0.1],[/ソフト|シュークリーム|たい焼き|甘酒/,0.03]];
 const FRIENDS={
-  hayate:{name:"ハヤテさん",color:"#d82800",trouble:"puncture",trait:"登りが速い。予備チューブをよく使い切る。"},
-  noro:{name:"ノロさん",color:"#00b800",trouble:"hunger",trait:"マイペースで完走する。補給を忘れがち。"},
+  hayate:{pace:"fast",name:"ハヤテさん",color:"#d82800",trouble:"puncture",trait:"登りが速い。予備チューブをよく使い切る。"},
+  noro:{pace:"slow",name:"ノロさん",color:"#00b800",trouble:"hunger",trait:"マイペースで完走する。補給を忘れがち。"},
   hikari:{name:"ヒカリさん",color:"#fca044",trouble:"light",trait:"夜に強いが、ライトの扱いに弱い。"},
   samue:{name:"サムエさん",color:"#6888fc",trouble:"cold",trait:"寒がり。下りで震えている。"},
 };
@@ -734,11 +734,11 @@ function mealCheck(){
           if(m.detour)R.t+=m.detour;
           if(m.closed&&Math.random()<m.closed){fx({spirit:-15});SFX.bad();return say("臨時休業……",`はるばる来たのに「本日臨時休業」の貼り紙。\n${m.detour}分の寄り道が無駄になった。気力-15`,()=>log(`${label}を食べそこねた……。`))}
           let wait=0;if(m.crowd&&Math.random()<m.crowd){wait=30;fx({spirit:-6})}
-          P.money-=m.price;R.t+=m.min+wait;fx(seated(m));R.lastMeal=R.t;SFX.ok();
+          P.money-=m.price;R.t+=m.min+wait;fx(seated(m));R.lastMeal=R.t;SFX.ok();trainStop(true);
           if(wait)return say("大行列！",`観光バスが着いたばかりで、30分待たされた。\n${describeFx(seated(m))}`,()=>log(`${m.name}で${label}（30分待ち）。`));
           if(m.detour)return say("絶品！",`寄り道した甲斐があった。\n${describeFx(seated(m))}`,()=>log(`${m.name}。来てよかった。`));
           log(`${m.name}で${label}。`)}})),
-      {label:"コンビニ補給で済ませて先へ",fn:()=>log(`${label}はパス。先を急ぐ。`)}]});
+      {label:"コンビニ補給で済ませて先へ",fn:()=>{log(`${label}はパス。先を急ぐ。`);for(const m of R.train.filter(x=>!x.cafe))if(Math.random()<0.35)leaveTrain(m,`「お腹すいたから、${label}食べていきます！」`)}}]});
     return true}
   return false;
 }
@@ -994,7 +994,7 @@ function simStep(dm){
   }
   R.km+=dk;R.t+=dm;drain(dm,g,night);
   // train members leave
-  for(const m of R.train.slice())if(R.km>=m.until){R.train=R.train.filter(x=>x!==m);log(`${FRIENDS[m.id].name}「先に行きますね！ ゴールで会いましょう」`)}
+  {const m=R.train.find(x=>!x.cafe&&R.km>=x.until);if(m){trainSplit(m);return}}
   if(randomTrouble(dk,night))return;
   checkStates(night);
 }
@@ -1198,9 +1198,34 @@ function sightEvent(ev){
   const left=R.course.start+R.course.limit-R.t;
   // Eating at a restaurant stop means sitting down, so stamina comes back too (same rule as the PC eat-in).
   const eff=ev.fx&&ev.fx.hunger?{...ev.fx,stamina:(ev.fx.stamina||0)+Math.round(ev.min*1.2)}:ev.fx;
+  const doStop=P.money>=ev.price?()=>{R.t+=ev.min;P.money-=ev.price;fx(eff);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。${describeFx(eff)}`)}:null;
   menu({title:ev.name,text:`${ev.text}\nゴールのクローズまで あと${dur(left)}`,items:[
-    {label:`立ち寄る　<small>${describeFx(eff)}</small>`,note:`${ev.min}分${ev.price?" "+yen(ev.price):""}`,disabled:ev.price>P.money,fn:()=>{R.t+=ev.min;P.money-=ev.price;fx(eff);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。${describeFx(eff)}`)}},
-    {label:"先を急ぐ",fn:()=>log(`${ev.name}はまた今度。`)}]});
+    {label:`立ち寄る　<small>${describeFx(eff)}</small>`,note:`${ev.min}分${ev.price?" "+yen(ev.price):""}`,disabled:!doStop,fn:()=>{doStop();trainStop(true)}},
+    {label:"先を急ぐ",fn:()=>{log(`${ev.name}はまた今度。`);trainStop(false,doStop)}}]});
+}
+// ---- Train etiquette: partners ask before speeding up, slowing down or splitting at a stop ----
+function leaveTrain(m,msg){R.train=R.train.filter(x=>x!==m);log(`${FRIENDS[m.id].name}${msg}`)}
+function trainSplit(m){
+  const F=FRIENDS[m.id];
+  if(m.extended){if(m.forced){R.pace="normal";updatePaceBtns()}return leaveTrain(m,"「ありがとう！ ここからはマイペースで行きます。ゴールで会いましょう」")}
+  const want=F.pace==="fast"?"hard":F.pace==="slow"?"slow":(Math.random()<0.5?"hard":"slow");
+  if(want==="hard")return menu({title:`${F.name}「ちょっとペース上げたいんだけど、いい？」`,text:"ついていけば、もうしばらくトレインで走れる。ただし体力と気力をたくさん使う。",items:[
+    {label:"ついていく（がんばる）",note:"約20km",disabled:R.spirit<15,desc:R.spirit<15?"気力が足りなくて、ついていけない。":"",fn:()=>{m.until=R.km+rnd(15,25);m.extended=m.forced=true;R.pace="hard";updatePaceBtns();log(`${F.name}の後ろに張りついて、ペースを上げた！`)}},
+    {label:"先に行ってください",fn:()=>leaveTrain(m,"「了解！ じゃあ、また後で！」")}]});
+  menu({title:`${F.name}「ちょっと脚にきたから、ゆっくり行きたいな」`,text:"合わせれば一緒に走れるが、ペースは落ちる。",items:[
+    {label:"合わせる（ゆっくり）",note:"約15km",fn:()=>{m.until=R.km+rnd(10,20);m.extended=m.forced=true;R.pace="slow";updatePaceBtns();P.fp[m.id]=clamp(P.fp[m.id]+3,0,100);log(`${F.name}に合わせてペースを落とした。友情+3`)}},
+    {label:"先に行きます",fn:()=>leaveTrain(m,"「気にしないで！ 先に行って」")}]});
+}
+// The player changes pace: partners who can't or won't match it drop off — confirm first.
+function paceConflicts(p){return R.train.filter(m=>!m.cafe&&(p==="hard"?FRIENDS[m.id].pace!=="fast":p==="slow"?FRIENDS[m.id].pace==="fast":false))}
+// Someone stops at a sight or a restaurant and the other may not.
+function trainStop(stopped,doStop){
+  const ms=R.train.filter(m=>!m.cafe);if(!ms.length)return;
+  if(stopped){for(const m of ms){if(Math.random()<0.5){P.fp[m.id]=clamp(P.fp[m.id]+2,0,100);log(`${FRIENDS[m.id].name}も一緒に寄った。`)}else leaveTrain(m,"「ぼくは先に行ってます！」")}return}
+  const m=ms.find(()=>Math.random()<0.35);if(!m)return;
+  menu({title:`${FRIENDS[m.id].name}「ここ、寄っていきたいな」`,text:"一緒に寄るか、ここで別れるか。",items:[
+    {label:"一緒に寄る",disabled:!doStop,fn:()=>{doStop();P.fp[m.id]=clamp(P.fp[m.id]+3,0,100);log(`${FRIENDS[m.id].name}と一緒に寄り道。友情+3`)}},
+    {label:"先に行く",fn:()=>leaveTrain(m,"「じゃあ、また後で！」")}]});
 }
 function joinTrain(id,km){if(R.train.find(m=>m.id===id))return;R.train.push({id,until:R.km+km});SFX.friend();log(`${FRIENDS[id].name}とトレインを組んだ！`)}
 function gainFp(id,n){P.fp[id]=clamp(P.fp[id]+n,0,100);if(n>0)log(`${FRIENDS[id].name}との友情 +${n}`)}
@@ -1296,7 +1321,14 @@ function pauseMenu(){
   items.push({label:"リタイアする",fn:()=>menu({title:"本当にリタイアする？",items:[{label:"やめない",fn:()=>{}},{label:"リタイアする",fn:()=>dnf("自分の判断でリタイアした。")}],cancel:()=>{}})});
   menu({title:"ひと休み（時間は止まっている）",text:`${R.course.name}\n${R.train.length?"トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("、"):"ソロで走行中"}`,items,cancel:()=>{}});
 }
-function setPace(p){if(!R)return;if(p==="hard"&&R.spirit<15){log("気力が残っていない。がんばれない……。");return}R.pace=p;updatePaceBtns()}
+function setPace(p){if(!R)return;if(p==="hard"&&R.spirit<15){log("気力が残っていない。がんばれない……。");return}
+  if(p!==R.pace&&G.mode==="ride"&&!UI.open){const c=paceConflicts(p);
+    if(c.length){const names=c.map(m=>FRIENDS[m.id].name).join("と");
+      return menu({title:"トレインが崩れる",text:`ペースを「${{hard:"がんばる",slow:"ゆっくり",normal:"ふつう"}[p]}」にすると、${names}とは離れることになる。いい？`,items:[
+        {label:"ペースを変える",fn:()=>{c.forEach(m=>leaveTrain(m,p==="hard"?"「速い！ 先に行って！」":"「じゃあ先に行くね！」"));R.pace=p;updatePaceBtns()}},
+        {label:"やめる",fn:()=>{}}],cancel:()=>{}})}}
+  for(const m of R.train)m.forced=false;
+  R.pace=p;updatePaceBtns()}
 function updatePaceBtns(){document.querySelectorAll("[data-pace]").forEach(b=>{b.classList.toggle("on",R&&b.dataset.pace===R.pace);if(b.dataset.pace==="hard")b.style.opacity=R&&R.spirit<15?0.35:1})}
 function toggleFF(){G.ff=G.ff===1?2:G.ff===2?4:1;$("#c-ff").textContent="×"+G.ff}
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>setPace(b.dataset.pace)));
@@ -1378,7 +1410,15 @@ function endRun(title,text,o={}){
   let extra="";
   if(o.grow){const g=o.grow/200;P.leg=Math.min(32,P.leg+0.15*g);P.staMax=Math.min(160,P.staMax+Math.round(2*g));extra=`\n長距離を走って脚が少し強くなった（巡航 ${P.leg.toFixed(1)}km/h、持久力 ${P.staMax}）。`}
   save();
-  menu({title,text:text+extra+`\n疲労 ${Math.round(P.fatigue)}`,items:[{label:"家に帰る",fn:()=>{R=null;nextWeek()}}]});
+  const items=[{label:"家に帰る",fn:()=>{R=null;nextWeek()}}];
+  // Back-to-back brevets (e.g. 後志300 → ウニタラコ200, 岩木山200 → 北へ600): go straight on to the next start.
+  if(R&&R.course.kind==="brm"&&R.course.ymd&&!P.test){const cur=R.course,fin=Math.floor(R.t/1440);
+    for(const n of weekItems(P.week).filter(c=>c.kind==="brm"&&c.id!==cur.id&&(ymdDate(c.ymd)-ymdDate(cur.ymd))/864e5>fin&&!(P.rec[c.id]&&P.rec[c.id].week===P.week))){
+      const cost=feeOf(n)+(n.region===cur.region?0:9000);
+      items.unshift({label:`続けて「${n.name.replace(/^BRM\d+ /,"")}」に出る`,note:`${jpDate(n.ymd).replace(/^\d+月/,"")} ${yen(cost)}`,disabled:P.money<cost,
+        desc:`家に帰らず、そのまま次のスタートへ。疲労 ${Math.round(P.fatigue)} を抱えたまま走る。${n.region===cur.region?"":"移動費込み。"}`,fn:()=>{R=null;enter(n,cost)}})}}
+  if(R&&P.rec[R.course.id])P.rec[R.course.id].week=P.week;
+  menu({title,text:text+extra+`\n疲労 ${Math.round(P.fatigue)}`,items});
 }
 function showRideUI(on){$("#hud").hidden=!on;$("#ctrl").hidden=!on;$("#gauges").hidden=!on}
 
@@ -1457,7 +1497,7 @@ function hub(){
   items.push({label:"残業する",note:"+¥40,000",desc:"機材費を稼ぐ。疲労+5。",fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5})});
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
   items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
-    menu({title:"誰を誘う？",items:[...Object.entries(FRIENDS).map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1})}})),{label:"もどる",fn:hub}],cancel:hub})}});
+    menu({title:"誰を誘う？",items:[...Object.entries(FRIENDS).map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1,cafe:true})}})),{label:"もどる",fn:hub}],cancel:hub})}});
   items.push({label:"サイクルショップ（週は進まない）",fn:shopMenu});
   items.push({label:"年間カレンダー",fn:calendarView});
   items.push({label:"ステータス",fn:status});
