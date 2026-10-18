@@ -1196,8 +1196,10 @@ function trigger(ev){
 }
 function sightEvent(ev){
   const left=R.course.start+R.course.limit-R.t;
+  // Eating at a restaurant stop means sitting down, so stamina comes back too (same rule as the PC eat-in).
+  const eff=ev.fx&&ev.fx.hunger?{...ev.fx,stamina:(ev.fx.stamina||0)+Math.round(ev.min*1.2)}:ev.fx;
   menu({title:ev.name,text:`${ev.text}\nゴールのクローズまで あと${dur(left)}`,items:[
-    {label:"立ち寄る",note:`${ev.min}分${ev.price?" "+yen(ev.price):""}`,disabled:ev.price>P.money,fn:()=>{R.t+=ev.min;P.money-=ev.price;fx(ev.fx);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。気力が回復！`)}},
+    {label:`立ち寄る　<small>${describeFx(eff)}</small>`,note:`${ev.min}分${ev.price?" "+yen(ev.price):""}`,disabled:ev.price>P.money,fn:()=>{R.t+=ev.min;P.money-=ev.price;fx(eff);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。${describeFx(eff)}`)}},
     {label:"先を急ぐ",fn:()=>log(`${ev.name}はまた今度。`)}]});
 }
 function joinTrain(id,km){if(R.train.find(m=>m.id===id))return;R.train.push({id,until:R.km+km});SFX.friend();log(`${FRIENDS[id].name}とトレインを組んだ！`)}
