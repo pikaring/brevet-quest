@@ -950,9 +950,16 @@ function closeOf(km){const C=R.course;if(km>=C.dist-0.01)return C.start+C.limit;
 function controls(){return R.course.events.filter(e=>e.type==="pc"||e.type==="check")}
 function nextControl(){return R.course.events.find(e=>(e.type==="pc"||e.type==="goal")&&e.km>R.km+0.001)}
 
+// Long rides: legs get heavy with the kilometres (only proper sleep brings them back),
+// and sleep debt piles up across days — the second night is far worse than the first.
+function legFatigue(){return 1-Math.min(0.2,0.0004*Math.max(0,(R.legKm||0)-250))}
+function awakeH(){return (R.t-(R.woke??R.course.start))/60}
+function sleepDebt(){return Math.max(0,awakeH()-18)}
 function speed(){
   const B=bikeOf(),S=partStat(),g=gradeAt(R.km),m=P.body+bikeWeight()+R.load,dh=dhOn();
-  let v=P.leg*B.aero*S.aero*(1-R.load*0.012)*(dh?1.06:1);
+  // the edge from training fades as the hours pile up — on day 3 everyone rides about the same
+  const leg=P.leg>22?22+(P.leg-22)*Math.max(0.2,1-Math.max(0,(R.legKm||0)-150)/300):P.leg;
+  let v=leg*B.aero*S.aero*(1-R.load*0.012)*(dh?1.06:1);
   // heavier riders suffer more on climbs, but punch through headwind a little better
   if(g>0)v=v/(1+g*0.2*Math.pow(m/80,1.5)*B.climb*S.climb*(1-P.climb));
   else if(g<0)v=Math.min(v*(1+(-g)*0.2)*B.descent,45);
@@ -968,6 +975,7 @@ function speed(){
   if(R.temp<40)v*=0.85;
   if(R.spirit>=80)v*=1.03;else if(R.spirit<15)v*=0.8;else if(R.spirit<30)v*=0.9;else if(R.spirit<50)v*=0.95;
   if(isNight(R.t)){v*=R.light>0?R.lightNight:1;if(R.light<=0)v=Math.min(v,P.gear.helmet_light?15:10)}
+  v*=legFatigue();
   v*=1+0.06*R.train.length;
   return Math.max(3,v);
 }
@@ -992,7 +1000,7 @@ function simStep(dm){
   if(ev&&R.km+dk>=ev.km){
     const frac=(ev.km-R.km)/dk;R.km=ev.km;R.t+=dm*frac;drain(dm*frac,g,night);R.evIdx++;trigger(ev);return;
   }
-  R.km+=dk;R.t+=dm;drain(dm,g,night);
+  R.km+=dk;R.legKm=(R.legKm||0)+dk;R.t+=dm;drain(dm,g,night);
   // train members leave
   {const m=R.train.find(x=>!x.cafe&&R.km>=x.until);if(m){trainSplit(m);return}}
   if(randomTrouble(dk,night))return;
@@ -1008,8 +1016,9 @@ function drain(dm,g,night){
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
   let sp=(night?12:7)*B.comfort*partStat().comfort*(P.gear.jersey?0.85:1);
   const d=tod(R.t)/60;
-  const nightUp=18*(trait().sleepMul||1)*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
-  R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp:d<10?-3:2.5),0,100);
+  R.movH=(R.movH||0)+h;
+  const debt=sleepDebt(),nightUp=18*(1+debt/20)*(trait().sleepMul||1)*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
+  R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp:(d<10&&debt<6?-3:2.5+debt*0.25)),Math.min(70,debt*1.5),100);
   if(R.sleepy>=50)sp+=R.sleepy>=80?12:5;
   if(rain)sp+=R.rainOn?1:5;
   if(R.pace==="hard")sp+=25;
@@ -1062,6 +1071,8 @@ function checkStates(night){
   if(R.stamina<30&&!f.tired){f.tired=true;log("脚がへばってきた……。「ゆっくり」にすると回復する。")}
   if(R.sleepy<45)f.sleepy=false;
   if(R.sleepy>=60&&!f.sleepy){f.sleepy=true;log("眠い……。速度と気力が落ちてきた。メニューから仮眠できる。")}
+  if(sleepDebt()>=8&&!f.debt){f.debt=true;log("寝不足がたまってきた。短い仮眠では眠気が抜けきらない。90分以上眠ろう。")}else if(sleepDebt()<4)f.debt=false;
+  if((R.legKm||0)>=450&&!f.legs){f.legs=true;log("脚が重い……。ここからは誰でも同じ。宿でしっかり眠ると脚が戻る。")}else if((R.legKm||0)<300)f.legs=false;
   if(R.sleepy>=99)return forcedCrash();
   if(R.sleepy>=80&&Math.random()<(R.sleepy-75)*0.004)return troubleDoze();
   if(R.temp>70)f.coldAsk=false;
@@ -1159,8 +1170,9 @@ function troubleDoze(){
 }
 
 // Sleep: a hotel restores far more than a roadside nap, and a nap leaves you cold.
-function nap(min,msg){R.t+=min;R.sleepy=clamp(R.sleepy-min*1.4,0,100);fx({spirit:min*0.8,stamina:min*0.5,temp:-Math.min(15,min*0.4)});log(msg)}
-function sleepHotel(hours,L){R.t+=hours*60;R.sleepy=clamp(R.sleepy-hours*45,0,100);
+function rest(min){R.woke=Math.min(R.t,(R.woke??R.course.start)+min*(min>=90?6:3));R.legKm=Math.max(0,(R.legKm||0)-min*(min>=90?1:0.3))}
+function nap(min,msg){R.t+=min;rest(min);R.sleepy=clamp(R.sleepy-min*1.4,Math.min(70,sleepDebt()*1.5),100);fx({spirit:min*0.8,stamina:min*0.5,temp:-Math.min(15,min*0.4)});log(msg)}
+function sleepHotel(hours,L){R.t+=hours*60;R.woke=R.t;R.legKm=Math.max(0,(R.legKm||0)-hours*50);R.sleepy=clamp(R.sleepy-hours*45,0,100);
   fx({spirit:30+hours*15,stamina:hours*30,temp:100,hunger:-hours*4});R.phone=100;if(R.lightType==="usb")R.light=R.lightMax;R.windOn=false;R.rainOn=false;
   log(`${L.name}で${hours}時間眠った。シャワーを浴びて、充電もできた。`)}
 function lodgeEvent(L,i){
@@ -1283,7 +1295,7 @@ function pcMenu(keep){
     items.push({label:`${n}　<small>手持ち ${R[it.give]}</small>`,note:`${yen(it.price)}・1分`,disabled:P.money<it.price,fn:()=>{buy(it);pcAct(`${n}を買った。手持ち ${R[it.give]}。`,1)}});}
   sec("そのほか");
   items.push({label:"トイレを借りる　<small>気力+5</small>",note:"3分",fn:()=>{R.t+=3;fx({spirit:5});pcAct("すっきりした。気力+5",3)}});
-  items.push({label:"イートインで仮眠　<small>眠気-20 体温は下がらない</small>",note:"15分",fn:()=>{R.t+=15;R.sleepy=clamp(R.sleepy-20,0,100);fx({spirit:10,stamina:6});pcAct("イートインの隅で15分うとうとした。",15)}});
+  items.push({label:"イートインで仮眠　<small>眠気-20 体温は下がらない</small>",note:"15分",fn:()=>{R.t+=15;rest(15);R.sleepy=clamp(R.sleepy-20,Math.min(70,sleepDebt()*1.5),100);fx({spirit:10,stamina:6});pcAct("イートインの隅で15分うとうとした。",15)}});
   items.push({label:"座って休憩　<small>体力+15 体温+10</small>",note:"10分",fn:()=>{R.t+=10;fx({stamina:15,temp:10});pcAct("座って休んだ。体力+15 体温+10",10)}});
   if(R.bank>0)items.push({label:`モバイルバッテリーで充電　<small>${R.lightType==="usb"?"ライト・スマホ満タン":"スマホ満タン"}</small>`,note:`残${R.bank}回`,fn:()=>{R.bank--;R.phone=100;if(R.lightType==="usb")R.light=R.lightMax;pcAct("充電した。")}});
   if(R.wind)items.push({label:R.windOn?"ウインドブレーカーを脱ぐ":"ウインドブレーカーを着る",note:"1分",fn:()=>{R.windOn=!R.windOn;R.t+=1;pcAct(R.windOn?"ウインドブレーカーを着た。":"ウインドブレーカーを脱いだ。",1)}});
@@ -1317,6 +1329,7 @@ function pauseMenu(){
   if(R.rainGear)items.push({label:R.rainOn?"レインウェアを脱ぐ":"レインウェアを着る",fn:()=>{R.rainOn=!R.rainOn;R.t+=2;log(R.rainOn?"レインウェアを着た。":"レインウェアを脱いだ。")}});
   items.push({label:"道端で仮眠する",note:"15分",desc:"眠気・気力・体力が回復するが、体が冷える。",fn:()=>nap(15,"15分だけ目を閉じた。少し楽になった。")});
   items.push({label:"しっかり仮眠する",note:"45分",desc:"バス停や道の駅のベンチで。",fn:()=>nap(45,"バス停のベンチで45分眠った。体が冷えた。")});
+  items.push({label:"道の駅で眠る",note:"90分",desc:"寝袋代わりにエマージェンシーシートをかぶって。90分以上眠ると、たまった眠気と脚の疲れがかなり抜ける。",fn:()=>nap(90,"道の駅の軒下で90分眠った。頭がすっきりした。")});
   items.push({label:muted?"音を出す":"音を消す",fn:()=>{muted=!muted}});
   items.push({label:"リタイアする",fn:()=>menu({title:"本当にリタイアする？",items:[{label:"やめない",fn:()=>{}},{label:"リタイアする",fn:()=>dnf("自分の判断でリタイアした。")}],cancel:()=>{}})});
   menu({title:"ひと休み（時間は止まっている）",text:`${R.course.name}\n${R.train.length?"トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("、"):"ソロで走行中"}`,items,cancel:()=>{}});
@@ -1351,7 +1364,7 @@ function startRun(C){
     light:L.light.hours,lightMax:L.light.hours,lightType:L.light.type,lightNight:Math.min(1,L.light.night+(P.gear.helmet_light?0.03:0)),backup:frontLights()[1]||null,phone:100,bank:p.bank?2:0,
     kit:p.kit>0,tubes:(p.kit?1:0)+(p.tube||0),link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,
     pocket,load:packWeight(p),receipts:{},train:[],events,evIdx:0,f:{},log:[],cool:3,deer:false,windDay:{dir:rnd(0,360),spd:rnd(1,6.5)},meals:{},lastMeal:C.start,lodge:C.lodges&&P.lodgePick>=0&&P.lodgePick<C.lodges.length?P.lodgePick:null,
-    sleepy:C.start<5*60?30:C.start>=20*60?25:0};
+    sleepy:C.start<5*60?30:C.start>=20*60?25:0,legKm:0,woke:C.start<5*60?C.start-90:Math.min(C.start-60,7*60)};
   if(C.rain)R.rainZones=C.rain;
   else if(Math.random()<(C.rainChance??0.25)){const a=rnd(0.05,0.7)*C.dist;R.rainZones=[[a,a+rnd(0.15,0.35)*C.dist]]}
   G.mode="pre";G.ff=1;$("#c-ff").textContent="×1";
