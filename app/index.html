@@ -807,7 +807,7 @@ const SAVE_KEY="brevet-quest-hokkaido-v1";
 let P=null;
 // Famicom palette choices for jersey, helmet and frame.
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
-function newPlayer(){return {money:200000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,
+function newPlayer(){return {money:200000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastRide:0,
   actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:{hayate:0,noro:0,hikari:0,samue:0},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
 function save(){try{localStorage.setItem(P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
@@ -818,6 +818,7 @@ function migrate(p){
   for(const sl in PARTS){if(!PARTS[sl].opts.some(x=>x.id===p.parts[sl]))p.parts[sl]=PARTS[sl].opts[0].id;p.owned[sl+":"+p.parts[sl]]=true}
   if(p.pack&&p.pack.rain===undefined)p.pack.rain=0;
   if(p.week===undefined)Object.assign(p,{home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4});
+  if(p.lastRide===undefined)p.lastRide=p.week;if(!p.spiMax)p.spiMax=100;if(!p.sleepMax)p.sleepMax=100;
   if(p.leg>25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1&&!p.test)p.leg=25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1;
   return p;
 }
@@ -989,7 +990,7 @@ function speed(){
 function log(t){R.log.push(t);if(R.log.length>30)R.log.shift();if(!UI.open)renderIdle()}
 function fx(o){if(!o)return;
   if(o.hunger)R.hunger=clamp(R.hunger+o.hunger,0,100);
-  if(o.spirit)R.spirit=clamp(R.spirit+(o.spirit>0&&o.hunger?o.spirit*(trait().foodMul||1):o.spirit),0,100);
+  if(o.spirit)R.spirit=clamp(R.spirit+(o.spirit>0&&o.hunger?o.spirit*(trait().foodMul||1):o.spirit),0,R.spiMax||100);
   if(o.stamina)R.stamina=clamp(R.stamina+o.stamina,0,R.staMax);
   if(o.temp)R.temp=clamp(R.temp+o.temp,0,100);
   if(o.sleepy)R.sleepy=clamp(R.sleepy+o.sleepy,0,100);
@@ -1023,7 +1024,8 @@ function drain(dm,g,night){
   const d=tod(R.t)/60;
   R.movH=(R.movH||0)+h;
   const debt=sleepDebt(),nightUp=18*(1+debt/20)*(trait().sleepMul||1)*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
-  R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp:(d<10&&debt<6?-3:2.5+debt*0.25)),Math.min(70,debt*1.5),100);
+  const tol=100/(P.sleepMax||100);
+  R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp*tol:(d<10&&debt<6?-3:(2.5+debt*0.25)*tol)),Math.min(70,debt*1.5),100);
   if(R.sleepy>=50)sp+=R.sleepy>=80?12:5;
   if(rain)sp+=R.rainOn?1:5;
   if(R.pace==="hard")sp+=25;
@@ -1035,7 +1037,8 @@ function drain(dm,g,night){
   if(R.temp<50)sp+=6;
   if(R.hunger<15)sp+=5;
   const rz=zone(R.course.rough,R.km);if(rz&&!P.gear.bib)sp+=rz[3]==="butt"?10:4;
-  R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1),0,100);
+  R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1),0,R.spiMax||100);
+  R.lo={sta:Math.min(R.lo?.sta??1,R.stamina/R.staMax),spi:Math.min(R.lo?.spi??1,R.spirit/(R.spiMax||100)),slp:Math.max(R.lo?.slp??0,R.sleepy/100)};
   let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
   eff+=(P.gear.winter?4:0)+(R.windOn?6:0);
   const cold=12-eff;
@@ -1365,7 +1368,7 @@ function startRun(C){
   events.sort((a,b)=>a.km-b.km);
   const pocket=[];for(const it of PACK)if(it.food)for(let i=0;i<(p[it.id]||0);i++)pocket.push({...it.food});
   const fat=P.fatigue||0,smax=Math.round(P.staMax*(1-fat/250));
-  R={course:C,t:C.start-25,km:0,pace:"normal",stamina:smax,staMax:smax,hunger:breakfastOf().hunger,spirit:Math.round(100-fat*0.4),temp:100,
+  R={course:C,t:C.start-25,km:0,pace:"normal",stamina:smax,staMax:smax,hunger:breakfastOf().hunger,spirit:Math.round((P.spiMax||100)-fat*0.4),spiMax:P.spiMax||100,temp:100,
     light:L.light.hours,lightMax:L.light.hours,lightType:L.light.type,lightNight:Math.min(1,L.light.night+(P.gear.helmet_light?0.03:0)),backup:frontLights()[1]||null,phone:100,bank:p.bank?2:0,
     kit:p.kit>0,tubes:(p.kit?1:0)+(p.tube||0),link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,
     pocket,load:packWeight(p),receipts:{},train:[],events,evIdx:0,f:{},log:[],cool:3,deer:false,windDay:{dir:rnd(0,360),spd:rnd(1,6.5)},meals:{},lastMeal:C.start,lodge:C.lodges&&P.lodgePick>=0&&P.lodgePick<C.lodges.length?P.lodgePick:null,
@@ -1422,11 +1425,15 @@ function raceResult(el){
 function dnf(reason){if(G.mode==="dnf"||G.mode==="goal")return;recOf(R.course.id).dnf++;SFX.bad();G.mode="dnf";
   endRun("DNF",reason+`\n${R.course.kind==="brm"?"回収してもらって帰路についた。次こそは。":"スタッフの車で会場に戻った。"}`,{fatigue:Math.round(R.km/8)})}
 function endRun(title,text,o={}){
-  P.km+=Math.round(R?R.km:0);
+  P.km+=Math.round(R?R.km:0);if(R&&R.km>10)P.lastRide=P.week;
   if(R&&R.km>20){const b=R.km/1000;P.body=clamp(P.body-b,55,95)}
   P.fatigue=clamp((P.fatigue||0)+(o.fatigue||0),0,100);
   let extra="";
-  if(o.grow){const g=o.grow/200;gainLeg(0.05*g);P.staMax=Math.min(160,P.staMax+Math.round(2*g));extra=`\n長距離を走って脚が少し強くなった（巡航 ${P.leg.toFixed(1)}km/h、持久力 ${P.staMax}）。`}
+  if(o.grow&&R&&R.lo){const n=Math.max(2,Math.round(3*o.grow/200)),lo=R.lo;
+    const k=[["sta",1-lo.sta],["spi",1-lo.spi],["slp",lo.slp]].sort((a,b)=>b[1]-a[1])[0][0];
+    if(k==="sta"){P.staMax=Math.min(160,P.staMax+n);extra=`\n体力を使い切りかけた経験で、体力の上限が+${n}（${P.staMax}）。`}
+    else if(k==="spi"){P.spiMax=Math.min(160,(P.spiMax||100)+n);extra=`\n心が折れかけても走り切った。気力の上限が+${n}（${P.spiMax}）。`}
+    else{P.sleepMax=Math.min(160,(P.sleepMax||100)+n);extra=`\n眠気と戦い抜いた。眠気に強くなった（眠気耐性 ${P.sleepMax}）。`}}
   save();
   const items=[{label:"家に帰る",fn:()=>{R=null;nextWeek()}}];
   // Back-to-back brevets (e.g. 後志300 → ウニタラコ200, 岩木山200 → 北へ600): go straight on to the next start.
@@ -1524,7 +1531,7 @@ function hub(){
   items.push({label:"仲間",fn:friendsView});
   items.push({label:"タイトルへ",fn:title});
   menu({title:`${P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
-    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}`,items});
+    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.week-(P.lastRide??P.week)>=2?`\n${P.week-P.lastRide}週間走っていない。4週間あくと巡航が落ちる。`:""}`,items});
 }
 function seasonSummary(){const d=P.seasonDone||{};const s=[200,300,400,600,1000].filter(k=>d[k]).map(k=>`${k}×${d[k]}`).join(" ");return s||"まだなし"}
 
@@ -1572,9 +1579,9 @@ function enter(it,c){
 }
 function weekAct(t,msg,fn){fn();SFX.ok();save();say(t,msg,nextWeek)}
 function trainingMenu(){
-  const it=(label,desc,fn)=>({label,desc,fn:()=>weekAct(label,fn()+"\n疲労+12",()=>{P.fatigue+=12})});
+  const it=(label,desc,fn)=>({label,desc,fn:()=>weekAct(label,fn()+"\n疲労+12",()=>{P.fatigue+=12;P.lastRide=P.week})});
   menu({title:"トレーニング",text:`巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}`,items:[
-    it("ローラー練","平地の巡航速度が少しずつ上がる。伸びるのは最初から+3km/hくらいまでで、上がるほど伸びにくい。",()=>{const g=gainLeg(0.25);return g<0.01?`巡航 ${P.leg.toFixed(2)}km/h。もう伸びしろがない。ここからは機材と走り方で。`:`巡航 ${P.leg.toFixed(2)}km/h になった（+${g.toFixed(2)}）。`}),
+    it("ローラー練","平地の巡航速度がほんの少し上がる。上がるほど伸びにくく、1か月走らないと落ちていく。",()=>{const g=gainLeg(0.12);return g<0.01?`巡航 ${P.leg.toFixed(2)}km/h。もう伸びしろがない。ここからは機材と走り方で。`:`巡航 ${P.leg.toFixed(2)}km/h になった（+${g.toFixed(2)}）。`}),
     it("峠練","登りで速度が落ちにくくなる。",()=>{P.climb=Math.min(0.3,P.climb+0.04);return `登坂力 ${Math.round(P.climb*100)}% になった。`}),
     it("ロング練","体力の最大値が上がる。",()=>{P.staMax=Math.min(160,P.staMax+10);return `持久力 ${P.staMax} になった。`}),
     it("ダイエット","体重が減って登りが楽になる。",()=>{if(P.body<=58)return "これ以上は減らせない。";P.body=Math.max(58,P.body-1.2);return `体重 ${P.body.toFixed(1)}kg になった。`}),
@@ -1599,8 +1606,13 @@ function testMenu(){
 function nextWeek(){
   if(P.test){save();return testMenu()}
   P.week++;P.fatigue=clamp((P.fatigue||0)-12,0,100);
-  if(P.week<WEEKS.length){const m=weekMonth(P.week);if(m!==P.lastMonth){P.lastMonth=m;const pay=60000;P.money+=pay;save();return say(`${m}月になった`,`今月のおこづかい ${yen(pay)} が入った。`,hub)}}
-  save();hub();
+  const msgs=[];
+  // a month off the bike and the legs fade
+  if(P.week-(P.lastRide??P.week)>=4){const d=Math.min(0.2,Math.max(0,P.leg-(legCap()-4)));
+    if(d>0){P.leg-=d;msgs.push(["脚がなまった",`もう${P.week-P.lastRide}週間、自転車に乗っていない。巡航 ${P.leg.toFixed(2)}km/h に落ちた……。\nトレーニングかイベントで走ろう。`])}}
+  if(P.week<WEEKS.length){const m=weekMonth(P.week);if(m!==P.lastMonth){P.lastMonth=m;const pay=60000;P.money+=pay;msgs.push([`${m}月になった`,`今月のおこづかい ${yen(pay)} が入った。`])}}
+  save();
+  const show=()=>{const x=msgs.shift();x?say(x[0],x[1],show):hub()};show();
 }
 function calendarView(){
   const lines=[];for(let i=P.week;i<WEEKS.length;i++){const ev=weekItems(i);lines.push(`${i===P.week?"▶":"　"}${weekLabel(i)}　${ev.length?ev.map(e=>`${KIND_LABEL[e.kind]}「${e.name.replace(/^BRM\d+ /,"")}」`).join("／"):"―"}`)}
@@ -1617,7 +1629,7 @@ function status(){
   const parts=Object.entries(PARTS).map(([sl,d])=>d.opts.find(o=>o.id===P.parts[sl]).name).join("、");
   const L=bestLight(),owned=GEAR.filter(g=>P.gear[g.id]).map(g=>g.name).join("、")||"なし";
   const recs=[...COURSES,...EVENTS].filter(c=>P.rec[c.id]).map(c=>{const r=P.rec[c.id];return `${c.name}：完走${r.done} DNF${r.dnf}${r.best!=null?" 最速"+dur(r.best):""}`}).join("\n")||"まだ記録なし";
-  say("ステータス",`${P.trait?"タイプ："+TYPES[P.trait.type].name+"\n":""}${homeOf().name}在住　疲労 ${Math.round(P.fatigue||0)}　総走行 ${P.km.toLocaleString("ja-JP")}km\n愛車 ${bikeOf().name}（${bikeWeight().toFixed(2)}kg）\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}\nパーツ：${parts}\n前照灯 ${L?L.name:"なし"}\n装備：${owned}\n\n${recs}`,hub);
+  say("ステータス",`${P.trait?"タイプ："+TYPES[P.trait.type].name+"\n":""}${homeOf().name}在住　疲労 ${Math.round(P.fatigue||0)}　総走行 ${P.km.toLocaleString("ja-JP")}km\n愛車 ${bikeOf().name}（${bikeWeight().toFixed(2)}kg）\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%\n体力上限 ${P.staMax}　気力上限 ${P.spiMax||100}　眠気耐性 ${P.sleepMax||100}\nパーツ：${parts}\n前照灯 ${L?L.name:"なし"}\n装備：${owned}\n\n${recs}`,hub);
 }
 function friendsView(){
   const lines=Object.entries(FRIENDS).map(([id,f])=>{const v=P.fp[id];const hearts="♥".repeat(Math.round(v/20))+"♡".repeat(5-Math.round(v/20));
@@ -1664,7 +1676,7 @@ function updateHUD(dt){
   if(R.sleepy>=60)tags.push(R.sleepy>=85?'<span class="warn">限界まで眠い</span>':"眠い");
   if(R.lodge!=null){const L=R.course.lodges[R.lodge];if(L.km>R.km)tags.push(`宿：${L.name}（あと${(L.km-R.km).toFixed(0)}km）`)}
   $("#h-wx").innerHTML=`<span>風 ${aw<1.5?"ほぼ無風":(hw>0?'<span class="warn">向かい風</span>':"追い風")+" "+aw.toFixed(1)+"m/s"}（${compass(R.windDay.dir)}の風）${tags.length?"　"+tags.join("　"):""}</span>`;
-  for(const [id,v,inv] of [["sta",R.stamina/R.staMax*100],["hun",R.hunger],["spi",R.spirit],["tmp",R.temp],["slp",R.sleepy,1],["lit",R.light/R.lightMax*100],["pho",R.phone]]){
+  for(const [id,v,inv] of [["sta",R.stamina/R.staMax*100],["hun",R.hunger],["spi",R.spirit/(R.spiMax||100)*100],["tmp",R.temp],["slp",R.sleepy,1],["lit",R.light/R.lightMax*100],["pho",R.phone]]){
     const el=$("#g-"+id);el.style.width=clamp(v,0,100)+"%";el.parentNode.parentNode.classList.toggle("low",inv?v>=70:v<25)}
   const pk={};R.pocket.forEach(p=>pk[p.name]=(pk[p.name]||0)+1);
   $("#h-inv").textContent=`${yen(P.money)}　チューブ${R.tubes}　電池${R.batteries}　カイロ${R.kairo}${R.bank?"　バッテリー"+R.bank:""}　ポケット：${Object.entries(pk).map(([k,n])=>k+"×"+n).join(" ")||"なし"}${R.train.length?"　トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("・"):""}`;
