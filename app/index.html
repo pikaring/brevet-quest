@@ -1490,8 +1490,10 @@ function hub(){
   G.mode="hub";showRideUI(false);G.bg={scen:homeOf().scen,tod:12*60,speed:0};save();
   const wk=P.week,items=[],ev=weekItems(wk),fat=Math.round(P.fatigue||0);
   for(const it of ev){const c=costOf(it),done=it.kind==="brm"&&P.rec[it.id]&&P.rec[it.id].done;
-    items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
-      desc:eventDesc(it,c)+(done?"　（認定済み）":""),fn:()=>enter(it,c)})}
+    // 連戦可: a later brevet this week starts after this one's time limit, so you can ride straight on from the finish.
+    const next=it.kind==="brm"?ev.filter(n=>n.kind==="brm"&&(ymdDate(n.ymd)-ymdDate(it.ymd))/864e5>Math.floor(((it.start||420)+it.limit)/1440)):[];
+    items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}${next.length?"【連戦可】":""}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
+      desc:eventDesc(it,c)+(done?"　（認定済み）":"")+(next.length?`\n連戦可：完走後、そのまま「${next.map(n=>n.name.replace(/^BRM\d+ /,"")).join("」「")}」に出られる。`:""),fn:()=>enter(it,c)})}
   if(!ev.length)items.push({label:"今週はイベントなし",disabled:true});
   items.push({label:"トレーニングする",note:"疲労+12",desc:"ローラー・峠・ロング・ダイエットから選ぶ。",fn:trainingMenu});
   items.push({label:"残業する",note:"+¥40,000",desc:"機材費を稼ぐ。疲労+5。",fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5})});
