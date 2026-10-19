@@ -1000,7 +1000,7 @@ function speed(){
   if(R.temp<40)v*=0.85;
   if(R.spirit>=80)v*=1.03;else if(R.spirit<15)v*=0.8;else if(R.spirit<30)v*=0.9;else if(R.spirit<50)v*=0.95;
   if(isNight(R.t)){v*=R.light>0?R.lightNight:1;if(R.light<=0)v=Math.min(v,P.gear.helmet_light?15:10)}
-  v*=legFatigue();
+  v*=legFatigue()*(R.limp||1);
   v*=1+0.06*R.train.length;
   return Math.max(3,v);
 }
@@ -1067,6 +1067,12 @@ function drain(dm,g,night){
   R.cool=Math.max(0,R.cool-(speed()*h));
 }
 function randomTrouble(dk,night){
+  if(R.limpWorse&&R.km>=R.limpWorse){R.limpWorse=null;if(Math.random()<0.5){R.limp=0.8;R.cool=6;SFX.bad();fx({spirit:-10});
+    say("ひどくなってきた",R.broken&&R.broken.wheel?"もう1本スポークが折れた。ホイールの振れが大きくなって、さらに遅くなった。":"チェーンが外れやすくなってきた。使えるギアがさらに減った。");return true}}
+  if(R.recut&&R.km>=R.recut){R.recut=null;R.cool=6;SFX.bad();R.t+=15;fx({spirit:-10});
+    if(R.tubes>0){R.tubes--;say("また裂けた！","応急処置のお札がずれて、サイドカットからチューブがはみ出して破裂した。\n予備チューブを1本使って、お札を2枚重ねで当て直した。");}
+    else{R.t+=25;say("また裂けた！","応急処置がずれてチューブが破裂。予備チューブがない……。\nパッチを何枚も貼り、お札を重ねて40分かけて何とか直した。")}
+    return true}
   if(R.repunct&&R.km>=R.repunct){R.repunct=null;R.cool=6;say("またパンク！","やっぱりガラス片が残っていた……。",troublePuncture);return true}
   if(R.cool>0)return false;
   const rz=zone(R.course.rough,R.km),rough=rz?rz[2]:1;
@@ -1101,8 +1107,20 @@ function breakSomething(){
   }[id];
   if(id==="rain"){R.rainGear=false;R.rainOn=false}
   if(id==="wind"){R.wind=false;R.windOn=false}
-  R.t+=id==="tire"?15:id==="wheel"?10:3;fx(B[2]);
-  say(B[0],B[1]+"\nゴールしたら買い直し（修理）が必要だ。");return true;
+  fx(B[2]);
+  if(id==="tire"){R.t+=15;if(Math.random()<0.4)R.recut=R.km+rnd(20,80);say(B[0],B[1]+"\nゴールしたら買い直しが必要だ。");return true}
+  if(id==="wheel"||id==="comp"){mechMenu(id,B);return true}
+  R.t+=3;say(B[0],B[1]+"\nゴールしたら買い直しが必要だ。");return true;
+}
+// A broken wheel or derailleur: find a bike shop, limp on, or call it a day.
+function mechMenu(id,B){
+  const night=isNight(R.t)||tod(R.t)<9*60||tod(R.t)>=19*60,cost=id==="wheel"?8000:6000;
+  menu({title:B[0],text:B[1]+"\nどうする？",items:[
+    {label:"近くの町の自転車屋を探す",note:"約2時間",disabled:night,desc:night?"この時間は自転車屋が開いていない。":`輪行や寄り道で町の自転車屋へ。直してもらえば元どおり走れる。修理代 ${yen(cost)}。`,
+      fn:()=>{R.t+=rnd(90,150);P.money-=cost;delete R.broken[id];fx({spirit:5});say("直った！",`町の自転車屋さんが快く直してくれた（${yen(cost)}）。\n時間はかかったけど、これで安心して走れる。`)}},
+    {label:"だましだまし走る",note:"速度-10%",desc:"そのまま走る。ひどくなると、さらに遅くなる。",
+      fn:()=>{R.limp=0.9;R.limpWorse=R.km+rnd(30,120);log(id==="wheel"?"ブレーキを開いて、振れたホイールで走り続ける。":"入るギアだけで走り続ける。")}},
+    {label:"リタイアして輪行で帰る",fn:()=>dnf(id==="wheel"?"スポークが折れてリタイアした。":"変速機が壊れてリタイアした。")}]});
 }
 function crashDamage(){const out=[];R.broken=R.broken||{};
   if(P.gear.helmet&&Math.random()<0.5){R.broken.helmet=true;out.push("ヘルメットが割れた。守ってくれた。")}
