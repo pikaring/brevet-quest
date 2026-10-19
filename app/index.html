@@ -113,16 +113,22 @@ function dur(min){min=Math.max(0,Math.round(min));return `${Math.floor(min/60)}�
 
 /* ================= DATA ================= */
 const BIKES={
-  cross:{name:"クロスバイク",price:50000,off:0.74,weight:11.5,aero:0.95,punct:1.0,descent:0.95,climb:1.0,comfort:1.0,color:"#bcbcbc",
-    desc:"安くて丈夫。前傾がゆるく、ちょっと遅い。"},
+  cross:{name:"クロスバイク",price:50000,off:0.74,weight:11.5,aero:0.95,punct:0.5,descent:0.95,climb:1.0,comfort:1.0,color:"#bcbcbc",
+    desc:"安くて丈夫。太めのタイヤでパンクに強い。前傾がゆるく、ちょっと遅い。"},
   mtb:{name:"MTB",price:80000,off:0.92,weight:13.0,aero:0.93,punct:0.4,descent:1.12,climb:0.9,comfort:0.85,color:"#00a844",
-    desc:"太いタイヤでパンクに強く、下りが安定。軽いギアで登りも楽。姿勢が楽で気力が減りにくい。「何に乗っても同じペース」になるかも？"},
-  cromo:{name:"クロモリロード",price:100000,off:0.7,weight:10.2,aero:0.98,punct:0.95,descent:1.02,climb:1.0,comfort:0.85,color:"#a81000",
+    desc:"太いタイヤでパンクにとても強く、下りが安定。軽いギアで登りも楽。姿勢が楽で気力が減りにくい。「何に乗っても同じペース」になるかも？"},
+  brompton:{name:"ブロンプトン",price:350000,off:0.5,weight:11.0,aero:0.98,punct:1.0,descent:0.95,climb:1.0,comfort:1.0,color:"#f8b800",fold:true,
+    desc:"小径の折りたたみ自転車。遅いけれど、たたんで電車やバスにすぐ載せられるので遠征の交通費が安い。ゴールで一目置かれる。"},
+  cromo:{name:"クロモリロード",price:100000,off:0.7,weight:10.2,aero:0.98,punct:1.0,descent:1.02,climb:1.0,comfort:0.85,color:"#a81000",
     desc:"細身のスチールフレーム。少し重いけど、しなって振動を吸収するので長距離でも疲れにくい。壊れても直して長く乗れる。"},
   alu:{name:"アルミロード",price:120000,off:0.66,weight:9.0,aero:1.0,punct:1.0,descent:1.0,climb:1.0,comfort:1.0,color:"#0058f8",
     desc:"ブルベの定番。平地巡航の基準になる一台。"},
-  ti:{name:"チタンロード",price:450000,off:0.68,weight:7.8,aero:1.03,punct:0.9,descent:1.05,climb:0.95,comfort:0.85,color:"#d8b8f8",
-    desc:"軽くてしなやか。長距離でも疲れにくい憧れのチタン。"},
+  carbon:{name:"カーボンロード",price:250000,off:0.66,weight:8.0,aero:1.03,punct:1.0,descent:1.03,climb:0.96,comfort:1.0,color:"#3c3c3c",
+    desc:"軽くて硬い。平地も登りもアルミより速い。"},
+  carbon_hi:{name:"高級カーボンロード",price:800000,off:0.66,weight:7.0,aero:1.05,punct:1.0,descent:1.05,climb:0.93,comfort:1.0,color:"#d82800",
+    desc:"プロが乗るようなエアロロード。速いけれど、値段は軽自動車並み。"},
+  ti:{name:"チタンロード",price:450000,off:0.68,weight:9.0,aero:1.0,punct:1.0,descent:1.0,climb:1.0,comfort:1.0,stam:0.88,color:"#d8b8f8",
+    desc:"走りはアルミロードと同じ。しなやかなフレームが脚への衝撃を吸収して、体力の消耗が少ない。一生もの。"},
 };
 const GEAR=[
   {id:"light_aaa",cat:"前照灯",name:"単4電池式ライト",price:2000,light:{hours:6,type:"aaa",night:0.88},desc:"点灯6時間。予備の単4電池で交換できる。【必須：車体に前照灯1灯、400km以上は2灯】"},
@@ -870,6 +876,7 @@ function migrate(p){
   for(const sl in PARTS){if(!PARTS[sl].opts.some(x=>x.id===p.parts[sl]))p.parts[sl]=PARTS[sl].opts[0].id;p.owned[sl+":"+p.parts[sl]]=true}
   if(p.pack&&p.pack.rain===undefined)p.pack.rain=0;
   if(p.week===undefined)Object.assign(p,{home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4});
+  if(p.bike&&!p.gear.navi&&!p.test)p.gear.navi="cheap";
   if(p.lastTrain===undefined)p.lastTrain=p.lastRide??p.week;if(!p.spiMax)p.spiMax=100;if(!p.sleepMax)p.sleepMax=100;
   if(p.leg>25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1&&!p.test)p.leg=25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1;
   return p;
@@ -1071,7 +1078,7 @@ function drain(dm,g,night){
   const hw=windNow(),rain=raining(),amb=ambient(R.t,R.km);
   const base={slow:-1,normal:6,hard:22}[R.pace],climb={slow:2.5,normal:4,hard:8}[R.pace];
   const heat=Math.max(0,amb+Math.max(0,g)-26);
-  R.stamina=clamp(R.stamina-h*(base+Math.max(0,g)*climb+Math.max(0,hw)*(R.pace==="hard"?1.5:0.5)+heat*1.0)*(tr?0.85:1)*(100/R.staMax),0,R.staMax);
+  R.stamina=clamp(R.stamina-h*(bikeOf().stam||1)*(base+Math.max(0,g)*climb+Math.max(0,hw)*(R.pace==="hard"?1.5:0.5)+heat*1.0)*(tr?0.85:1)*(100/R.staMax),0,R.staMax);
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
   let sp=(night?12:7)*B.comfort*partStat().comfort*(hasGear("jersey")?0.85-tierOf("jersey").t*0.02:1);
   const d=tod(R.t)/60;
@@ -1599,18 +1606,18 @@ function title(){
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
 }
 // Everyone starts with the cheap basics, so a new season begins with choosing a bike only.
-const STARTER={light_aaa:true,light_usb:true,rear:true,vest:true,bell:true,helmet:true,helmet_tail:true,bank:true,bag:true,whistle:true,
+const STARTER={navi:"cheap",light_aaa:true,light_usb:true,rear:true,vest:true,bell:true,helmet:true,helmet_tail:true,bank:true,bag:true,whistle:true,
   jersey:"cheap",bib:"cheap",winter:"cheap",wind:"cheap",rain:"cheap"};
 function giveStarter(){Object.assign(P.gear,STARTER);Object.assign(P.pack,{kit:1,tube:1,wind:1,rain:1,bank:1})}
 function bikeStats(b){const r=(v,hi)=>v>=hi+0.04?"◎":v>=hi?"○":v>=hi-0.04?"△":"×";
-  return `平地${r(b.aero,1)} 登り${r(2-b.climb-(b.weight-9)*0.02,1)} 下り${r(b.descent,1)} パンク${r(2-b.punct,1)} 疲れにくさ${r(2-b.comfort,1)} ${b.weight}kg`}
+  return `平地${r(b.aero,1)} 登り${r(2-b.climb-(b.weight-9)*0.02,1)} 下り${r(b.descent,1)} パンク${r(2-b.punct*0.98,1.02)} 気力${r(2-b.comfort,1)} 体力${r(2-(b.stam||1),1)} ${b.weight}kg`}
 function startNew(){P=newPlayer();menu({title:"どこに住んでいる？",text:"住んでいる場所で、各地のイベントへの交通費が変わる。",items:HOMES.map(h=>({label:`${h.name}（${h.region}）`,fn:()=>{P.home=h.id;giveStarter();runQuiz(()=>say("サイクルショップ",`所持金 ${yen(P.money)}。\nライトやウェアなど、安い基本装備はひととおり持っている。\nまずはブルベを走る自転車を選ぼう。`,()=>bikeShop(true)))}}))})}
 function bikeShop(first){
   G.bg={scen:"town",tod:13*60,speed:0};
   menu({title:"自転車を選ぶ",text:`所持金 ${yen(P.money)}`,items:[
     ...Object.entries(BIKES).map(([id,b])=>({label:b.name,note:P.bikes.includes(id)?"持っている":yen(b.price),disabled:!P.bikes.includes(id)&&P.money<b.price,
       desc:`${b.desc}\n${bikeStats(b)}`,fn:()=>{if(!P.bikes.includes(id)){P.money-=b.price;P.bikes.push(id);SFX.ok()}P.bike=id;save();
-        say(`${b.name}に決めた！`,first?"装備は安いものがひととおりそろっている。\n前照灯2灯・尾灯・ヘルメット尾灯・反射ベスト・ベル・ヘルメット、作業用カッパやヤッケ、モバイルバッテリー、サドルバッグ。\nいいものは、あとからサイクルショップで買い足そう。":"",hub)}})),
+        say(`${b.name}に決めた！`,first?"装備は安いものがひととおりそろっている。\n入門ナビサイコン、前照灯2灯・尾灯・ヘルメット尾灯・反射ベスト・ベル・ヘルメット、作業用カッパやヤッケ、モバイルバッテリー、サドルバッグ。\nいいものは、あとからサイクルショップで買い足そう。":"",hub)}})),
     ...(first?[]:[{label:"もどる",fn:hub}])],cancel:first?null:hub});
 }
 function gearShop(first,keep){
@@ -1666,7 +1673,7 @@ function shopMenu(){
     {label:"もどる",fn:hub}],cancel:hub});
 }
 function homeOf(){return HOMES.find(h=>h.id===P.home)||HOMES[1]}
-function travelCost(region,oneWay){return (TRAVEL[homeOf().region][region]||10000)+(oneWay?8000:0)}
+function travelCost(region,oneWay){const f=P.bike&&BIKES[P.bike]&&BIKES[P.bike].fold;return Math.round(((TRAVEL[homeOf().region][region]||10000)*(f?0.7:1)+(oneWay?(f?4000:8000):0))/100)*100}
 function feeOf(it){return it.kind==="brm"?(it.org===RS?1700:3000):it.fee}
 function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
 function hub(){
@@ -1915,10 +1922,10 @@ function drawSign(x,c){rect(x+7,95,2,18,"#503000");rect(x,86,16,10,c);rect(x+2,8
 function drawGoal(x){rect(x,74,3,40,"#fcfcfc");rect(x+40,74,3,40,"#fcfcfc");for(let i=0;i<10;i++)rect(x+3+i*4,74,4,6,(i%2)?"#000":"#fcfcfc");for(let i=0;i<10;i++)rect(x+3+i*4,80,4,4,(i%2)?"#fcfcfc":"#000")}
 function drawDeer(x){const y=112;rect(x,y-14,14,6,"#ac7c00");rect(x+12,y-20,5,6,"#ac7c00");rect(x+13,y-24,1,4,"#503000");rect(x+16,y-24,1,4,"#503000");
   for(const l of [1,4,9,12])rect(x+l,y-8,2,8,"#ac7c00");rect(x+15,y-18,1,1,"#fcfcfc")}
-function drawRider(x,gy,jersey,frame,crank,night,pose,helmet="#fcfcfc",vest=false){
-  const wy=gy-8,fx=x+23,bb={x:x+11,y:wy+1},seat={x:x+8,y:wy-11},head={x:x+20,y:wy-10};
-  for(const cx of [x,fx]){ring(cx,wy,8,"#000");ring(cx,wy,7,"#3c3c3c");ring(cx,wy,6,night?"#7c7c7c":"#bcbcbc");
-    const a=crank*1.7+cx;line(cx-Math.cos(a)*5,wy-Math.sin(a)*5,cx+Math.cos(a)*5,wy+Math.sin(a)*5,"#bcbcbc");line(cx-Math.sin(a)*5,wy+Math.cos(a)*5,cx+Math.sin(a)*5,wy-Math.cos(a)*5,"#bcbcbc")}
+function drawRider(x,gy,jersey,frame,crank,night,pose,helmet="#fcfcfc",vest=false,small=false){
+  const wy=gy-8,fx=x+23,wr=small?5:8,wo=small?3:0,bb={x:x+11,y:wy+1},seat={x:x+8,y:wy-11},head={x:x+20,y:wy-10};
+  for(const cx of [x,fx]){const y=wy+wo,sp=wr-3;ring(cx,y,wr,"#000");ring(cx,y,wr-1,"#3c3c3c");ring(cx,y,wr-2,night?"#7c7c7c":"#bcbcbc");
+    const a=crank*1.7+cx;line(cx-Math.cos(a)*sp,y-Math.sin(a)*sp,cx+Math.cos(a)*sp,y+Math.sin(a)*sp,"#bcbcbc");line(cx-Math.sin(a)*sp,y+Math.cos(a)*sp,cx+Math.sin(a)*sp,y-Math.cos(a)*sp,"#bcbcbc")}
   const hip={x:x+8,y:wy-15},P2={up:[17,-23,21,-27],climb:[16,-24,20,-28],dh:[19,-19,24,-21],dance:[18,-25,22,-29]}[pose||"up"],sh={x:x+P2[0],y:wy+P2[1]},hd={x:x+P2[2],y:wy+P2[3]};
   // far leg
   const leg=(a,c)=>{const pd={x:bb.x+Math.cos(a)*4,y:bb.y+Math.sin(a)*4};const dx=pd.x-hip.x,dy=pd.y-hip.y,d=Math.min(17.5,Math.hypot(dx,dy));
@@ -1973,7 +1980,7 @@ function draw(dt){
   if(inRun)R.train.forEach((m,i)=>drawRider(66-i*28,138,FRIENDS[m.id].color,"#7c7c7c",G.crank+i*1.3,night,"up","#fcfcfc",R.course.kind==="brm"));
   const pose=!inRun?"up":dhOn()?"dh":(R.pace==="hard"&&gradeAt(R.km)>1.5)?"dance":gradeAt(R.km)>3?"climb":"up";
   const LK=P?looks():{jersey:"#f8b800",helmet:"#fcfcfc"};
-  drawRider(100,138,LK.jersey,P&&P.bike?frameColor():"#0058f8",G.crank,night,pose,LK.helmet,inRun&&R.course.kind==="brm");
+  drawRider(100,138,LK.jersey,P&&P.bike?frameColor():"#0058f8",G.crank,night,pose,LK.helmet,inRun&&R.course.kind==="brm",P&&P.bike==="brompton");
   if(inRun)drawWeather(dt*k);
   if(inRun)drawMini();
   if(G.mode==="title")drawLogo();
