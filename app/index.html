@@ -1492,7 +1492,9 @@ function setPace(p){if(!R)return;if(p==="hard"&&R.spirit<15){log("気力が残�
   for(const m of R.train)m.forced=false;
   R.pace=p;updatePaceBtns()}
 function updatePaceBtns(){document.querySelectorAll("[data-pace]").forEach(b=>{b.classList.toggle("on",R&&b.dataset.pace===R.pace);if(b.dataset.pace==="hard")b.style.opacity=R&&R.spirit<15?0.35:1})}
-function toggleFF(){G.ff=G.ff===1?2:G.ff===2?4:1;$("#c-ff").textContent="×"+G.ff}
+// the playback speed sticks (across rides and visits) until it is changed again
+function savedFF(){try{const v=+localStorage.getItem(SAVE_KEY+"-ff");return [1,2,4].includes(v)?v:1}catch(e){return 1}}
+function toggleFF(){G.ff=G.ff===1?2:G.ff===2?4:1;$("#c-ff").textContent="×"+G.ff;try{localStorage.setItem(SAVE_KEY+"-ff",G.ff)}catch(e){}}
 document.querySelectorAll("[data-pace]").forEach(b=>b.addEventListener("click",()=>setPace(b.dataset.pace)));
 $("#c-eat").addEventListener("click",()=>eatMenu());
 $("#c-ff").addEventListener("click",toggleFF);
@@ -1516,7 +1518,7 @@ function startRun(C){
     sleepy:C.start<5*60?30:C.start>=20*60?25:0,legKm:0,woke:C.start<5*60?C.start-90:Math.min(C.start-60,7*60)};
   if(C.rain)R.rainZones=C.rain;
   else if(Math.random()<(C.rainChance??0.25)){const a=rnd(0.05,0.7)*C.dist;R.rainZones=[[a,a+rnd(0.15,0.35)*C.dist]]}
-  G.mode="pre";G.ff=1;$("#c-ff").textContent="×1";
+  G.mode="pre";G.ff=savedFF();$("#c-ff").textContent="×"+G.ff;
   {const bf=breakfastOf();P.money-=packCost(p)+lodgeCost(C)+bf.price;fx({spirit:bf.spirit,temp:bf.temp,stamina:bf.stamina,sleepy:bf.sleepy})}
   // friends who offer to ride together at the start
   const buddies=C.race||C.kind==="cafe"?[]:Object.keys(FRIENDS).filter(id=>P.fp[id]>=(C.kind==="brm"?40:15)&&Math.random()<0.6);
