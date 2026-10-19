@@ -212,7 +212,7 @@ const PACK=[
   {id:"rain",name:"レインウェア上下",w:0.35,max:1,needs:"rain",desc:"雨が降ったら着る。"},
   {id:"bank",name:"モバイルバッテリー",w:0.2,max:1,needs:"bank",desc:"ライト(USB式)やスマホを2回充電。"},
   {id:"battery",name:"予備の単4電池",w:0.05,max:3,cost:400,desc:"単4電池式ライトの交換用。"},
-  {id:"kairo",name:"カイロ",w:0.05,max:3,cost:100,desc:"体温を一気に回復。"},
+  {id:"kairo",name:"カイロ",w:0.05,max:3,cost:100,desc:"冷えた体を温める。"},
   {id:"kibi",name:"きびだんご",w:0.1,max:4,cost:180,food:{name:"きびだんご",hunger:12},desc:"走りながら食べやすい補給食。"},
   {id:"gel",name:"エナジージェル",w:0.05,max:4,cost:250,food:{name:"エナジージェル",hunger:8,stamina:10},desc:"軽い。体力も少し回復。"},
   {id:"whistle",name:"鹿避け笛",w:0.02,max:1,needs:"whistle",desc:"夜の鹿対策（効果は未知数）。"},
@@ -1038,7 +1038,7 @@ function speed(){
   if(R.sleepy>=85)v*=0.8;else if(R.sleepy>=65)v*=0.92;
   if(raining())v*=0.96;
   if(R.hunger<=0)v*=0.45;
-  if(R.temp<40)v*=0.85;
+  if(R.temp<30)v*=0.85;else if(R.temp>75)v*=0.92;
   if(R.spirit>=80)v*=1.03;else if(R.spirit<15)v*=0.8;else if(R.spirit<30)v*=0.9;else if(R.spirit<50)v*=0.95;
   if(isNight(R.t)){v*=R.light>0?R.lightNight:1;if(R.light<=0)v=Math.min(v,P.gear.helmet_light?15:10)}
   v*=legFatigue()*(R.limp||1);
@@ -1052,7 +1052,7 @@ function fx(o){if(!o)return;
   if(o.hunger)R.hunger=clamp(R.hunger+o.hunger,0,100);
   if(o.spirit)R.spirit=clamp(R.spirit+(o.spirit>0&&o.hunger?o.spirit*(trait().foodMul||1):o.spirit),0,R.spiMax||100);
   if(o.stamina)R.stamina=clamp(R.stamina+o.stamina,0,R.staMax);
-  if(o.temp)R.temp=clamp(R.temp+o.temp,0,100);
+  if(o.temp)R.temp=clamp(R.temp+o.temp*(o.hunger?0.6:1),0,100);
   if(o.sleepy)R.sleepy=clamp(R.sleepy+o.sleepy,0,100);
   if(o.weight)P.body=clamp(P.body+o.weight,55,95);
 }
@@ -1078,7 +1078,7 @@ function drain(dm,g,night){
   const tr=R.train.length?1:0;
   const hw=windNow(),rain=raining(),amb=ambient(R.t,R.km);
   const base={slow:-1,normal:6,hard:22}[R.pace],climb={slow:2.5,normal:4,hard:8}[R.pace];
-  const heat=Math.max(0,amb+Math.max(0,g)-26);
+  const heat=Math.max(0,R.temp-60)*0.3;
   R.stamina=clamp(R.stamina-h*(bikeOf().stam||1)*(base+Math.max(0,g)*climb+Math.max(0,hw)*(R.pace==="hard"?1.5:0.5)+heat*1.0)*(tr?0.85:1)*(100/R.staMax),0,R.staMax);
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
   let sp=(night?12:7)*B.comfort*partStat().comfort*(hasGear("jersey")?0.85-tierOf("jersey").t*0.02:1);
@@ -1095,15 +1095,16 @@ function drain(dm,g,night){
   sp+=heat;
   if(night&&P.gear.radar)sp*=0.7;
   if(tr)sp*=0.5;
-  if(R.temp<50)sp+=6;
+  if(R.temp<35)sp+=6;else if(R.temp>65)sp+=(R.temp-65)*0.3;
   if(R.hunger<15)sp+=5;
   const rz=zone(R.course.rough,R.km);if(rz&&!hasGear("bib"))sp+=rz[3]==="butt"?10:4;else if(rz&&tierOf("bib").t<0)sp+=2;
   R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1),0,R.spiMax||100);
   R.lo={sta:Math.min(R.lo?.sta??1,R.stamina/R.staMax),spi:Math.min(R.lo?.spi??1,R.spirit/(R.spiMax||100)),slp:Math.max(R.lo?.slp??0,R.sleepy/100)};
   let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
   eff+=(hasGear("winter")?4+tierOf("winter").t*0.5:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
-  const cold=12-eff;
-  R.temp=cold>0?clamp(R.temp-cold*0.03*dm,0,100):clamp(R.temp+0.3*dm,0,100);
+  // 50 is just right. Below 14°C felt it pulls you colder, above 20°C hotter; the body follows over ~40 minutes.
+  const target=clamp(eff<14?50-(14-eff)*3.5:eff>20?50+(eff-20)*3.5:50,0,100);
+  R.temp=clamp(R.temp+(target-R.temp)*Math.min(1,dm/40),0,100);
   if(night&&R.light>0)R.light=Math.max(0,R.light-h);
   R.phone=Math.max(0,R.phone-h*6);
   R.cool=Math.max(0,R.cool-(speed()*h));
@@ -1223,10 +1224,14 @@ function checkStates(night){
   if((R.legKm||0)>=450&&!f.legs){f.legs=true;log("脚が重い……。ここからは誰でも同じ。宿でしっかり眠ると脚が戻る。")}else if((R.legKm||0)<300)f.legs=false;
   if(R.sleepy>=99)return forcedCrash();
   if(R.sleepy>=80&&Math.random()<(R.sleepy-75)*0.004)return troubleDoze();
-  if(R.temp>70)f.coldAsk=false;
-  if(R.temp<60&&R.wind&&!R.windOn&&!f.coldAsk){f.coldAsk=true;return menu({title:"寒い！",text:"体が冷えてきた。ウインドブレーカーを着る？",items:[{label:"着る",note:"1分",fn:()=>{R.windOn=true;R.t+=1;log("ウインドブレーカーを着た。")}},{label:"まだ我慢する",fn:()=>{}}]})}
-  if(R.temp>45)f.freeze=false;
-  if(R.temp<35&&!f.freeze){f.freeze=true;return troubleCold()}
+  if(R.temp>45)f.coldAsk=false;
+  if(R.temp<38&&R.wind&&!R.windOn&&!f.coldAsk){f.coldAsk=true;return menu({title:"寒い！",text:"体が冷えてきた。ウインドブレーカーを着る？",items:[{label:"着る",note:"1分",fn:()=>{R.windOn=true;R.t+=1;log("ウインドブレーカーを着た。")}},{label:"まだ我慢する",fn:()=>{}}]})}
+  if(R.temp>35)f.freeze=false;
+  if(R.temp<25&&!f.freeze){f.freeze=true;return troubleCold()}
+  if(R.temp<58)f.hotAsk=false;
+  if(R.temp>65&&R.windOn&&!f.hotAsk){f.hotAsk=true;return menu({title:"暑い！",text:"ウインドブレーカーの中が蒸し風呂みたいだ。脱ぐ？",items:[{label:"脱ぐ",note:"1分",fn:()=>{R.windOn=false;R.t+=1;log("ウインドブレーカーを脱いだ。")}},{label:"このまま",fn:()=>{}}]})}
+  if(R.temp<70)f.heat=false;
+  if(R.temp>85&&!f.heat){f.heat=true;return troubleHeat()}
   if(R.pace==="hard"&&R.spirit<10){R.pace="normal";updatePaceBtns();log("気力が尽きた。もうがんばれない……。ペースを「ふつう」に落とした。")}
   if(R.spirit<15!==!!f.lowSpi){f.lowSpi=R.spirit<15;updatePaceBtns()}
   if(R.stamina<=0)return troubleExhaust();
@@ -1296,9 +1301,16 @@ function troubleLight(){
   items.push({label:"暗いまま慎重に進む",desc:"速度が10km/h以下に落ちる。",fn:()=>log("足元が見えない。ゆっくり進む……。")});
   menu({title:"ライトの電池が切れた！",text:"真っ暗だ。このままでは速度が出せない。",items});
 }
+function troubleHeat(){
+  SFX.bad();const items=[];
+  items.push({label:"木陰で休む",note:"20分",desc:"確実に体が冷える。",fn:()=>{R.t+=20;fx({temp:-30,stamina:5});log("木陰で20分休んだ。少し落ち着いた。")}});
+  items.push({label:"水を頭からかぶって走る",note:"3分",desc:"ボトルの水を使い切る。少しだけ冷える。",fn:()=>{R.t+=3;fx({temp:-15,stamina:-3});log("頭から水をかぶった。気持ちいい！")}});
+  items.push({label:"そのまま走る",desc:"熱中症の一歩手前。体力も気力も削られる。",fn:()=>{fx({stamina:-15,spirit:-15});log("ふらふらしながら走り続ける……。")}});
+  menu({title:"暑すぎる！",text:"頭がぼーっとして、汗が止まらない。熱中症になりかけている。",items});
+}
 function troubleCold(){
   SFX.bad();const items=[];
-  if(R.kairo>0)items.push({label:"カイロを使う",note:`残${R.kairo}`,fn:()=>{R.kairo--;fx({temp:35});log("カイロで少し温まった。")}});
+  if(R.kairo>0)items.push({label:"カイロを使う",note:`残${R.kairo}`,fn:()=>{R.kairo--;fx({temp:20});log("カイロで少し温まった。")}});
   if(R.wind&&!R.windOn)items.push({label:"ウインドブレーカーを着る",fn:()=>{R.windOn=true;fx({temp:10});log("ウインドブレーカーを着た。")}});
   items.push({label:"震えながら走る",fn:()=>log("ガタガタ震えながら走る。次のPCで温まろう。")});
   menu({title:"寒くて震えが止まらない",text:"体温が下がりすぎている。速度も気力も落ちていく。",items});
@@ -1321,7 +1333,7 @@ function troubleDoze(){
 function rest(min){R.woke=Math.min(R.t,(R.woke??R.course.start)+min*(min>=90?6:3));R.legKm=Math.max(0,(R.legKm||0)-min*(min>=90?1:0.3))}
 function nap(min,msg){R.t+=min;rest(min);R.sleepy=clamp(R.sleepy-min*1.4,Math.min(70,sleepDebt()*1.5),100);fx({spirit:min*0.8,stamina:min*0.5,temp:-Math.min(15,min*0.4)});log(msg)}
 function sleepHotel(hours,L){R.t+=hours*60;R.woke=R.t;R.legKm=Math.max(0,(R.legKm||0)-hours*50);R.sleepy=clamp(R.sleepy-hours*45,0,100);
-  fx({spirit:30+hours*15,stamina:hours*30,temp:100,hunger:-hours*4});R.phone=100;if(R.lightType==="usb")R.light=R.lightMax;R.windOn=false;R.rainOn=false;
+  R.temp=50;fx({spirit:30+hours*15,stamina:hours*30,hunger:-hours*4});R.phone=100;if(R.lightType==="usb")R.light=R.lightMax;R.windOn=false;R.rainOn=false;
   log(`${L.name}で${hours}時間眠った。シャワーを浴びて、充電もできた。`)}
 function lodgeEvent(L,i){
   const reserved=R.lodge===i,items=[],left=R.course.start+R.course.limit-R.t;
@@ -1445,11 +1457,11 @@ function pcMenu(keep){
   sec("そのほか");
   items.push({label:"トイレを借りる　<small>気力+5</small>",note:"3分",fn:()=>{R.t+=3;fx({spirit:5});pcAct("すっきりした。気力+5",3)}});
   items.push({label:"イートインで仮眠　<small>眠気-20 体温は下がらない</small>",note:"15分",fn:()=>{R.t+=15;rest(15);R.sleepy=clamp(R.sleepy-20,Math.min(70,sleepDebt()*1.5),100);fx({spirit:10,stamina:6});pcAct("イートインの隅で15分うとうとした。",15)}});
-  items.push({label:"座って休憩　<small>体力+15 体温+10</small>",note:"10分",fn:()=>{R.t+=10;fx({stamina:15,temp:10});pcAct("座って休んだ。体力+15 体温+10",10)}});
+  items.push({label:"座って休憩　<small>体力+15 体温がちょうどよくなる</small>",note:"10分",fn:()=>{R.t+=10;R.temp+=(50-R.temp)*0.6;fx({stamina:15});pcAct("店内で座って休んだ。体力+15 体温がちょうどよくなってきた",10)}});
   if(R.bank>0)items.push({label:`モバイルバッテリーで充電　<small>${R.lightType==="usb"?"ライト・スマホ満タン":"スマホ満タン"}</small>`,note:`残${R.bank}回`,fn:()=>{R.bank--;R.phone=100;if(R.lightType==="usb")R.light=R.lightMax;pcAct("充電した。")}});
   if(R.wind)items.push({label:R.windOn?"ウインドブレーカーを脱ぐ":"ウインドブレーカーを着る",note:"1分",fn:()=>{R.windOn=!R.windOn;R.t+=1;pcAct(R.windOn?"ウインドブレーカーを着た。":"ウインドブレーカーを脱いだ。",1)}});
   items.push({label:R.receipts[ev.km]?"出発する！":"出発する！　<small>（レシートなし）</small>",fn:leavePC});
-  const st=`満腹 ${Math.round(R.hunger)}　体力 ${Math.round(R.stamina)}　気力 ${Math.round(R.spirit)}　体温 ${Math.round(R.temp)}`;
+  const st=`満腹 ${Math.round(R.hunger)}　体力 ${Math.round(R.stamina)}　気力 ${Math.round(R.spirit)}　体温 ${Math.round(R.temp)}${R.temp<35?"（寒い）":R.temp>65?"（暑い）":""}`;
   menu({title:ev.name,text:`所持金 ${yen(P.money)}　ポケット ${R.pocket.length}/6　レシート ${R.receipts[ev.km]?"あり":"まだ（何か買うともらえる）"}\n${st}${R.pcBought.length?"\n買ったもの："+R.pcBought.join("、"):""}${R.pcLast?`\n<span style="color:var(--gold)">▷ ${R.pcLast}</span>`:""}`,items,keep,
     live:()=>`⏱ 1つ買うごとに1分　現在 ${fmt(R.t)}　滞在 ${Math.round(R.t-R.pcArrive)}分　ゴール制限まで ${dur(R.course.start+R.course.limit-R.t)}`});
 }
@@ -1511,7 +1523,7 @@ function startRun(C){
   events.sort((a,b)=>a.km-b.km);
   const pocket=[];for(const it of PACK)if(it.food)for(let i=0;i<(p[it.id]||0);i++)pocket.push({...it.food});
   const fat=P.fatigue||0,smax=Math.round(P.staMax*(1-fat/250));
-  R={course:C,t:C.start-25,km:0,pace:"normal",stamina:smax,staMax:smax,hunger:breakfastOf().hunger,spirit:Math.round((P.spiMax||100)-fat*0.4),spiMax:P.spiMax||100,temp:100,
+  R={course:C,t:C.start-25,km:0,pace:"normal",stamina:smax,staMax:smax,hunger:breakfastOf().hunger,spirit:Math.round((P.spiMax||100)-fat*0.4),spiMax:P.spiMax||100,temp:50,
     light:L.light.hours,lightMax:L.light.hours,lightType:L.light.type,lightNight:Math.min(1,L.light.night+(P.gear.helmet_light?0.03:0)),backup:frontLights()[1]||null,phone:100,bank:p.bank?2:0,
     kit:p.kit>0,tubes:(p.kit?1:0)+(p.tube||0),link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,
     pocket,load:packWeight(p),receipts:{},train:[],events,evIdx:0,f:{},log:[],cool:3,deer:false,windDay:{dir:rnd(0,360),spd:rnd(1,6.5)},meals:{},lastMeal:C.start,lodge:C.lodges&&P.lodgePick>=0&&P.lodgePick<C.lodges.length?P.lodgePick:null,
@@ -1551,7 +1563,7 @@ function goal(ev){
 function refTime(){
   const sP=P,sR=R;let t=0;
   P=Object.assign(newPlayer(),{bike:"alu",bikes:["alu"],leg:22,body:70,climb:0.03});
-  R=Object.assign({},sR,{pace:"hard",stamina:100,staMax:100,hunger:100,temp:100,spirit:100,train:[],load:0.3});
+  R=Object.assign({},sR,{pace:"hard",stamina:100,staMax:100,hunger:100,temp:50,spirit:100,train:[],load:0.3});
   const d=R.course.dist;for(let km=0;km<d;km+=d/400){R.km=km;t+=d/400/speed()*60}
   P=sP;R=sR;return t;
 }
@@ -1847,11 +1859,12 @@ function updateHUD(dt){
   if(R.spirit>=80)tags.push("ノッてる！");else if(R.spirit<30)tags.push('<span class="warn">やる気が出ない</span>');
   if(R.train.length&&isNight(R.t))tags.push("おしゃべりで眠気まぎれ");
   if(R.stamina<30)tags.push('<span class="warn">へばり</span>');
+  if(R.temp<35)tags.push(R.temp<25?'<span class="warn">凍えている</span>':"寒い");else if(R.temp>65)tags.push(R.temp>80?'<span class="warn">熱中症寸前</span>':"暑い");
   if(R.sleepy>=60)tags.push(R.sleepy>=85?'<span class="warn">限界まで眠い</span>':"眠い");
   if(R.lodge!=null){const L=R.course.lodges[R.lodge];if(L.km>R.km)tags.push(`宿：${L.name}（あと${(L.km-R.km).toFixed(0)}km）`)}
   $("#h-wx").innerHTML=`<span>風 ${aw<1.5?"ほぼ無風":(hw>0?'<span class="warn">向かい風</span>':"追い風")+" "+aw.toFixed(1)+"m/s"}（${compass(R.windDay.dir)}の風）${tags.length?"　"+tags.join("　"):""}</span>`;
-  for(const [id,v,inv] of [["sta",R.stamina/R.staMax*100],["hun",R.hunger],["spi",R.spirit/(R.spiMax||100)*100],["tmp",R.temp],["slp",R.sleepy,1],["lit",R.light/R.lightMax*100],["pho",R.phone]]){
-    const el=$("#g-"+id);el.style.width=clamp(v,0,100)+"%";el.parentNode.parentNode.classList.toggle("low",inv?v>=70:v<25)}
+  for(const [id,v,inv] of [["sta",R.stamina/R.staMax*100],["hun",R.hunger],["spi",R.spirit/(R.spiMax||100)*100],["tmp",R.temp,2],["slp",R.sleepy,1],["lit",R.light/R.lightMax*100],["pho",R.phone]]){
+    const el=$("#g-"+id);el.style.width=clamp(v,0,100)+"%";if(inv===2)el.style.background=v<35?"#3cbcfc":v>65?"#f83800":"#58d854";el.parentNode.parentNode.classList.toggle("low",inv===2?v<30||v>70:inv?v>=70:v<25)}
   const pk={};R.pocket.forEach(p=>pk[p.name]=(pk[p.name]||0)+1);
   $("#h-inv").textContent=`${yen(P.money)}　チューブ${R.tubes}　電池${R.batteries}　カイロ${R.kairo}${R.bank?"　バッテリー"+R.bank:""}　ポケット：${Object.entries(pk).map(([k,n])=>k+"×"+n).join(" ")||"なし"}${R.train.length?"　トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("・"):""}`;
 }
