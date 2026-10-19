@@ -140,7 +140,7 @@ const GEAR=[
   {id:"winter",cat:"ウェア",name:"冬用グローブ＋レッグウォーマー",price:7000,desc:"いつも少し暖かい。寒さに強くなる。"},
   {id:"wind",cat:"ウェア",name:"ウインドブレーカー",price:8000,desc:"前日の準備で持っていくと、寒いときに着られる。"},
   {id:"bank",cat:"電源",name:"モバイルバッテリー",price:4000,desc:"前日の準備で持っていくと、ライトやスマホを2回充電できる。"},
-  {id:"navi",cat:"ナビ",name:"ナビ付きサイコン",price:30000,desc:"道迷いが激減する。スマホの電池が切れても安心。"},
+  {id:"navi",cat:"ナビ",name:"ナビ付きサイコン",price:30000,prices:{cheap:15000,mid:30000,pro:60000},desc:"道迷いが激減する。スマホの電池が切れても安心。高いものほど、さらに少しだけ迷いにくい。"},
   {id:"bag",cat:"バッグ",name:"サドルバッグ",price:5000,desc:"持ち物の上限が2kg→5kgに。"},
   {id:"whistle",cat:"小物",name:"鹿避け笛",price:1500,desc:"効くかどうかは……。大声のほうが効く説あり。"},
   {id:"rain",cat:"ウェア",name:"レインウェア上下",price:12000,desc:"前日の準備で持っていくと、雨のときに着られる。着ないと靴まで水没して体が冷える。"},
@@ -191,6 +191,7 @@ const WEAR_NAMES={
   winter:["作業用防寒手袋＋アームカバー","冬用グローブ＋レッグウォーマー","一流ブランドの冬用グローブ＋ウォーマー"],
   wind:["作業用ヤッケ","ウインドブレーカー","超軽量ウインドシェル"],
   rain:["作業用カッパ上下","レインウェア上下","透湿防水の高級レインウェア"],
+  navi:["入門ナビサイコン","ミドルクラスのナビサイコン","大画面のハイエンドナビサイコン"],
 };
 function gearTier(id){const v=P.gear[id];return !v?null:TIERS[v]?v:"mid"}
 function tierOf(id){return TIERS[gearTier(id)]||TIERS.mid}
@@ -858,7 +859,7 @@ const SAVE_KEY="brevet-quest-hokkaido-v1";
 let P=null;
 // Famicom palette choices for jersey, helmet and frame.
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
-function newPlayer(){return {money:200000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastTrain:0,
+function newPlayer(){return {money:150000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastTrain:0,
   actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:{hayate:0,noro:0,hikari:0,samue:0},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
 function save(){try{localStorage.setItem(P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
@@ -1058,6 +1059,7 @@ function simStep(dm){
     const frac=(ev.km-R.km)/dk;R.km=ev.km;R.t+=dm*frac;drain(dm*frac,g,night);R.evIdx++;trigger(ev);return;
   }
   R.km+=dk;R.legKm=(R.legKm||0)+dk;R.t+=dm;drain(dm,g,night);
+  if(R.train.length&&Math.random()<dm/60*0.25)wishTalk();
   // train members leave
   {const m=R.train.find(x=>!x.cafe&&R.km>=x.until);if(m){trainSplit(m);return}}
   if(randomTrouble(dk,night))return;
@@ -1109,7 +1111,7 @@ function randomTrouble(dk,night){
   if(R.cool>0)return false;
   const rz=zone(R.course.rough,R.km),rough=rz?rz[2]:1;
   const pRate=0.0007*(trait().punctMul||1)*bikeOf().punct*partStat().punct*rough*(raining()?1.5:1);
-  const lostRate=(trait().lostMul||1)*(P.gear.navi?0.0006:(R.phone>0?0.0015:0.012));
+  const lostRate=(trait().lostMul||1)*(P.gear.navi?{cheap:0.0008,mid:0.0006,pro:0.00045}[gearTier("navi")]:(R.phone>0?0.0015:0.012));
   const deerRate=night&&zone(R.course.deer,R.km)?0.03:0;
   const r=Math.random();
   let acc=pRate*dk;if(r<acc){R.cool=6;troublePuncture();return true}
@@ -1158,6 +1160,39 @@ function crashDamage(){const out=[];R.broken=R.broken||{};
   if(P.gear.helmet&&Math.random()<0.5){R.broken.helmet=true;out.push("ヘルメットが割れた。守ってくれた。")}
   for(const id of ["jersey","bib"])if(hasGear(id)&&Math.random()<0.3){R.broken[id]=true;out.push(`${wearName(id)}が破れた。`)}
   return out.length?"\n"+out.join("\n")+"\nゴールしたら買い直しが必要だ。":""}
+const WISH=[
+  {kind:"gear",id:"light_hi",line:"夜の下りは、明るいライトがあると全然ちがうよ"},
+  {kind:"gear",id:"radar",line:"レーダー付きテールライト、後ろの車がわかって夜がラクだよ"},
+  {kind:"gear",id:"helmet_light",line:"ヘルメットライトがあると、曲がり角の先まで見えるよ"},
+  {kind:"tier",id:"navi",tier:"pro",line:"大画面のナビサイコン、50時間もつから600kmでも充電いらずだよ"},
+  {kind:"tier",id:"rain",tier:"pro",line:"いいレインウェアは蒸れなくて、雨の日も気分が違うよ"},
+  {kind:"tier",id:"jersey",tier:"pro",line:"いいジャージって、着るだけでテンション上がるんだよね"},
+  {kind:"tier",id:"bib",tier:"pro",line:"高いビブショーツは、600kmでもお尻が痛くならないよ"},
+  {kind:"part",id:"tire",opt:"tubeless",line:"チューブレスにしてから、パンクの心配が減ったよ"},
+  {kind:"part",id:"post",opt:"carbon",line:"カーボンのシートポスト、お尻への突き上げが全然ちがうよ"},
+  {kind:"part",id:"wheel",opt:"carbon_deep",line:"ディープリム、平地の巡航がラクになるよ〜"},
+  {kind:"part",id:"comp",opt:"ultegra",line:"アルテグラの変速、一度使うと戻れないよ"},
+];
+function wishName(w){return w.kind==="gear"?GEAR.find(g=>g.id===w.id).name:w.kind==="tier"?WEAR_NAMES[w.id][2]:PARTS[w.id].opts.find(o=>o.id===w.opt).name}
+function wishPrice(w){return w.kind==="gear"?GEAR.find(g=>g.id===w.id).price:w.kind==="tier"?tierPrice(GEAR.find(g=>g.id===w.id),"pro"):PARTS[w.id].opts.find(o=>o.id===w.opt).price}
+function wishHave(w){return w.kind==="gear"?!!P.gear[w.id]:w.kind==="tier"?gearTier(w.id)==="pro":!!P.owned[w.id+":"+w.opt]}
+function wishTalk(){
+  if(R.f.wished||!R.train.length)return;
+  const m=R.train[Math.floor(Math.random()*R.train.length)],F=FRIENDS[m.id];P.wish=P.wish||[];
+  const c=WISH.filter(w=>!wishHave(w)&&!P.wish.some(x=>x.id===w.id&&x.kind===w.kind));if(!c.length)return;
+  const w=c[Math.floor(Math.random()*c.length)];R.f.wished=true;P.wish.push({kind:w.kind,id:w.id,tier:w.tier,opt:w.opt,by:m.id});
+  log(`${F.name}「${w.line}」`);log(`「${wishName(w)}」をほしい物リストに入れた。`)}
+// anything on the wishlist that has been bought: a little lift in spirit
+function wishCheck(){P.wish=P.wish||[];const got=P.wish.filter(wishHave);if(!got.length)return"";
+  P.wish=P.wish.filter(w=>!wishHave(w));const n=got.length*3;P.spiMax=Math.min(160,(P.spiMax||100)+n);
+  return `念願の${got.map(wishName).join("、")}を手に入れた！\n最大気力 +${n}（${P.spiMax}）`}
+function wishMenu(){P.wish=P.wish||[];
+  const items=P.wish.map(w=>({label:wishName(w),note:yen(wishPrice(w)),disabled:P.money<wishPrice(w),desc:`${FRIENDS[w.by].name}のおすすめ。手に入れると最大気力+3。`,
+    fn:()=>{P.money-=wishPrice(w);if(w.kind==="gear")P.gear[w.id]=true;else if(w.kind==="tier")P.gear[w.id]="pro";else{P.owned[w.id+":"+w.opt]=true;P.parts[w.id]=w.opt}
+      SFX.win();const m=wishCheck();save();say("買った！",m,wishMenu)}}));
+  items.push({label:"リストから消す",disabled:!P.wish.length,fn:()=>menu({title:"どれを消す？",items:[...P.wish.map((w,i)=>({label:wishName(w),fn:()=>{P.wish.splice(i,1);save();wishMenu()}})),{label:"もどる",fn:wishMenu}],cancel:wishMenu})});
+  items.push({label:"もどる",fn:hub});
+  menu({title:"ほしい物リスト",text:`所持金 ${yen(P.money)}\n仲間と走っているときに勧められたもの。買うと最大気力が少し上がる。`,items,cancel:hub})}
 function checkStates(night){
   const f=R.f;
   if(night&&!f.night){f.night=true;log("日が暮れた。ライト点灯。")}
@@ -1563,30 +1598,36 @@ function title(){
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
 }
-function startNew(){P=newPlayer();menu({title:"どこに住んでいる？",text:"住んでいる場所で、各地のイベントへの交通費が変わる。",items:HOMES.map(h=>({label:`${h.name}（${h.region}）`,fn:()=>{P.home=h.id;runQuiz(()=>say("サイクルショップ",`所持金 ${yen(P.money)}。\nまずはブルベを走る自転車を選ぼう。`,()=>bikeShop(true)))}}))})}
+// Everyone starts with the cheap basics, so a new season begins with choosing a bike only.
+const STARTER={light_aaa:true,light_usb:true,rear:true,vest:true,bell:true,helmet:true,helmet_tail:true,bank:true,bag:true,whistle:true,
+  jersey:"cheap",bib:"cheap",winter:"cheap",wind:"cheap",rain:"cheap"};
+function giveStarter(){Object.assign(P.gear,STARTER);Object.assign(P.pack,{kit:1,tube:1,wind:1,rain:1,bank:1})}
+function bikeStats(b){const r=(v,hi)=>v>=hi+0.04?"◎":v>=hi?"○":v>=hi-0.04?"△":"×";
+  return `平地${r(b.aero,1)} 登り${r(2-b.climb-(b.weight-9)*0.02,1)} 下り${r(b.descent,1)} パンク${r(2-b.punct,1)} 疲れにくさ${r(2-b.comfort,1)} ${b.weight}kg`}
+function startNew(){P=newPlayer();menu({title:"どこに住んでいる？",text:"住んでいる場所で、各地のイベントへの交通費が変わる。",items:HOMES.map(h=>({label:`${h.name}（${h.region}）`,fn:()=>{P.home=h.id;giveStarter();runQuiz(()=>say("サイクルショップ",`所持金 ${yen(P.money)}。\nライトやウェアなど、安い基本装備はひととおり持っている。\nまずはブルベを走る自転車を選ぼう。`,()=>bikeShop(true)))}}))})}
 function bikeShop(first){
   G.bg={scen:"town",tod:13*60,speed:0};
   menu({title:"自転車を選ぶ",text:`所持金 ${yen(P.money)}`,items:[
     ...Object.entries(BIKES).map(([id,b])=>({label:b.name,note:P.bikes.includes(id)?"持っている":yen(b.price),disabled:!P.bikes.includes(id)&&P.money<b.price,
-      desc:`${b.desc}（${b.weight}kg）`,fn:()=>{if(!P.bikes.includes(id)){P.money-=b.price;P.bikes.push(id);SFX.ok()}P.bike=id;save();
-        say(`${b.name}に決めた！`,first?"次はライトやウェアを買いそろえよう。\nブルベの必須装備：前照灯、尾灯、反射ベスト。":"",()=>first?gearShop(true):hub())}})),
+      desc:`${b.desc}\n${bikeStats(b)}`,fn:()=>{if(!P.bikes.includes(id)){P.money-=b.price;P.bikes.push(id);SFX.ok()}P.bike=id;save();
+        say(`${b.name}に決めた！`,first?"装備は安いものがひととおりそろっている。\n前照灯2灯・尾灯・ヘルメット尾灯・反射ベスト・ベル・ヘルメット、作業用カッパやヤッケ、モバイルバッテリー、サドルバッグ。\nいいものは、あとからサイクルショップで買い足そう。":"",hub)}})),
     ...(first?[]:[{label:"もどる",fn:hub}])],cancel:first?null:hub});
 }
 function gearShop(first,keep){
-  const items=GEAR.map(g=>WEAR_NAMES[g.id]?{label:`${g.cat}：${g.name}`,note:P.gear[g.id]?TIERS[gearTier(g.id)].name:`${yen(tierPrice(g,"cheap"))}〜`,desc:g.desc+"\n格安品・中級品・高級品から選べる。性能の差はわずかだけど、値段は数倍ちがう。",
+  const items=GEAR.map(g=>WEAR_NAMES[g.id]?{label:`${g.cat}：${g.name}`,note:P.gear[g.id]?(g.id==="navi"?["入門","ミドル","ハイエンド"][TIERS[gearTier(g.id)].t+1]:TIERS[gearTier(g.id)].name):`${yen(tierPrice(g,"cheap"))}〜`,desc:g.desc+(g.id==="navi"?"\n入門・ミドル・ハイエンドの3種類。":"\n格安品・中級品・高級品から選べる。性能の差はわずかだけど、値段は数倍ちがう。"),
       fn:()=>wearShop(g,first)}:
     {label:`${g.cat}：${g.name}`,note:P.gear[g.id]?"購入済み":yen(g.price),disabled:!P.gear[g.id]&&P.money<g.price,desc:g.desc,
     fn:()=>{if(!P.gear[g.id]){P.money-=g.price;P.gear[g.id]=true;SFX.ok();save()}gearShop(first,true)}});
   items.push({label:hasRequired()?"買い物を終える":"買い物を終える（必須装備が足りない）",fn:()=>{if(!hasRequired()&&first)return say("待って！",`車検に通らない。足りないもの：${missingGear("brm",200).join("、")}\n400km以上は、前照灯2灯とヘルメット用尾灯も必要。`,()=>gearShop(first));hub()}});
   menu({title:"装備を買う",text:`所持金 ${yen(P.money)}`,items,keep,cancel:first?null:hub});
 }
-function tierPrice(g,k){return Math.round(g.price*TIERS[k].mul/100)*100}
+function tierPrice(g,k){return g.prices?g.prices[k]:Math.round(g.price*TIERS[k].mul/100)*100}
 function wearShop(g,first){
   const pk=PACK.find(x=>x.needs===g.id);
   const items=["cheap","mid","pro"].map((k,i)=>{const T=TIERS[k],own=gearTier(g.id)===k,pr=tierPrice(g,k);
-    const perf={jersey:`気力の減り -${15+T.t*2}%`,bib:T.t<0?"荒れた路面で少し気力が減る":"荒れた路面でも気力が減りにくい",winter:`体感 +${4+T.t*0.5}℃`,wind:`着ると体感 +${6+T.t*0.5}℃`,rain:T.t>0?"蒸れにくい":T.t<0?"少し蒸れる":"ふつう"}[g.id];
+    const perf={jersey:`気力の減り -${15+T.t*2}%`,bib:T.t<0?"荒れた路面で少し気力が減る":"荒れた路面でも気力が減りにくい",winter:`体感 +${4+T.t*0.5}℃`,wind:`着ると体感 +${6+T.t*0.5}℃`,rain:T.t>0?"蒸れにくい":T.t<0?"少し蒸れる":"ふつう",navi:`スマホのキューシートより道迷い ${[-47,-60,-70][T.t+1]}%`}[g.id];
     return {label:`${WEAR_NAMES[g.id][i]}`+(own?"　<small>持っている</small>":""),note:own?"":yen(pr),disabled:own||P.money<pr,
-      desc:`${T.shop}の${T.name}。${perf}。${pk?`重さ ${Math.round(pk.w*T.w*1000)}g。`:""}${T.brk>1?"壊れやすい。":T.brk<1?"丈夫で長持ち。":""}`,
+      desc:`${g.id==="navi"?["画面が小さめ","見やすい画面","大画面でバッテリー長持ち"][T.t+1]:T.shop+"の"+T.name}。${perf}。${pk?`重さ ${Math.round(pk.w*T.w*1000)}g。`:""}${g.id==="navi"?"":T.brk>1?"壊れやすい。":T.brk<1?"丈夫で長持ち。":""}`,
       fn:()=>{P.money-=pr;P.gear[g.id]=k;SFX.ok();save();wearShop(g,first)}}});
   items.push({label:"もどる",fn:()=>gearShop(first)});
   menu({title:g.name,text:`所持金 ${yen(P.money)}\n${g.desc}`,items,cancel:()=>gearShop(first)});
@@ -1631,6 +1672,7 @@ function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
 function hub(){
   if(P.test)return testMenu();
   if(P.week>=WEEKS.length)return seasonEnd();
+  {const m=wishCheck();if(m){save();SFX.win();return say("ほしい物リスト",m,hub)}}
   G.mode="hub";showRideUI(false);G.bg={scen:homeOf().scen,tod:12*60,speed:0};save();
   const wk=P.week,items=[],ev=weekItems(wk),fat=Math.round(P.fatigue||0);
   for(const it of ev){const c=costOf(it),done=it.kind==="brm"&&P.rec[it.id]&&P.rec[it.id].done;
@@ -1645,6 +1687,7 @@ function hub(){
   items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
     menu({title:"誰を誘う？",items:[...Object.entries(FRIENDS).map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1,cafe:true})}})),{label:"もどる",fn:hub}],cancel:hub})}});
   items.push({label:"サイクルショップ（週は進まない）",fn:shopMenu});
+  if((P.wish||[]).length)items.push({label:`ほしい物リスト（${P.wish.length}）`,desc:P.wish.map(wishName).join("、"),fn:wishMenu});
   items.push({label:"年間カレンダー",fn:calendarView});
   items.push({label:"ステータス",fn:status});
   items.push({label:"仲間",fn:friendsView});
