@@ -178,6 +178,25 @@ const PARTS={
     {id:"dh",name:"DHバー",price:15000,w:0.35,desc:"平地で自動的にDHポジション。速度+6%、向かい風の影響が3割減。登り・下り・トレイン中は使えない。"},
   ]},
 };
+// Wear comes in three grades. Performance differs only a little; the price differs a lot.
+// Cheap things are a bit heavier and wear out sooner.
+const TIERS={
+  cheap:{name:"格安品",shop:"ホームセンター・作業着店",mul:0.35,w:1.5,brk:2,t:-1},
+  mid:{name:"中級品",shop:"アウトドアブランド",mul:1,w:1,brk:1,t:0},
+  pro:{name:"高級品",shop:"一流サイクルブランド",mul:3.5,w:0.7,brk:0.6,t:1},
+};
+const WEAR_NAMES={
+  jersey:["作業用の速乾シャツ","サイクルジャージ","一流ブランドのジャージ"],
+  bib:["パッド付きインナーパンツ","パッド付きレーパン","一流ブランドのビブショーツ"],
+  winter:["作業用防寒手袋＋アームカバー","冬用グローブ＋レッグウォーマー","一流ブランドの冬用グローブ＋ウォーマー"],
+  wind:["作業用ヤッケ","ウインドブレーカー","超軽量ウインドシェル"],
+  rain:["作業用カッパ上下","レインウェア上下","透湿防水の高級レインウェア"],
+};
+function gearTier(id){const v=P.gear[id];return !v?null:TIERS[v]?v:"mid"}
+function tierOf(id){return TIERS[gearTier(id)]||TIERS.mid}
+function wearName(id){const g=GEAR.find(x=>x.id===id),k=gearTier(id);return WEAR_NAMES[id]&&k?WEAR_NAMES[id][["cheap","mid","pro"].indexOf(k)]:g?g.name:id}
+// worn during this ride and not broken
+function hasGear(id){return !!P.gear[id]&&!(R&&R.broken&&R.broken[id])}
 const PACK=[
   {id:"kit",name:"修理キット(チューブ1本+ポンプ)",w:0.35,max:1,desc:"パンクを自分で直すのに必要。"},
   {id:"tube",name:"予備チューブ",w:0.13,max:3,desc:"1本で1回パンクを直せる。仲間に渡すこともできる。"},
@@ -928,7 +947,7 @@ function missingGear(kind,cls){
   return m}
 function hasRequired(){return !missingGear("brm",200).length}
 function packCap(){return P.gear.bag?5:2}
-function packWeight(p){return PACK.reduce((s,it)=>s+(p[it.id]||0)*it.w,0)}
+function packWeight(p){return PACK.reduce((s,it)=>s+(p[it.id]||0)*it.w*(it.needs&&WEAR_NAMES[it.needs]?tierOf(it.needs).w:1),0)}
 function packCost(p){return PACK.reduce((s,it)=>s+(p[it.id]||0)*(it.cost||0),0)}
 function lodgeCost(C){return C.lodges&&P.lodgePick>=0&&C.lodges[P.lodgePick]?C.lodges[P.lodgePick].price:0}
 
@@ -1020,14 +1039,14 @@ function drain(dm,g,night){
   const heat=Math.max(0,amb+Math.max(0,g)-26);
   R.stamina=clamp(R.stamina-h*(base+Math.max(0,g)*climb+Math.max(0,hw)*(R.pace==="hard"?1.5:0.5)+heat*1.0)*(tr?0.85:1)*(100/R.staMax),0,R.staMax);
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
-  let sp=(night?12:7)*B.comfort*partStat().comfort*(P.gear.jersey?0.85:1);
+  let sp=(night?12:7)*B.comfort*partStat().comfort*(hasGear("jersey")?0.85-tierOf("jersey").t*0.02:1);
   const d=tod(R.t)/60;
   R.movH=(R.movH||0)+h;
   const debt=sleepDebt(),nightUp=18*(1+debt/20)*(trait().sleepMul||1)*(R.train.length?0.6:1)*(R.spirit<30?1.2:1);
   const tol=100/(P.sleepMax||100);
   R.sleepy=clamp(R.sleepy+h*(d>=22||d<5?nightUp*tol:(d<10&&debt<6?-3:(2.5+debt*0.25)*tol)),Math.min(70,debt*1.5),100);
   if(R.sleepy>=50)sp+=R.sleepy>=80?12:5;
-  if(rain)sp+=R.rainOn?1:5;
+  if(rain)sp+=R.rainOn?1-tierOf("rain").t*0.3:5;
   if(R.pace==="hard")sp+=25;
   if(hw>4)sp+=4;
   if(g>3)sp+=(g-3)*2.5;
@@ -1036,11 +1055,11 @@ function drain(dm,g,night){
   if(tr)sp*=0.5;
   if(R.temp<50)sp+=6;
   if(R.hunger<15)sp+=5;
-  const rz=zone(R.course.rough,R.km);if(rz&&!P.gear.bib)sp+=rz[3]==="butt"?10:4;
+  const rz=zone(R.course.rough,R.km);if(rz&&!hasGear("bib"))sp+=rz[3]==="butt"?10:4;else if(rz&&tierOf("bib").t<0)sp+=2;
   R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1),0,R.spiMax||100);
   R.lo={sta:Math.min(R.lo?.sta??1,R.stamina/R.staMax),spi:Math.min(R.lo?.spi??1,R.spirit/(R.spiMax||100)),slp:Math.max(R.lo?.slp??0,R.sleepy/100)};
   let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
-  eff+=(P.gear.winter?4:0)+(R.windOn?6:0);
+  eff+=(hasGear("winter")?4+tierOf("winter").t*0.5:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
   const cold=12-eff;
   R.temp=cold>0?clamp(R.temp-cold*0.03*dm,0,100):clamp(R.temp+0.3*dm,0,100);
   if(night&&R.light>0)R.light=Math.max(0,R.light-h);
@@ -1059,8 +1078,36 @@ function randomTrouble(dk,night){
   acc+=0.0004*dk;if(r<acc){R.cool=6;troubleChain();return true}
   acc+=lostRate*dk;if(r<acc){R.cool=6;troubleLost();return true}
   acc+=deerRate*dk;if(r<acc){R.cool=4;troubleDeer();return true}
+  acc+=0.00012*dk;if(r<acc&&breakSomething())return true;
   return false;
 }
+// Rarely, something gives out on the road and has to be bought again after the ride.
+function breakSomething(){
+  const c=[];
+  for(const id of ["jersey","bib","winter"])if(hasGear(id))c.push([id,tierOf(id).brk]);
+  if(R.rainOn)c.push(["rain",tierOf("rain").brk*2]);if(R.windOn)c.push(["wind",tierOf("wind").brk*2]);
+  c.push(["tire",1.5]);if(P.parts.wheel!=="stock")c.push(["wheel",0.4]);c.push(["comp",0.4]);
+  let tot=c.reduce((a,x)=>a+x[1],0),r=Math.random()*tot,id=c[0][0];for(const [k,w] of c){if((r-=w)<0){id=k;break}}
+  R.cool=6;SFX.bad();R.broken=R.broken||{};R.broken[id]=true;
+  const B={
+    jersey:["ジャージのファスナーが壊れた","前が閉まらない。風がばたばた入って落ち着かない。",{spirit:-6}],
+    bib:["レーパンが擦り切れた","サドルの当たるところに穴が……。お尻が痛い。",{spirit:-6}],
+    winter:["グローブが裂けた","縫い目がほつれて指先が出てしまった。",{temp:-6}],
+    rain:["レインウェアが破れた","引っかけて大きく裂けた。もう雨を防げない。",{spirit:-8}],
+    wind:["ウインドブレーカーが破れた","ファスナーごと裂けてしまった。もう着られない。",{spirit:-5}],
+    tire:["タイヤがサイドカット！","タイヤの横が裂けて、チューブがはみ出している。お札を内側に当てて応急処置。",{spirit:-10}],
+    wheel:["スポークが折れた！","パキンと音がして、ホイールが振れている。ブレーキを開いてだましだまし走る。",{spirit:-12}],
+    comp:["変速機の調子が悪い","リアディレイラーが曲がって、何段かギアが入らない。",{spirit:-8}],
+  }[id];
+  if(id==="rain"){R.rainGear=false;R.rainOn=false}
+  if(id==="wind"){R.wind=false;R.windOn=false}
+  R.t+=id==="tire"?15:id==="wheel"?10:3;fx(B[2]);
+  say(B[0],B[1]+"\nゴールしたら買い直し（修理）が必要だ。");return true;
+}
+function crashDamage(){const out=[];R.broken=R.broken||{};
+  if(P.gear.helmet&&Math.random()<0.5){R.broken.helmet=true;out.push("ヘルメットが割れた。守ってくれた。")}
+  for(const id of ["jersey","bib"])if(hasGear(id)&&Math.random()<0.3){R.broken[id]=true;out.push(`${wearName(id)}が破れた。`)}
+  return out.length?"\n"+out.join("\n")+"\nゴールしたら買い直しが必要だ。":""}
 function checkStates(night){
   const f=R.f;
   if(night&&!f.night){f.night=true;log("日が暮れた。ライト点灯。")}
@@ -1165,15 +1212,15 @@ function troubleCold(){
 }
 function forcedCrash(){
   SFX.bad();R.t+=25;R.sleepy=55;fx({spirit:-30,stamina:-10,temp:-10});
-  say("寝落ちして落車！","気づいたら路肩に倒れていた。幸いけがは擦り傷だけ。\nそのまま20分、動けずに眠ってしまった……。\n眠くなったら早めに仮眠しよう。");
+  say("寝落ちして落車！","気づいたら路肩に倒れていた。幸いけがは擦り傷だけ。\nそのまま20分、動けずに眠ってしまった……。\n眠くなったら早めに仮眠しよう。"+crashDamage());
 }
 function troubleDoze(){
   SFX.bad();const nc=nextControl(),near=nc&&nc.km-R.km<8,items=[];
   items.push({label:"道端で15分寝る",desc:"確実。体は冷える。",fn:()=>nap(15,"路肩の草むらで15分眠った。")});
-  items.push({label:"顔を洗って耐える",desc:"またすぐ眠くなる。ふらついて落車することも。",fn:()=>{R.sleepy-=8;fx({spirit:-10});if(Math.random()<0.45){R.t+=10;fx({spirit:-20,stamina:-5});say("落車……","ふらついてガードレールに肩をぶつけた。けがはないが、心が折れそうだ。")}else log("頬をたたいて走り続ける。")}});
-  items.push({label:"大声で歌いながら走る",desc:"眠気が少し飛ぶ。気力も少し回復。",fn:()=>{if(Math.random()<0.6){R.sleepy-=15;fx({spirit:5});log("誰もいない夜道で熱唱した。少し目が覚めた。")}else{R.t+=8;fx({spirit:-15});say("歌っても無理だった","歌詞の途中で意識が途切れ、路肩の砂利に突っ込んだ。")}}});
+  items.push({label:"顔を洗って耐える",desc:"またすぐ眠くなる。ふらついて落車することも。",fn:()=>{R.sleepy-=8;fx({spirit:-10});if(Math.random()<0.45){R.t+=10;fx({spirit:-20,stamina:-5});say("落車……","ふらついてガードレールに肩をぶつけた。けがはないが、心が折れそうだ。"+crashDamage())}else log("頬をたたいて走り続ける。")}});
+  items.push({label:"大声で歌いながら走る",desc:"眠気が少し飛ぶ。気力も少し回復。",fn:()=>{if(Math.random()<0.6){R.sleepy-=15;fx({spirit:5});log("誰もいない夜道で熱唱した。少し目が覚めた。")}else{R.t+=8;fx({spirit:-15});say("歌っても無理だった","歌詞の途中で意識が途切れ、路肩の砂利に突っ込んだ。"+crashDamage())}}});
   if(R.pocket.length)items.push({label:`${R.pocket[0].name}をかじる`,desc:"噛んでいると目が覚める。",fn:()=>{R.sleepy-=10;eat(0)}});
-  items.push({label:near?`次のPCまでがんばる（あと${(nc.km-R.km).toFixed(1)}km）`:"次のPCまでがんばる（まだ遠い）",desc:"PCに着けばコーヒーとイートインがある。遠いと危ない。",fn:()=>{if(near&&Math.random()<0.8){log("PCの明かりが見えた！");}else{R.t+=12;fx({spirit:-25,stamina:-5});say("限界だった","PCの手前で寝落ちして落車。擦り傷と、くじけた心。")}}});
+  items.push({label:near?`次のPCまでがんばる（あと${(nc.km-R.km).toFixed(1)}km）`:"次のPCまでがんばる（まだ遠い）",desc:"PCに着けばコーヒーとイートインがある。遠いと危ない。",fn:()=>{if(near&&Math.random()<0.8){log("PCの明かりが見えた！");}else{R.t+=12;fx({spirit:-25,stamina:-5});say("限界だった","PCの手前で寝落ちして落車。擦り傷と、くじけた心。"+crashDamage())}}});
   menu({title:"一瞬、意識が飛んだ！",text:`ハッとするとセンターラインの上にいた。眠気 ${Math.round(R.sleepy)}`,items});
 }
 
@@ -1426,6 +1473,13 @@ function dnf(reason){if(G.mode==="dnf"||G.mode==="goal")return;recOf(R.course.id
   endRun("DNF",reason+`\n${R.course.kind==="brm"?"回収してもらって帰路についた。次こそは。":"スタッフの車で会場に戻った。"}`,{fatigue:Math.round(R.km/8)})}
 function endRun(title,text,o={}){
   P.km+=Math.round(R?R.km:0);
+  let fixes="";
+  if(R&&R.broken){const L=[];
+    for(const id in R.broken){
+      if(PARTS[id]){const cur=PARTS[id].opts.find(o=>o.id===P.parts[id]);const cost=id==="tire"?(cur.price||6000):id==="wheel"?8000:12000;
+        P.money-=cost;L.push(`${cur.name}を${id==="tire"?"買い直した":"修理した"}（${yen(cost)}）`)}
+      else{L.push(`${wearName(id)}は捨てるしかない。ショップで買い直そう`);delete P.gear[id]}}
+    fixes="\n\n【壊れたもの】\n"+L.join("\n")}
   if(R&&R.km>20){const b=R.km/1000;P.body=clamp(P.body-b,55,95)}
   P.fatigue=clamp((P.fatigue||0)+(o.fatigue||0),0,100);
   let extra="";
@@ -1444,7 +1498,7 @@ function endRun(title,text,o={}){
       items.unshift({label:`続けて「${n.name.replace(/^BRM\d+ /,"")}」に出る`,note:`${jpDate(n.ymd).replace(/^\d+月/,"")} ${yen(cost)}`,disabled:P.money<cost,
         desc:`家に帰らず、そのまま次のスタートへ。疲労 ${Math.round(P.fatigue)} を抱えたまま走る。${n.region===cur.region?"":"移動費込み。"}`,fn:()=>{R=null;enter(n,cost)}})}}
   if(R&&P.rec[R.course.id])P.rec[R.course.id].week=P.week;
-  menu({title,text:text+extra+`\n疲労 ${Math.round(P.fatigue)}`,items});
+  menu({title,text:text+extra+`\n疲労 ${Math.round(P.fatigue)}`+fixes,items});
 }
 function showRideUI(on){$("#hud").hidden=!on;$("#ctrl").hidden=!on;$("#gauges").hidden=!on}
 
@@ -1468,10 +1522,23 @@ function bikeShop(first){
     ...(first?[]:[{label:"もどる",fn:hub}])],cancel:first?null:hub});
 }
 function gearShop(first,keep){
-  const items=GEAR.map(g=>({label:`${g.cat}：${g.name}`,note:P.gear[g.id]?"購入済み":yen(g.price),disabled:!P.gear[g.id]&&P.money<g.price,desc:g.desc,
-    fn:()=>{if(!P.gear[g.id]){P.money-=g.price;P.gear[g.id]=true;SFX.ok();save()}gearShop(first,true)}}));
+  const items=GEAR.map(g=>WEAR_NAMES[g.id]?{label:`${g.cat}：${g.name}`,note:P.gear[g.id]?TIERS[gearTier(g.id)].name:`${yen(tierPrice(g,"cheap"))}〜`,desc:g.desc+"\n格安品・中級品・高級品から選べる。性能の差はわずかだけど、値段は数倍ちがう。",
+      fn:()=>wearShop(g,first)}:
+    {label:`${g.cat}：${g.name}`,note:P.gear[g.id]?"購入済み":yen(g.price),disabled:!P.gear[g.id]&&P.money<g.price,desc:g.desc,
+    fn:()=>{if(!P.gear[g.id]){P.money-=g.price;P.gear[g.id]=true;SFX.ok();save()}gearShop(first,true)}});
   items.push({label:hasRequired()?"買い物を終える":"買い物を終える（必須装備が足りない）",fn:()=>{if(!hasRequired()&&first)return say("待って！",`車検に通らない。足りないもの：${missingGear("brm",200).join("、")}\n400km以上は、前照灯2灯とヘルメット用尾灯も必要。`,()=>gearShop(first));hub()}});
   menu({title:"装備を買う",text:`所持金 ${yen(P.money)}`,items,keep,cancel:first?null:hub});
+}
+function tierPrice(g,k){return Math.round(g.price*TIERS[k].mul/100)*100}
+function wearShop(g,first){
+  const pk=PACK.find(x=>x.needs===g.id);
+  const items=["cheap","mid","pro"].map((k,i)=>{const T=TIERS[k],own=gearTier(g.id)===k,pr=tierPrice(g,k);
+    const perf={jersey:`気力の減り -${15+T.t*2}%`,bib:T.t<0?"荒れた路面で少し気力が減る":"荒れた路面でも気力が減りにくい",winter:`体感 +${4+T.t*0.5}℃`,wind:`着ると体感 +${6+T.t*0.5}℃`,rain:T.t>0?"蒸れにくい":T.t<0?"少し蒸れる":"ふつう"}[g.id];
+    return {label:`${WEAR_NAMES[g.id][i]}`+(own?"　<small>持っている</small>":""),note:own?"":yen(pr),disabled:own||P.money<pr,
+      desc:`${T.shop}の${T.name}。${perf}。${pk?`重さ ${Math.round(pk.w*T.w*1000)}g。`:""}${T.brk>1?"壊れやすい。":T.brk<1?"丈夫で長持ち。":""}`,
+      fn:()=>{P.money-=pr;P.gear[g.id]=k;SFX.ok();save();wearShop(g,first)}}});
+  items.push({label:"もどる",fn:()=>gearShop(first)});
+  menu({title:g.name,text:`所持金 ${yen(P.money)}\n${g.desc}`,items,cancel:()=>gearShop(first)});
 }
 function partsShop(keep){
   const items=Object.entries(PARTS).map(([sl,d])=>({label:d.label,note:d.opts.find(o=>o.id===P.parts[sl]).name,fn:()=>slotShop(sl,false)}));
@@ -1628,7 +1695,7 @@ function seasonEnd(){
 }
 function status(){
   const parts=Object.entries(PARTS).map(([sl,d])=>d.opts.find(o=>o.id===P.parts[sl]).name).join("、");
-  const L=bestLight(),owned=GEAR.filter(g=>P.gear[g.id]).map(g=>g.name).join("、")||"なし";
+  const L=bestLight(),owned=GEAR.filter(g=>P.gear[g.id]).map(g=>WEAR_NAMES[g.id]?wearName(g.id):g.name).join("、")||"なし";
   const recs=[...COURSES,...EVENTS].filter(c=>P.rec[c.id]).map(c=>{const r=P.rec[c.id];return `${c.name}：完走${r.done} DNF${r.dnf}${r.best!=null?" 最速"+dur(r.best):""}`}).join("\n")||"まだ記録なし";
   say("ステータス",`${P.trait?"タイプ："+TYPES[P.trait.type].name+"\n":""}${homeOf().name}在住　疲労 ${Math.round(P.fatigue||0)}　総走行 ${P.km.toLocaleString("ja-JP")}km\n愛車 ${bikeOf().name}（${bikeWeight().toFixed(2)}kg）\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%\n体力上限 ${P.staMax}　気力上限 ${P.spiMax||100}　眠気耐性 ${P.sleepMax||100}\nパーツ：${parts}\n前照灯 ${L?L.name:"なし"}\n装備：${owned}\n\n${recs}`,hub);
 }
@@ -1641,7 +1708,7 @@ function packing(C,keep){
   G.bg={scen:"town",tod:21*60,speed:0};
   const p=P.pack,w=packWeight(p),cap=packCap();
   const items=PACK.map(it=>{const owned=!it.needs||P.gear[it.needs];const n=p[it.id]||0;
-    return {label:it.name,note:owned?`${n}/${it.max}${it.cost?" "+yen(it.cost):""}`:"未所持",disabled:!owned,desc:`${it.desc}（${Math.round(it.w*1000)}g）`,
+    return {label:it.name,note:owned?`${n}/${it.max}${it.cost?" "+yen(it.cost):""}`:"未所持",disabled:!owned,desc:`${it.desc}（${Math.round(it.w*(it.needs&&WEAR_NAMES[it.needs]&&P.gear[it.needs]?tierOf(it.needs).w:1)*1000)}g）`,
       fn:()=>{let v=(n+1)%(it.max+1);p[it.id]=v;if(packWeight(p)>cap+1e-9){p[it.id]=0;beep(220,0.1)}packing(C,true)}}});
   const bfs=BREAKFASTS.filter(b=>!b.region||b.region===homeOf().region||b.region===C.region),bf=breakfastOf();
   items.push({label:`朝ごはん：${bf.name}`,note:bf.price?yen(bf.price):"",desc:`選ぶたびに切り替わる。満腹${bf.hunger}でスタート。${describeFx({spirit:bf.spirit,temp:bf.temp,stamina:bf.stamina,sleepy:bf.sleepy})}`,
