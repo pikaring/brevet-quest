@@ -212,35 +212,67 @@ const PACK=[
 ];
 // Every item does a little of several things. Fried food fills you up but adds body weight;
 // cold things cool you on hot days; caffeine fights sleep.
+// Each PC visit shows a random handful from each shelf: staples, sides, drinks, caffeine, sweets, things to carry.
 const STORE={
-  common:[
+  staple:[
     {name:"おにぎり",price:150,min:2,fx:{hunger:15,stamina:4}},
     {name:"サンドイッチ",price:350,min:3,fx:{hunger:22,stamina:3,spirit:3}},
+    {name:"菓子パン",price:180,min:2,fx:{hunger:18,spirit:4,weight:0.02}},
+    {name:"焼きそばパン",price:200,min:2,fx:{hunger:20,stamina:3,weight:0.02}},
     {name:"カップ麺",price:250,min:8,fx:{hunger:30,temp:25,stamina:5,sleepy:3}},
-    {name:"ゼリー飲料",price:200,min:1,fx:{hunger:12,stamina:6}},
+    {name:"温めたお弁当",price:550,min:10,fx:{hunger:45,stamina:8,spirit:6,sleepy:8,weight:0.05}},
+    {name:"温めたパスタ",price:500,min:8,fx:{hunger:40,stamina:6,spirit:8,sleepy:5,weight:0.05}},
+    {name:"冷やしうどん",price:400,min:5,fx:{hunger:28,temp:-6,stamina:5}},
+    {name:"肉まん",price:180,min:2,fx:{hunger:15,temp:10,stamina:3}},
+  ],
+  side:[
+    {name:"からあげ",price:250,min:3,fx:{hunger:16,spirit:8,weight:0.06}},
+    {name:"フライドポテト",price:200,min:3,fx:{hunger:14,spirit:6,weight:0.06}},
+    {name:"ゆで卵",price:100,min:1,fx:{hunger:8,stamina:4}},
+    {name:"サラダチキン",price:300,min:2,fx:{hunger:12,stamina:6}},
+    {name:"おでん",price:300,min:4,fx:{hunger:15,temp:15,stamina:4,spirit:4}},
+    {name:"ホットスナックの春巻",price:180,min:2,fx:{hunger:10,spirit:5,weight:0.04}},
+  ],
+  drink:[
     {name:"スポーツドリンク",price:160,min:1,fx:{stamina:6,temp:-4}},
-    {name:"北海道牛乳",price:180,min:1,fx:{hunger:8,stamina:5,spirit:3}},
-    {name:"アイス（クーリッシュ）",price:180,min:2,fx:{spirit:10,stamina:4,temp:-10,weight:0.02}},
+    {name:"水",price:110,min:1,fx:{stamina:3,temp:-3}},
+    {name:"経口補水液",price:200,min:1,fx:{stamina:9,temp:-3}},
+    {name:"牛乳",price:180,min:1,fx:{hunger:8,stamina:5,spirit:3}},
+    {name:"野菜ジュース",price:130,min:1,fx:{hunger:5,stamina:4,spirit:2}},
+    {name:"コーラ",price:180,min:1,fx:{stamina:5,spirit:8,sleepy:-4}},
+    {name:"ホットココア",price:150,min:3,fx:{hunger:5,temp:12,spirit:6}},
+  ],
+  caffeine:[
     {name:"ホットコーヒー",price:150,min:3,fx:{spirit:10,temp:10,sleepy:-12}},
-    {name:"レッドブル",price:250,min:1,fx:{spirit:15,stamina:5,sleepy:-20}},
-    {name:"眠眠打破",price:250,min:1,fx:{sleepy:-35,spirit:-3}},
+    {name:"アイスコーヒー",price:150,min:2,fx:{spirit:8,temp:-5,sleepy:-12}},
+    {name:"エナジードリンク",price:250,min:1,fx:{spirit:15,stamina:5,sleepy:-20}},
+    {name:"眠気覚ましドリンク",price:250,min:1,fx:{sleepy:-35,spirit:-3}},
+    {name:"濃いめの緑茶",price:160,min:1,fx:{stamina:3,sleepy:-8}},
+  ],
+  sweet:[
+    {name:"アイスクリーム",price:180,min:2,fx:{spirit:10,stamina:4,temp:-10,weight:0.02}},
+    {name:"シュークリーム",price:150,min:2,fx:{hunger:8,spirit:10,weight:0.03}},
+    {name:"プリン",price:200,min:2,fx:{hunger:8,spirit:8,stamina:3}},
+    {name:"どら焼き",price:160,min:2,fx:{hunger:12,spirit:6,stamina:3}},
+  ],
+  carry:[
     {name:"バナナ(持ち出し)",price:120,pocket:{name:"バナナ",hunger:10,stamina:4}},
     {name:"プロテインバー(持ち出し)",price:200,pocket:{name:"プロテインバー",hunger:8,stamina:6}},
     {name:"羊羹(持ち出し)",price:150,pocket:{name:"羊羹",hunger:12,stamina:3}},
-    {name:"カイロ",price:150,give:"kairo"},
-    {name:"単4電池",price:400,give:"batteries"},
+    {name:"ミックスナッツ(持ち出し)",price:250,pocket:{name:"ミックスナッツ",hunger:10,stamina:2}},
+    {name:"グミ(持ち出し)",price:130,pocket:{name:"グミ",hunger:5,spirit:5}},
+    {name:"ゼリー飲料(持ち出し)",price:200,pocket:{name:"ゼリー飲料",hunger:12,stamina:6}},
+    {name:"おにぎり(持ち出し)",price:150,pocket:{name:"おにぎり",hunger:14,stamina:3}},
   ],
-  seven:[{name:"しろもちたい焼き",price:200,min:3,fx:{hunger:15,spirit:12,stamina:3,weight:0.03}},{name:"冷やし中華（ミニ）",price:400,min:5,fx:{hunger:22,temp:-8,stamina:4}}],
-  lawson:[{name:"からあげクン",price:260,min:3,fx:{hunger:18,spirit:8,weight:0.06}},{name:"大盛り明太子パスタ",price:550,min:10,fx:{hunger:45,spirit:12,stamina:6,sleepy:5,weight:0.05}}],
-  famima:[{name:"月見背徳バーガー",price:450,min:5,fx:{hunger:30,spirit:15,weight:0.1}},{name:"ファミチキ",price:230,min:2,fx:{hunger:15,spirit:6,weight:0.06}}],
-  seicomart:[
-    {name:"ホットシェフ カツ丼",price:600,min:10,fx:{hunger:45,spirit:8,stamina:8,sleepy:8,weight:0.12}},
-    {name:"ホットシェフ フライドチキン",price:250,min:3,fx:{hunger:18,spirit:8,weight:0.07}},
-    {name:"ざるそば",price:400,min:5,fx:{hunger:28,temp:-6,stamina:5}},
-    {name:"天狗堂きびだんご(持ち出し)",price:180,pocket:{name:"きびだんご",hunger:12,stamina:3}},
-    {name:"まるごとバナナ(持ち出し)",price:200,pocket:{name:"まるごとバナナ",hunger:15,stamina:3,weight:0.03}},
-  ],
+  goods:[{name:"カイロ",price:150,give:"kairo"},{name:"単4電池",price:400,give:"batteries"}],
+  // Seicomart's in-store kitchen: sometimes something hot is ready
+  seicomart:[{name:"ホットシェフのカツ丼",price:600,min:10,fx:{hunger:45,spirit:8,stamina:8,sleepy:8,weight:0.12}},{name:"ホットシェフのフライドチキン",price:250,min:3,fx:{hunger:18,spirit:8,weight:0.07}}],
 };
+const SHELF=[["staple",2],["side",1],["drink",2],["caffeine",1],["sweet",1],["carry",3]];
+function pickShelf(chain){const out=[];
+  for(const [k,n] of SHELF){const a=[...STORE[k]];for(let i=0;i<n&&a.length;i++)out.push(a.splice(Math.floor(Math.random()*a.length),1)[0])}
+  if(STORE[chain]&&Math.random()<0.6)out.unshift(STORE[chain][Math.floor(Math.random()*STORE[chain].length)]);
+  return [...out,...STORE.goods]}
 // Restaurant stops along the courses: rich food adds a little body weight.
 const OILY=[[/焼肉|豚丼|天丼|カツ|和牛/,0.15],[/ラーメン|ピザ|ラッキーピエロ|オムカレー|やきとり|パスタ|バーガー|お好み焼き/,0.1],[/ソフト|シュークリーム|たい焼き|甘酒/,0.03]];
 const FRIENDS={
@@ -1255,7 +1287,8 @@ function lodgeEvent(L,i){
     return menu({title:`予約した宿：${L.name}`,text:`チェックインできる。何時間眠る？\nゴールのクローズまで あと${dur(left)}　眠気 ${Math.round(R.sleepy)}`,items})}
   const peak=/^2026-0[78]/.test(R.course.ymd||""),vacant=Math.random()<(peak?0.4:0.75),price=L.price+2000;
   if(vacant)items.push(...hoursOpt(price).map(o=>({...o,note:`${yen(price)}・${o.note}`})));
-  items.push({label:"ロビーの椅子で30分だけ仮眠",fn:()=>nap(30,"ロビーの隅で30分だけ眠らせてもらった。")});
+  items.push({label:"近くの公園の東屋で仮眠",note:"30分",desc:"屋根の下のベンチで横になる。体は冷える。",fn:()=>nap(30,"公園の東屋のベンチで30分眠った。")});
+  items.push({label:"小屋付きのバス停で眠る",note:"90分",desc:"風をしのげる待合小屋。90分眠ると、たまった眠気と脚の疲れがかなり抜ける。",fn:()=>nap(90,"小屋付きのバス停で90分眠った。始発のバスが来る前に出発。")});
   items.push({label:"そのまま進む",fn:()=>log(`${L.name}の前を通り過ぎた。`)});
   menu({title:L.name,text:`${vacant?"空室があるらしい。飛び込みで泊まる？":"飛び込みで聞いてみたけど、満室だった……。"}\nゴールのクローズまで あと${dur(left)}　眠気 ${Math.round(R.sleepy)}`,items});
 }
@@ -1345,14 +1378,14 @@ function friendEvent(ev){
 /* ================= PC (convenience store) ================= */
 function arrivePC(ev){
   const close=closeOf(ev.km);
-  G.mode="pc";R.pc=ev;R.pcArrive=R.t;R.pcLast="";R.pcBought=[];SFX.pc();
+  G.mode="pc";R.pc=ev;R.pcShelf=null;R.pcArrive=R.t;R.pcLast="";R.pcBought=[];SFX.pc();
   log(`${ev.name} 到着 ${fmt(R.t)}（クローズ目安 ${fmt(close)}）`);
   if(R.t>close){R.pcLast=`クローズ目安 ${fmt(close)} を過ぎてしまった。ゴールの制限時間に注意！`;fx({spirit:-5})}
   pcMenu(false);
 }
 function pcAct(msg,min){R.pcLast=min?`${msg}（${min}分経過）`:msg;beep(1568,0.05);pcMenu(true)}
 function pcMenu(keep){
-  const ev=R.pc,list=[...(STORE[ev.chain]||[]),...STORE.common],items=[];
+  const ev=R.pc,items=[];if(!R.pcShelf)R.pcShelf=pickShelf(ev.chain);const list=R.pcShelf;
   const seated=it=>it.fx?{...it.fx,stamina:(it.fx.stamina||0)+Math.round(it.min*1.2)}:it.fx;
   const buy=it=>{P.money-=it.price;R.receipts[ev.km]=true;R.t+=1+(it.min||0);fx(seated(it));if(it.pocket)R.pocket.push({...it.pocket});if(it.give)R[it.give]++;R.pcBought.push(it.name.replace(/\(持ち出し\)/,""))};
   const sec=t=>items.push({header:true,disabled:true,label:t});
