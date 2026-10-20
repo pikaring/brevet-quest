@@ -524,7 +524,7 @@ COURSES.push(
  brm({id:"gonou300",cls:300,ymd:"2026-06-06",org:TM,region:"青森",url:TM_URL+"2026brm606-g/",blog:"https://pikacycling.hateblo.jp/entry/2026/06/16/120000",name:"BRM606 五能線300",dist:303.2,start:5*60,fee:1800,startName:"青森市立合浦公園",estimated:false,
   desc:"AJたまがわの青森ブルベ。いきなりあすなろラインを越えて鰺ヶ沢へ、日本海沿いに五能線と並走して千畳敷、ウェスパ椿山。能代、鷹巣、大館から矢立峠を越えて大鰐、青森空港を経て青森へ。作者はチタンロードの初ブルベで走った。",goalFood:"あんてな青森でゴール。泊まりは温泉付きのホテルで、汗と雨のジャージをランドリーへ。",
   profile:[[0,5],[8,60],[14,190],[22,60],[40,30],[59.8,2],[76.8,10],[90,40],[107.6,59],[130,20],[145,20],[161.9,6],[180,20],[200.1,31],[215,60],[230,120],[244.2,267],[257.5,88],[270,100],[285,200],[295,60],[303.2,5]],
-  scenery:[[0,"town"],[6,"forest"],[22,"field"],[45,"sea"],[110,"forest"],[125,"sea"],[150,"town"],[165,"field"],[200,"town"],[212,"town"],[222,"forest"],[240,"mountain"],[255,"town"],[262,"field"],[280,"forest"],[296,"town"]],heading:[[0,250],[59.8,220],[107.6,190],[161.9,90],[200.1,40],[257.5,350]],deer:[[225,250]],rain:[[12,45],[90,105],[125,135]],
+  scenery:[[0,"town"],[6,"forest"],[22,"field"],[45,"sea"],[110,"forest"],[125,"sea"],[150,"town"],[165,"field"],[200,"town"],[212,"town"],[222,"forest"],[240,"mountain"],[255,"town"],[262,"field"],[280,"forest"],[296,"town"]],heading:[[0,250],[59.8,220],[107.6,190],[161.9,90],[200.1,40],[257.5,350]],deer:[[225,250]],rain:[[12,40],[95,105]],
   events:[{km:14,type:"note",text:"あすなろラインの山頂付近。予報どおり雨が降り出した。"},
    {km:59.8,type:"check",name:"コントロール1 海の駅わんど",photo:"秋田犬「わさお」の銅像とブルベカードを撮影した。"},
    {km:70,type:"sight",name:"深浦手前のファミリーマート",text:"キューシートに「この先しばらくコンビニなし」。補給していく？",min:10,price:600,fx:{hunger:35,stamina:4}},
@@ -539,6 +539,8 @@ COURSES.push(
    {km:240,type:"sight",name:"やたて温泉",text:"矢立峠への登りの途中にある鉄分の多い赤湯。露天には壷湯。貸しタオルもある。入っていく？",min:45,price:500,fx:{spirit:35,stamina:20,sleepy:-10}},
    {km:244.2,type:"note",text:"矢立峠（267m）。秋田と青森の県境。"},
    {km:257.5,type:"pc",name:"コントロール5 ファミリーマート大鰐町店",chain:"famima"},
+   {km:258.5,type:"sight",name:"大鰐温泉もやしラーメン",text:"温泉の地熱で育てる大鰐名物の細長いもやし。シャキシャキの一杯。",min:25,price:900,close:19*60+30,fx:{hunger:40,spirit:18,temp:8}},
+   {km:259.5,type:"sight",name:"大鰐温泉の共同浴場",text:"開湯800年の大鰐温泉。地元の人に混じって熱めの湯に浸かっていく？",min:40,price:200,close:22*60,fx:{spirit:30,stamina:18,sleepy:-8}},
    {km:262,type:"note",text:"ここからは真っ暗な夜道。国道は狭くてトラックが多い。"},
    {km:285,type:"note",text:"青森空港への登り。なんにも面白くない。手前の料金所で20円。",spirit:-5},
    {km:298,type:"note",text:"最後に青森ベイブリッジを渡らされる。"},
@@ -1427,6 +1429,7 @@ function sightEvent(ev){
   const left=R.course.start+R.course.limit-R.t;
   // Eating at a restaurant stop means sitting down, so stamina comes back too (same rule as the PC eat-in).
   const eff=ev.fx&&ev.fx.hunger?{...ev.fx,stamina:(ev.fx.stamina||0)+Math.round(ev.min*1.2)}:ev.fx;
+  if(ev.close&&tod(R.t)>=ev.close){log(`${ev.name}は、もう閉まっていた……。`);fx({spirit:-3});return}
   if(ev.open&&tod(R.t)<ev.open)return menu({title:ev.name,text:`${ev.text}\nまだ開いていない（開店 ${fmt(ev.open)}）。ゴールのクローズまで あと${dur(left)}`,items:[
     {label:`開店まで待つ`,note:`${Math.ceil(ev.open-tod(R.t))}分`,fn:()=>{R.t+=ev.open-tod(R.t);fx({temp:-5});sightEvent({...ev,open:0})}},
     {label:"先を急ぐ",fn:()=>{log(`${ev.name}はまだ開いていなかった。`);trainStop(false,null)}}]});
