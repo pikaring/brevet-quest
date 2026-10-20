@@ -459,8 +459,8 @@ const TRAVEL={道南:{道南:1000,道央:9000,道北:16000,道東:18000,青森:9
 const HOMES=[{id:"hakodate",name:"函館",region:"道南",scen:"sea"},{id:"sapporo",name:"札幌",region:"道央",scen:"town"},{id:"asahikawa",name:"旭川",region:"道北",scen:"field"},{id:"obihiro",name:"帯広",region:"道東",scen:"field"}];
 function brm(o){const m=MONTH_ENV[+o.ymd.slice(5,7)];
   return Object.assign({limit:LIMITS[o.cls],start:7*60,date:jpDate(o.ymd),sunrise:m.sr,sunset:m.ss,tDay:m.day,tNight:m.night,rough:[],deer:[],heading:[[0,0]],estimated:true,goalFood:"",kind:"brm"},o)}
-const AJ="AJ北海道",RS="ランドヌール札幌";
-const RS_URL="https://randonneurssapporo.net/brmr%EF%BD%8D/2026brm/",AJ_URL="https://ajhokkaido.jp/";
+const AJ="AJ北海道",RS="ランドヌール札幌",TM="AJたまがわ";
+const RS_URL="https://randonneurssapporo.net/brmr%EF%BD%8D/2026brm/",AJ_URL="https://ajhokkaido.jp/",TM_URL="https://ajtamagawa.org/2026brm/";
 COURSES.push(
  brm({id:"hobetsu200",cls:200,ymd:"2026-04-26",org:AJ,region:"道央",url:AJ_URL,name:"BRM426 北海道200km 穂別",dist:200,startName:"むかわ町穂別（推定）",
   desc:"テーマは恐竜。獲得標高1,317mの平坦基調で、シーズン最初の一本。4月の北海道はまだ寒い。",goalFood:"むかわ竜に見守られてゴール。",
@@ -480,6 +480,23 @@ COURSES.push(
    {km:133,type:"sight",name:"霧立亭の大盛りそば",text:"今年は霧立400がないので、ここで大盛りに挑戦する？",min:25,price:1200,fx:{hunger:55,spirit:25}},
    {km:155,type:"pc",name:"PC3 幌加内",chain:"seicomart"},
    {km:178,type:"sight",name:"江丹別そば",text:"春の江丹別で、もう一杯。",min:20,price:1000,fx:{hunger:35,spirit:20}},{km:203,type:"goal",name:"ゴール 神楽岡公園"}]}),
+ // AJたまがわ（青森）— controls and distances from the official 2026 cue sheets
+ brm({id:"tsugaru200",cls:200,ymd:"2026-05-09",org:TM,region:"青森",url:TM_URL+"2026brm509-t/",name:"BRM509 津軽200",dist:204.4,start:5*60,fee:1800,startName:"青森駅前公園",estimated:false,
+  desc:"AJたまがわの青森ブルベ。陸奥湾沿いに津軽半島を北上して竜飛崎で折り返し、十三湖、高山稲荷、木造駅のしゃこちゃんを巡って青森へ。コントロールはすべて写真チェック。獲得標高は1,600m前後。",goalFood:"あんてな青森でゴール。帰りは青森の夜の味。",
+  profile:[[0,5],[20,10],[42.5,20],[60,40],[72,120],[78.3,100],[85,60],[95,250],[103,60],[115,10],[128.3,10],[145,20],[159.1,10],[168,30],[180,60],[190,180],[198,60],[204.4,5]],
+  scenery:[[0,"town"],[5,"sea"],[70,"mountain"],[80,"sea"],[90,"forest"],[105,"lake"],[120,"sea"],[135,"field"],[160,"town"],[170,"field"],[185,"forest"],[198,"town"]],heading:[[0,350],[78.3,180],[103,230],[128.3,170],[159.1,110],[175,80]],deer:[[60,100]],
+  events:[{km:20,type:"note",text:"蟹田を過ぎて陸奥湾沿いを北へ。対岸に下北半島が見える。"},
+   {km:42.5,type:"check",name:"コントロール1 平舘灯台",photo:"平舘灯台とブルベカードを撮影した。"},
+   {km:60,type:"sight",name:"今別のコンビニ",text:"この先、竜飛まで店が少ない。ここで補給していく？",min:10,price:600,fx:{hunger:35,stamina:4}},
+   {km:76,type:"sight",name:"階段国道339号",text:"日本で唯一、階段の国道。自転車をかついで降りてみる？",min:15,price:0,fx:{spirit:20}},
+   {km:78.3,type:"check",name:"コントロール2 龍飛標柱（折り返し）",photo:"竜飛崎の丸太の標柱とブルベカードを撮影した。津軽海峡の向こうに北海道！"},
+   {km:115,type:"sight",name:"十三湖のしじみラーメン",text:"十三湖名物の大和しじみ。だしがしみる一杯。",min:25,price:1000,fx:{hunger:45,spirit:20,temp:10}},
+   {km:128.3,type:"check",name:"コントロール3 高山稲荷の大鳥居（折り返し）",photo:"高山稲荷神社の鳥居とブルベカードを撮影した。"},
+   {km:145,type:"note",text:"メロンロード。屏風山の砂丘地帯にメロン畑が続く。"},
+   {km:159.1,type:"check",name:"コントロール4 JR五能線 木造駅（折り返し）",photo:"巨大な遮光器土偶「しゃこちゃん」の駅舎とブルベカードを撮影した。"},
+   {km:166,type:"sight",name:"五所川原のコンビニ",text:"この先ゴール付近までコース沿いにコンビニなし。補給していく？",min:10,price:600,fx:{hunger:35,stamina:4}},
+   {km:185,type:"note",text:"あすなろラインで梵珠山の峠越え。最後の登り。"},
+   {km:204.4,type:"goal",name:"ゴール あんてな青森"}]}),
  brm({id:"biratori300",cls:300,ymd:"2026-05-16",org:AJ,region:"道央",url:AJ_URL,name:"BRM516 北海道300km 平取",dist:300,startName:"むかわ町（推定）",
   desc:"穂別200に似たルートを日高・占冠まで延ばした300km。名物は平取和牛。",goalFood:"平取和牛の余韻とともにゴール。",
   profile:[[0,20],[30,30],[60,60],[80,120],[110,250],[140,350],[160,500],[175,350],[200,250],[230,150],[260,60],[280,40],[300,20]],
@@ -504,6 +521,23 @@ COURSES.push(
    {km:115,type:"sight",name:"パッチワークの路",text:"丘の上から十勝岳連峰が見える。",min:8,price:0,fx:{spirit:20}},
    {km:150,type:"pc",name:"PC2 富良野",chain:"seicomart"},{km:155,type:"sight",name:"富良野のオムカレー",text:"旗が立ったオムカレー。",min:25,price:1300,fx:{hunger:45,spirit:20}},
    {km:220,type:"pc",name:"PC3 芦別",chain:"seicomart"},{km:265,type:"pc",name:"PC4 奈井江",chain:"seicomart"},{km:300,type:"goal",name:"ゴール 滝川ふれ愛の里"}]}),
+ brm({id:"gonou300",cls:300,ymd:"2026-06-06",org:TM,region:"青森",url:TM_URL+"2026brm606-g/",name:"BRM606 五能線300",dist:303.2,start:5*60,fee:1800,startName:"合浦公園",estimated:false,
+  desc:"AJたまがわの青森ブルベ。日本海沿いに五能線と並走して千畳敷、ウェスパ椿山へ。能代、鷹巣から矢立峠を越えて大鰐、青森空港を経て青森へ戻る。アップダウンはあるが基本は平坦。",goalFood:"あんてな青森でゴール。五能線の夕日は見られた？",
+  profile:[[0,5],[20,60],[40,30],[59.8,2],[76.8,10],[90,40],[107.6,59],[125,30],[145,20],[161.9,6],[180,20],[200.1,31],[220,80],[235,150],[244.2,267],[257.5,88],[270,100],[282,200],[295,60],[303.2,5]],
+  scenery:[[0,"town"],[8,"field"],[45,"sea"],[110,"forest"],[125,"sea"],[150,"town"],[165,"field"],[200,"town"],[210,"forest"],[240,"mountain"],[255,"town"],[262,"field"],[280,"forest"],[298,"town"]],heading:[[0,250],[59.8,220],[107.6,190],[161.9,90],[200.1,40],[257.5,350]],deer:[[225,250]],
+  events:[{km:30,type:"note",text:"岩木山を左に見ながら鰺ヶ沢へ。"},
+   {km:59.8,type:"check",name:"コントロール1 海の駅わんど",photo:"秋田犬「わさお」の銅像とブルベカードを撮影した。"},
+   {km:70,type:"sight",name:"深浦手前のファミリーマート",text:"この先しばらくコンビニなし。補給していく？",min:10,price:600,fx:{hunger:35,stamina:4}},
+   {km:76.8,type:"sight",name:"千畳敷海岸",text:"岩畳の海岸を五能線が並走する。列車が来るのを待ってみる？",min:10,price:0,fx:{spirit:22}},
+   {km:82.3,type:"sight",name:"道の駅ふかうら かそせ いか焼き村",text:"焼きたてのいか焼き。",min:15,price:700,fx:{hunger:25,spirit:15}},
+   {km:86.8,type:"note",text:"驫木駅。日本海の映えポイント。"},
+   {km:107.6,type:"check",name:"コントロール2 JRウェスパ椿山駅（折り返し）",photo:"SLと駅舎、ブルベカードを撮影した。"},
+   {km:161.9,type:"pc",name:"コントロール3 ファミリーマート秋田能代明治町店",chain:"famima"},
+   {km:200.1,type:"pc",name:"コントロール4 デイリーヤマザキ鷹巣七日市店",chain:"daily"},
+   {km:244.2,type:"note",text:"矢立峠（267m）。秋田と青森の県境。"},
+   {km:257.5,type:"pc",name:"コントロール5 ファミリーマート大鰐町店",chain:"famima"},
+   {km:262,type:"sight",name:"大鰐温泉もやしラーメン",text:"温泉の地熱で育てた長いもやし。",min:25,price:900,fx:{hunger:40,spirit:15,temp:10}},
+   {km:303.2,type:"goal",name:"ゴール あんてな青森"}]}),
  brm({id:"shakotan400",cls:400,ymd:"2026-06-13",org:RS,region:"道央",url:RS_URL+"2026brm613shakotan400/",name:"BRM613 積丹400",dist:400,start:11*60,startName:"札幌 桑園公園",
   desc:"11時スタート。前半が勝負：支笏湖から苫小牧・白老の海岸、オロフレ峠、洞爺湖〜真狩のアップダウン。PC2岩内まで頑張れば、後半は平坦な積丹半島一周。夜明けの奇岩が見どころ。",goalFood:"朝の札幌に帰ってきた。",
   profile:[[0,20],[20,150],[38,250],[55,180],[75,20],[100,10],[125,30],[138,500],[145,930],[158,300],[170,90],[185,300],[200,400],[225,250],[245,10],[270,20],[285,150],[300,80],[315,20],[335,20],[360,20],[380,40],[400,20]],
@@ -523,6 +557,23 @@ COURSES.push(
    {km:70,type:"sight",name:"狩勝峠の展望",text:"十勝平野を一望する。",min:8,price:0,fx:{spirit:25}},{km:120,type:"pc",name:"PC2 鹿追",chain:"seicomart"},
    {km:152,type:"sight",name:"ナイタイテラスのソフトクリーム",text:"日本一広い公共牧場を見下ろす。",min:12,price:500,fx:{hunger:8,spirit:30}},
    {km:175,type:"pc",name:"PC3 上士幌",chain:"seicomart"},{km:230,type:"pc",name:"PC4 本別",chain:"seicomart"},{km:300,type:"goal",name:"ゴール 道の駅おとふけ"}]}),
+ brm({id:"oirase400",cls:400,ymd:"2026-06-27",org:TM,region:"青森",url:TM_URL+"2026brm627/",name:"BRM627 奥入瀬・十和田400",dist:402.8,start:6*60,fee:2400,startName:"合浦公園",estimated:false,
+  desc:"AJたまがわの新コース。夏泊半島から十和田市現代美術館、奥入瀬渓流を登って十和田湖の発荷峠へ。秋田の大館・鷹巣・能代から日本海を北上し、ウェスパ椿山で折り返して深浦・五所川原から青森へ。",goalFood:"あんてな青森で夜明けのゴール。",
+  profile:[[0,5],[15,30],[31.9,5],[50,40],[70,60],[90.3,80],[105,200],[117.2,250],[130,400],[138,420],[143.3,611],[155,300],[170,120],[190,60],[207,31],[225,20],[245.9,23],[270,40],[297.7,59],[320,30],[345,20],[365,10],[380,30],[392,150],[402.8,5]],
+  scenery:[[0,"town"],[8,"sea"],[45,"field"],[85,"town"],[95,"field"],[110,"forest"],[128,"lake"],[140,"mountain"],[160,"forest"],[185,"town"],[195,"field"],[240,"town"],[255,"sea"],[300,"sea"],[345,"field"],[365,"town"],[375,"field"],[388,"forest"],[398,"town"]],
+  heading:[[0,60],[31.9,150],[90.3,250],[143.3,200],[207,270],[245.9,10],[297.7,30],[345,60],[370,80]],deer:[[100,180],[260,330]],
+  events:[{km:31.9,type:"check",name:"コントロール1 東田沢郵便局",photo:"夏泊半島の郵便局とブルベカードを撮影した。"},
+   {km:75,type:"sight",name:"十和田バラ焼き",text:"牛バラと玉ねぎを甘辛いタレで焼いたご当地グルメ。",min:30,price:1200,fx:{hunger:50,spirit:20,weight:0.1}},
+   {km:90.3,type:"check",name:"コントロール2 十和田市現代美術館",photo:"屋外の作品と自分のバイクを撮影した（作品には触れないように）。"},
+   {km:117.2,type:"sight",name:"奥入瀬渓流",text:"渓流沿いの道。滝を眺めていく？ 観光バスに注意。",min:12,price:0,fx:{spirit:25,temp:-5}},
+   {km:143.3,type:"check",name:"コントロール3 発荷峠展望台",photo:"眼下に十和田湖。景色と自分のバイクを撮影した。"},
+   {km:207,type:"pc",name:"コントロール4 デイリーヤマザキ鷹巣七日市店",chain:"daily"},
+   {km:245.9,type:"pc",name:"コントロール5 ローソン向能代店",chain:"lawson"},
+   {km:270,type:"note",text:"日が暮れた日本海沿いを北へ。白神山地の黒い影。"},
+   {km:297.7,type:"check",name:"コントロール6 JRウェスパ椿山駅（折り返し）",photo:"夜の駅舎とブルベカードを撮影した。"},
+   {km:320,type:"sight",name:"深浦のコンビニ",text:"夜の深浦。ここを逃すとしばらく店がない。",min:10,price:600,fx:{hunger:35,stamina:4}},
+   {km:365,type:"sight",name:"五所川原のコンビニ",text:"夜明け前の五所川原。最後の補給。",min:10,price:600,fx:{hunger:30,stamina:4,sleepy:-5}},
+   {km:402.8,type:"goal",name:"ゴール あんてな青森"}]}),
  brm({id:"soya600",cls:600,ymd:"2026-07-18",org:AJ,region:"道北",url:AJ_URL,name:"BRM718 北海道600km 宗谷岬",dist:600,startName:"旭川（推定）",
   desc:"今年から反時計回り。エサヌカ線、宗谷岬、サロベツ原野、オロロン海岸。仮眠所はない見込み。",goalFood:"日本最北端を回って旭川へ。",
   profile:[[0,120],[40,150],[80,100],[120,80],[150,150],[175,100],[200,20],[230,10],[260,10],[290,30],[300,20],[330,30],[360,10],[400,10],[430,10],[470,20],[500,10],[540,10],[560,200],[575,300],[590,150],[600,120]],
@@ -1361,7 +1412,7 @@ function troubleSpirit(){
 function trigger(ev){
   if(ev.type==="note"){log(ev.text);if(ev.spirit)fx({spirit:ev.spirit});return}
   if(ev.type==="pc")return arrivePC(ev);
-  if(ev.type==="check"){SFX.ok();return say(ev.name,"ブルベカードに通過を記録した。(2分)",()=>{R.t+=2;R.receipts[ev.km]=true;log(`${ev.name} 通過 ${fmt(R.t)}`)})}
+  if(ev.type==="check"){SFX.ok();return say(ev.name,ev.photo?`${ev.photo}\nブルベカードに通過時刻を書いた。(2分)`:"ブルベカードに通過を記録した。(2分)",()=>{R.t+=2;R.receipts[ev.km]=true;log(`${ev.name} 通過 ${fmt(R.t)}`)})}
   if(ev.type==="sight")return sightEvent(ev);
   if(ev.type==="friend")return friendEvent(ev);
   if(ev.type==="lodge")return lodgeEvent(R.course.lodges[ev.li],ev.li);
@@ -1616,7 +1667,7 @@ function showRideUI(on){$("#hud").hidden=!on;$("#ctrl").hidden=!on;$("#gauges").
 function title(){
   G.mode="title";showRideUI(false);G.bg={scen:"sea",tod:5*60+10,speed:14};
   const s=load();
-  menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道とランドヌール札幌のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
+  menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道・ランドヌール札幌・AJたまがわ（青森）のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
     {label:"はじめから",fn:()=>{if(s)menu({title:"セーブデータを消して最初から？",items:[{label:"消して始める",fn:()=>{wipe();startNew()}},{label:"やめる",fn:title}],cancel:title});else startNew()}},
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
     // Test mode stays out of the public menu; open the page with #test to reach it.
@@ -1691,7 +1742,7 @@ function shopMenu(){
 }
 function homeOf(){return HOMES.find(h=>h.id===P.home)||HOMES[1]}
 function travelCost(region,oneWay){const f=P.bike&&BIKES[P.bike]&&BIKES[P.bike].fold;return Math.round(((TRAVEL[homeOf().region][region]||10000)*(f?0.7:1)+(oneWay?(f?4000:8000):0))/100)*100}
-function feeOf(it){return it.kind==="brm"?(it.org===RS?1700:3000):it.fee}
+function feeOf(it){return it.kind==="brm"?(it.fee||(it.org===RS?1700:3000)):it.fee}
 function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
 function hub(){
   if(P.test)return testMenu();
@@ -1931,7 +1982,7 @@ function drawRoad(p){
 }
 function drawStore(x,chain,p){
   const by=113;rect(x,by-30,52,30,p.night?"#bcbcbc":"#fcfcfc");
-  const st={seven:["#f83800","#00a800","#fca044"],lawson:["#0058f8","#0058f8","#fcfcfc"],famima:["#0078f8","#00a800","#fcfcfc"],seicomart:["#fca044","#f83800","#fca044"]}[chain]||["#7c7c7c","#7c7c7c","#7c7c7c"];
+  const st={seven:["#f83800","#00a800","#fca044"],lawson:["#0058f8","#0058f8","#fcfcfc"],daily:["#f83800","#fcfcfc","#f83800"],famima:["#0078f8","#00a800","#fcfcfc"],seicomart:["#fca044","#f83800","#fca044"]}[chain]||["#7c7c7c","#7c7c7c","#7c7c7c"];
   rect(x,by-30,52,3,st[0]);rect(x,by-27,52,3,st[1]);rect(x,by-24,52,2,st[2]);
   rect(x+4,by-18,18,18,"#3cbcfc");rect(x+28,by-18,20,10,"#3cbcfc");if(p.night){rect(x+4,by-18,18,18,"#f8d878");rect(x+28,by-18,20,10,"#f8d878")}
   rect(x+56,by-26,3,26,"#7c7c7c");rect(x+52,by-34,11,10,st[0]);
