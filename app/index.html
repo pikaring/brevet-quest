@@ -521,22 +521,27 @@ COURSES.push(
    {km:115,type:"sight",name:"パッチワークの路",text:"丘の上から十勝岳連峰が見える。",min:8,price:0,fx:{spirit:20}},
    {km:150,type:"pc",name:"PC2 富良野",chain:"seicomart"},{km:155,type:"sight",name:"富良野のオムカレー",text:"旗が立ったオムカレー。",min:25,price:1300,fx:{hunger:45,spirit:20}},
    {km:220,type:"pc",name:"PC3 芦別",chain:"seicomart"},{km:265,type:"pc",name:"PC4 奈井江",chain:"seicomart"},{km:300,type:"goal",name:"ゴール 滝川ふれ愛の里"}]}),
- brm({id:"gonou300",cls:300,ymd:"2026-06-06",org:TM,region:"青森",url:TM_URL+"2026brm606-g/",name:"BRM606 五能線300",dist:303.2,start:5*60,fee:1800,startName:"合浦公園",estimated:false,
-  desc:"AJたまがわの青森ブルベ。日本海沿いに五能線と並走して千畳敷、ウェスパ椿山へ。能代、鷹巣から矢立峠を越えて大鰐、青森空港を経て青森へ戻る。アップダウンはあるが基本は平坦。",goalFood:"あんてな青森でゴール。五能線の夕日は見られた？",
-  profile:[[0,5],[20,60],[40,30],[59.8,2],[76.8,10],[90,40],[107.6,59],[125,30],[145,20],[161.9,6],[180,20],[200.1,31],[220,80],[235,150],[244.2,267],[257.5,88],[270,100],[282,200],[295,60],[303.2,5]],
-  scenery:[[0,"town"],[8,"field"],[45,"sea"],[110,"forest"],[125,"sea"],[150,"town"],[165,"field"],[200,"town"],[210,"forest"],[240,"mountain"],[255,"town"],[262,"field"],[280,"forest"],[298,"town"]],heading:[[0,250],[59.8,220],[107.6,190],[161.9,90],[200.1,40],[257.5,350]],deer:[[225,250]],
-  events:[{km:30,type:"note",text:"岩木山を左に見ながら鰺ヶ沢へ。"},
+ brm({id:"gonou300",cls:300,ymd:"2026-06-06",org:TM,region:"青森",url:TM_URL+"2026brm606-g/",blog:"https://pikacycling.hateblo.jp/entry/2026/06/16/120000",name:"BRM606 五能線300",dist:303.2,start:5*60,fee:1800,startName:"青森市立合浦公園",estimated:false,
+  desc:"AJたまがわの青森ブルベ。いきなりあすなろラインを越えて鰺ヶ沢へ、日本海沿いに五能線と並走して千畳敷、ウェスパ椿山。能代、鷹巣、大館から矢立峠を越えて大鰐、青森空港を経て青森へ。作者はチタンロードの初ブルベで走った。",goalFood:"あんてな青森でゴール。泊まりは温泉付きのホテルで、汗と雨のジャージをランドリーへ。",
+  profile:[[0,5],[8,60],[14,190],[22,60],[40,30],[59.8,2],[76.8,10],[90,40],[107.6,59],[130,20],[145,20],[161.9,6],[180,20],[200.1,31],[215,60],[230,120],[244.2,267],[257.5,88],[270,100],[285,200],[295,60],[303.2,5]],
+  scenery:[[0,"town"],[6,"forest"],[22,"field"],[45,"sea"],[110,"forest"],[125,"sea"],[150,"town"],[165,"field"],[200,"town"],[212,"town"],[222,"forest"],[240,"mountain"],[255,"town"],[262,"field"],[280,"forest"],[296,"town"]],heading:[[0,250],[59.8,220],[107.6,190],[161.9,90],[200.1,40],[257.5,350]],deer:[[225,250]],rain:[[12,45],[90,105],[125,135]],
+  events:[{km:14,type:"note",text:"あすなろラインの山頂付近。予報どおり雨が降り出した。"},
    {km:59.8,type:"check",name:"コントロール1 海の駅わんど",photo:"秋田犬「わさお」の銅像とブルベカードを撮影した。"},
-   {km:70,type:"sight",name:"深浦手前のファミリーマート",text:"この先しばらくコンビニなし。補給していく？",min:10,price:600,fx:{hunger:35,stamina:4}},
-   {km:76.8,type:"sight",name:"千畳敷海岸",text:"岩畳の海岸を五能線が並走する。列車が来るのを待ってみる？",min:10,price:0,fx:{spirit:22}},
-   {km:82.3,type:"sight",name:"道の駅ふかうら かそせ いか焼き村",text:"焼きたてのいか焼き。",min:15,price:700,fx:{hunger:25,spirit:15}},
+   {km:70,type:"sight",name:"深浦手前のファミリーマート",text:"キューシートに「この先しばらくコンビニなし」。補給していく？",min:10,price:600,fx:{hunger:35,stamina:4}},
+   {km:76.8,type:"sight",name:"千畳敷海岸のイカ焼き",text:"岩畳の海岸を五能線が並走する。名物のイカ焼き屋さんは9時開店。",min:15,price:700,open:9*60,fx:{hunger:25,spirit:20}},
    {km:86.8,type:"note",text:"驫木駅。日本海の映えポイント。"},
    {km:107.6,type:"check",name:"コントロール2 JRウェスパ椿山駅（折り返し）",photo:"SLと駅舎、ブルベカードを撮影した。"},
+   {km:130,type:"sight",name:"須郷岬の食堂 福寿草",text:"焼き魚とミズのおひたし。青森らしいごはん。現金を持っているといいけど……。",min:35,price:1300,fx:{hunger:55,spirit:20,stamina:5}},
+   {km:141,type:"note",text:"雨は降ったり止んだり。能代が近づいて、やっと晴れてきた。"},
    {km:161.9,type:"pc",name:"コントロール3 ファミリーマート秋田能代明治町店",chain:"famima"},
    {km:200.1,type:"pc",name:"コントロール4 デイリーヤマザキ鷹巣七日市店",chain:"daily"},
+   {km:215,type:"note",text:"大館の町。アーケードが残るレトロな商店街。"},
+   {km:240,type:"sight",name:"やたて温泉",text:"矢立峠への登りの途中にある鉄分の多い赤湯。露天には壷湯。貸しタオルもある。入っていく？",min:45,price:500,fx:{spirit:35,stamina:20,sleepy:-10}},
    {km:244.2,type:"note",text:"矢立峠（267m）。秋田と青森の県境。"},
    {km:257.5,type:"pc",name:"コントロール5 ファミリーマート大鰐町店",chain:"famima"},
-   {km:262,type:"sight",name:"大鰐温泉もやしラーメン",text:"温泉の地熱で育てた長いもやし。",min:25,price:900,fx:{hunger:40,spirit:15,temp:10}},
+   {km:262,type:"note",text:"ここからは真っ暗な夜道。国道は狭くてトラックが多い。"},
+   {km:285,type:"note",text:"青森空港への登り。なんにも面白くない。手前の料金所で20円。",spirit:-5},
+   {km:298,type:"note",text:"最後に青森ベイブリッジを渡らされる。"},
    {km:303.2,type:"goal",name:"ゴール あんてな青森"}]}),
  brm({id:"shakotan400",cls:400,ymd:"2026-06-13",org:RS,region:"道央",url:RS_URL+"2026brm613shakotan400/",name:"BRM613 積丹400",dist:400,start:11*60,startName:"札幌 桑園公園",
   desc:"11時スタート。前半が勝負：支笏湖から苫小牧・白老の海岸、オロフレ峠、洞爺湖〜真狩のアップダウン。PC2岩内まで頑張れば、後半は平坦な積丹半島一周。夜明けの奇岩が見どころ。",goalFood:"朝の札幌に帰ってきた。",
@@ -1422,6 +1427,9 @@ function sightEvent(ev){
   const left=R.course.start+R.course.limit-R.t;
   // Eating at a restaurant stop means sitting down, so stamina comes back too (same rule as the PC eat-in).
   const eff=ev.fx&&ev.fx.hunger?{...ev.fx,stamina:(ev.fx.stamina||0)+Math.round(ev.min*1.2)}:ev.fx;
+  if(ev.open&&tod(R.t)<ev.open)return menu({title:ev.name,text:`${ev.text}\nまだ開いていない（開店 ${fmt(ev.open)}）。ゴールのクローズまで あと${dur(left)}`,items:[
+    {label:`開店まで待つ`,note:`${Math.ceil(ev.open-tod(R.t))}分`,fn:()=>{R.t+=ev.open-tod(R.t);fx({temp:-5});sightEvent({...ev,open:0})}},
+    {label:"先を急ぐ",fn:()=>{log(`${ev.name}はまだ開いていなかった。`);trainStop(false,null)}}]});
   const doStop=P.money>=ev.price?()=>{R.t+=ev.min;P.money-=ev.price;fx(eff);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。${describeFx(eff)}`)}:null;
   menu({title:ev.name,text:`${ev.text}\nゴールのクローズまで あと${dur(left)}`,items:[
     {label:`立ち寄る　<small>${describeFx(eff)}</small>`,note:`${ev.min}分${ev.price?" "+yen(ev.price):""}`,disabled:!doStop,fn:()=>{doStop();trainStop(true)}},

@@ -42,7 +42,7 @@ URLの末尾に `#test` を付けて開くと、日付に関係なく全コー�
 ## データについて
 
 - 日程: [AJ北海道](https://ajhokkaido.jp/)、[ランドヌール札幌 2026年開催BRM](https://randonneurssapporo.net/brmr%EF%BD%8D/2026brm/)、[AJたまがわ 2026年開催BRM](https://ajtamagawa.org/2026brm/)（津軽200・五能線300・奥入瀬十和田400は公式キューシートのコントロールと距離）、道内のイベント情報
-- 函館200・函館300・長万部400・北トカプチ200・摩周湖1000は、作者のブログ [PikaCycling](https://pikacycling.hateblo.jp/) の走行記をもとにしています
+- 函館200・函館300・長万部400・北トカプチ200・摩周湖1000・五能線300は、作者のブログ [PikaCycling](https://pikacycling.hateblo.jp/) の走行記をもとにしています
 - それ以外のPCの位置・店・標高、イベントの距離・参加費、宿・食事の値段はゲーム用の推定です。実際に走るときは主催者のキューシートを使ってください
 - 装備の規定: [BRM/AJ規定](https://www.audax-japan.org/brevet/brm/brm-part-regulation/)
 
