@@ -320,7 +320,7 @@ const COURSES=[
     {km:38.2,type:"pc",name:"PC1 セブン-イレブン 渡島恵山店",chain:"seven"},
     {km:62,type:"note",text:"鹿部の国道は路面が荒れている。パンクに注意。"},
     {km:95,type:"note",text:"砂原の海沿い。駒ヶ岳がだんだん大きくなる。",spirit:5},
-    {km:116,type:"sight",name:"森町 名物いかめし",text:"駅前で名物のいかめしを売っている。ちょっと高いけど……。",min:20,price:1500,fx:{hunger:40,spirit:25}},
+    {km:116,type:"sight",soldOut:0.35,name:"森町 名物いかめし",text:"駅前で名物のいかめしを売っている。ちょっと高いけど……。",min:20,price:1500,fx:{hunger:40,spirit:25}},
     {km:119.1,type:"pc",name:"PC2 ローソン 森町富士見店",chain:"lawson"},
     {km:131,type:"note",text:"大沼のトンネル。歩道を慎重に通過した。"},
     {km:136,type:"sight",name:"大沼と駒ヶ岳",text:"湖の向こうに駒ヶ岳。少し足を止めて眺める？",min:6,price:0,fx:{spirit:15}},
@@ -835,6 +835,59 @@ const SEG_EVENTS={
  susukino200:[{km:100,type:"sight",name:"石狩のはまなすの丘公園",text:"石狩川の河口。",min:6,price:0,fx:{spirit:12}},{km:145,type:"note",text:"青山の峠道。紅葉のトンネル。",spirit:10}],
 };
 for(const C of COURSES){const add=SEG_EVENTS[C.id];if(add){C.events.push(...add);C.events.sort((a,b)=>a.km-b.km)}}
+// Episodes from the author's own ride reports (PikaCycling, 2021–2026).
+const BLOG_EVENTS={
+ hako200:[{km:25,type:"sight",name:"旧戸井線の橋梁跡",text:"幻の鉄道のアーチ橋と「本州最短距離」の看板。",min:5,price:0,fx:{spirit:10}},
+  {km:55,type:"sight",name:"世界遺産 垣ノ島遺跡",text:"南茅部の縄文遺跡。",min:8,price:0,fx:{spirit:12}},
+  {km:66,type:"sight",name:"南茅部のセコマ",text:"ホットシェフの梅ひじきおにぎり。ここを逃すと次は100km地点まで店がない。",min:8,price:300,fx:{hunger:25,stamina:3}},
+  {km:80,type:"note",text:"砂原へ。横風と向かい風の暴風ゾーン。DHバーで耐えるが体幹がもたない。",spirit:-4},
+  {km:112,type:"sight",name:"東光亭のカレーラーメン",text:"森町の老舗。隣の海鮮丼の店は開店と同時に売り切れていた。",min:25,price:950,fx:{hunger:45,spirit:15}},
+  {km:150,type:"note",text:"国道5号「地獄の5丁目」。ラッキーピエロの入店待ちの車列が一車線をふさいでいる。",spirit:-3},
+  {km:196,type:"note",text:"港町のこ線橋とともえ大橋。「いやがらせか！」と叫びたくなる向かい風。",spirit:-3}],
+ hako300:[{km:60,type:"note",text:"天の川きららトンネル。熊が出るので熊鈴は必携。"},
+  {km:105,type:"sight",name:"乙部のシラフラ",text:"白い崖が続く海岸。展望台ができていた。",min:8,price:0,fx:{spirit:15}},
+  {km:150,type:"sight",name:"銀婚湯手前の無料の野湯",text:"川沿いの小さな野天風呂。タオルを持ってきていれば……。",min:30,price:0,fx:{spirit:25,stamina:10,sleepy:-5}},
+  {km:240,type:"note",text:"南茅部の夜。20頭以上の鹿の群れが並走する。鹿笛を吹くと鹿が鳴き返す。対策は叫ぶこと。",spirit:-5}],
+ osha400:[{km:1,type:"note",text:"前夜のキャンプ場で、日本縦断中の外国人サイクリストに「一日で400km！？ ホワイ？」と聞かれた。"},
+  {km:295,type:"note",text:"ラストコンビニを過ぎた。ここから120km無補給。羊羹も尽きたらのど飴だけ。",spirit:-3}],
+ tokachi200:[{km:34,type:"note",text:"PC1で「いつもSNSで見てます」と声をかけられた。",spirit:5},
+  {km:105,type:"note",text:"三国峠の下りに「魔の横溝」。お尻に大打撃。",spirit:-3},
+  {km:140,type:"note",text:"幌鹿峠。サイコンの「残り5km」表示が2回続く。実は10kmあった……。",spirit:-5},
+  {km:180,type:"note",text:"PC2で、4週間かけて日本を縦断中というカリフォルニアの68歳のランドヌールと話した。",spirit:6}],
+ mashu1000:[{km:130,type:"note",text:"旭川の酷暑。凍らせたボトルを背中のポケットに入れる。"},
+  {km:150,type:"sight",name:"上川のセコマで冷かけ塩ラーメン",text:"隣の老舗ラーメン店はお盆休みだった。",min:15,price:600,fx:{hunger:35,temp:-8}},
+  {km:200,type:"note",text:"北見峠のトンネルでダウン。去年も同じ場所だった。",spirit:-5},
+  {km:390,type:"note",text:"コンビニの駐車場の葉っぱが……全部、蛾だった。",spirit:-3},
+  {km:445,type:"note",text:"川湯のセコマ。氷が売り切れていた。"},
+  {km:475.2,type:"note",text:"カムイテラスの強風で、仲間のサングラスが吹き飛んだ。"},
+  {km:720,type:"note",text:"更別の横溝で尻が破壊される。地元の人いわく「天皇陛下が来たときに舗装された」。",spirit:-4},
+  {km:755,type:"sight",name:"令和のオアシス",text:"店も自販機もない区間で、やっと見つけた自販機。",min:3,price:300,fx:{stamina:6,temp:-5,spirit:10}},
+  {km:790,type:"note",text:"熊鈴のスイッチが振動で壊れた。スマホで音楽を流して熊よけにする。"}],
+ soya600:[{km:263,type:"note",text:"暗闇の宗谷岬。すれ違うランドヌールと鈴を鳴らし合う。"},
+  {km:296,type:"sight",name:"稚内のラーメン屋",text:"「うおだし」と頼んだら「“さかな”だしですね」と訂正された。",min:25,price:1000,fx:{hunger:50,spirit:15,temp:8}},
+  {km:300,type:"note",text:"稚内の市街地がエゾシカだらけ。"},
+  {km:320,type:"sight",name:"開源パーキングシェルター",text:"床暖房つきの休憩所。少し横になっていく？",min:30,price:0,fx:{sleepy:-25,spirit:10,stamina:8}},
+  {km:345,type:"note",text:"ヒグマ出没注意の看板。鈴を鳴らしながら走る。",spirit:-4},
+  {km:350,type:"sight",name:"オトンルイ風力発電所",text:"28基の風車が一直線に並ぶ。逆側から撮るのがおすすめ。",min:5,price:0,fx:{spirit:15}},
+  {km:365,type:"note",text:"「精神と時の部屋」。一直線の道と向かい風が続く。",spirit:-4},
+  {km:430,type:"sight",name:"初山別のセコマ",text:"でんすけスイカのアイスバー。リッチすぎる。",min:5,price:300,fx:{spirit:12,temp:-8,stamina:3}},
+  {km:456,type:"sight",name:"羽幌の甘えび丼",text:"港町羽幌の名物丼。11時開店。",min:30,price:1800,open:11*60,fx:{hunger:50,spirit:25}}],
+ shakotan400:[{km:60,type:"note",text:"速い集団のローテーションに巻き込まれた。「レースやってんじゃないんだぜー！」",spirit:-3},
+  {km:70,type:"sight",name:"ウトナイ湖の豚まん",text:"猫舌なので背中のポケットで冷ましてから食べる。",min:8,price:300,fx:{hunger:15,spirit:6}},
+  {km:120,type:"sight",name:"虎杖浜のズワイガニ丼",text:"「涙が出る」うまさ。",min:30,price:2000,fx:{hunger:50,spirit:30}},
+  {km:144,type:"note",text:"オロフレ峠の頂上。飲めない手洗い水を頭から浴びる。"},
+  {km:200,type:"sight",name:"倶知安の四川タンタンメン",text:"辛い！ 胃にダメージが……。",min:25,price:1000,fx:{hunger:45,spirit:5,stamina:-8}},
+  {km:310,type:"note",text:"丑の刻の眠気。小屋型のバス停で15分ずつ寝る「各駅停車」作戦。"},
+  {km:350,type:"note",text:"余市の夜中にアブに噛まれた。",spirit:-3}],
+ susukino200:[{km:48,type:"note",text:"朝里スカイループ。ループ橋をぐるりと上がる。"},
+  {km:60,type:"note",text:"朝里へ下りたけど、10時ではまだどこの店も開いていない。",spirit:-2},
+  {km:176,type:"sight",name:"新篠津のクレープ屋",text:"ティラノサウルスがお出迎え。",min:10,price:500,fx:{hunger:12,spirit:15}}],
+ shintotsukawa200:[{km:10,type:"note",text:"札沼線の廃線跡。新十津川駅はもう跡形もない。"},
+  {km:195,type:"sight",name:"新十津川のとりめんとめはりずし",text:"地元の食堂で、ゴール前の腹ごしらえ。",min:25,price:1000,fx:{hunger:45,spirit:15}}],
+ iwaki200:[{km:12,type:"sight",name:"おいらせ町の自由の女神",text:"北緯40度に立つ自由の女神。地元では「見ると自転車が壊れる」という噂が……。",min:5,price:0,curse:0.4,fx:{spirit:15}}],
+};
+for(const C of COURSES){const add=BLOG_EVENTS[C.id];if(add){C.events.push(...add.map(e=>({...e,blog:true})));C.events.sort((a,b)=>a.km-b.km)}}
+
 // Restaurant meals at breakfast, lunch and dinner time.
 const MEALS={
  breakfast:[{name:"道の駅の朝定食",min:25,price:800,fx:{hunger:50,stamina:15,spirit:10}},{name:"牛丼チェーンの朝定食",min:20,price:450,fx:{hunger:50,stamina:10},scen:["town"]},
@@ -1188,6 +1241,7 @@ function drain(dm,g,night){
 function randomTrouble(dk,night){
   if(R.limpWorse&&R.km>=R.limpWorse){R.limpWorse=null;if(Math.random()<0.5){R.limp=0.8;R.cool=6;SFX.bad();fx({spirit:-10});
     say("ひどくなってきた",R.broken&&R.broken.wheel?"もう1本スポークが折れた。ホイールの振れが大きくなって、さらに遅くなった。":"チェーンが外れやすくなってきた。使えるギアがさらに減った。");return true}}
+  if(R.curseKm&&R.km>=R.curseKm){R.curseKm=null;if(breakSomething()){log("……まさか、自由の女神の呪い？");return true}}
   if(R.recut&&R.km>=R.recut){R.recut=null;R.cool=6;SFX.bad();R.t+=15;fx({spirit:-10});
     if(R.tubes>0){R.tubes--;say("また裂けた！","応急処置のお札がずれて、サイドカットからチューブがはみ出して破裂した。\n予備チューブを1本使って、お札を2枚重ねで当て直した。");}
     else{R.t+=25;say("また裂けた！","応急処置がずれてチューブが破裂。予備チューブがない……。\nパッチを何枚も貼り、お札を重ねて40分かけて何とか直した。")}
@@ -1451,7 +1505,9 @@ function sightEvent(ev){
   if(ev.open&&tod(R.t)<ev.open)return menu({title:ev.name,text:`${ev.text}\nまだ開いていない（開店 ${fmt(ev.open)}）。ゴールのクローズまで あと${dur(left)}`,items:[
     {label:`開店まで待つ`,note:`${Math.ceil(ev.open-tod(R.t))}分`,fn:()=>{R.t+=ev.open-tod(R.t);fx({temp:-5});sightEvent({...ev,open:0})}},
     {label:"先を急ぐ",fn:()=>{log(`${ev.name}はまだ開いていなかった。`);trainStop(false,null)}}]});
-  const doStop=P.money>=ev.price?()=>{R.t+=ev.min;P.money-=ev.price;fx(eff);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。${describeFx(eff)}`)}:null;
+  const doStop=P.money>=ev.price?()=>{if(ev.soldOut&&Math.random()<ev.soldOut){R.t+=5;fx({spirit:-5});log(`${ev.name}……売り切れだった。`);return}
+    if(ev.curse&&Math.random()<ev.curse)R.curseKm=R.km+rnd(20,80);
+    R.t+=ev.min;P.money-=ev.price;fx(eff);if(ev.fx&&ev.fx.hunger>=30)R.lastMeal=R.t;SFX.ok();log(`${ev.name}に立ち寄った。${describeFx(eff)}`)}:null;
   menu({title:ev.name,text:`${ev.text}\nゴールのクローズまで あと${dur(left)}`,items:[
     {label:`立ち寄る　<small>${describeFx(eff)}</small>`,note:`${ev.min}分${ev.price?" "+yen(ev.price):""}`,disabled:!doStop,fn:()=>{doStop();trainStop(true)}},
     {label:"先を急ぐ",fn:()=>{log(`${ev.name}はまた今度。`);trainStop(false,doStop)}}]});
@@ -1512,6 +1568,27 @@ function startTrouble(done){
     {label:"ハンドルにテープで巻く",note:"5分",desc:"夜は少し照らしにくい。",fn:()=>{R.t+=5;R.lightNight=Math.max(0.8,R.lightNight-0.05);log("ライトを養生テープでぐるぐる巻きにした。");done()}}]}));
   T.push(()=>({title:"ブルベカードに名前がない",text:"受付で渡されたブルベカード、自分の名前の欄が空欄だ。",items:[
     {label:"スタッフに書いてもらう",note:"3分",fn:()=>{R.t+=3;say("一件落着","スタッフ「あ、すみません！」その場で書いてもらった。",done)}}]}));
+  T.push(()=>({title:"車検でベルがない！",text:"スタッフ「あれ、ベルは？」振動で取れて、どこかに落としていた。ベルがないと車検に通らない。",items:[
+    ...(H?[{label:`${H.name}に予備を借りる`,note:"3分",fn:()=>{R.t+=3;gainFp(h,3);say("恩人",`${H.name}「予備のベル、いつも持ってるんだ。あげるよ」`,done)}}]:[]),
+    {label:"見送りに来ていた人に譲ってもらう",note:"5分",fn:()=>{R.t+=5;say("ありがたい","見送りに来ていた地元の人が、自分の自転車のベルを外して譲ってくれた。",done)}}]}));
+  T.push(()=>({title:"ボトルを忘れた！",text:"ボトルケージが空っぽ。家の流しに置いてきた……。",items:[
+    {label:"コンビニでペットボトルを買う",note:"5分・¥300",fn:()=>{R.t+=5;P.money-=300;say("代用","ペットボトルをケージに差して走る。ちょっと落ちそう。",done)}},
+    {label:"1本だけで走る",desc:"夏はつらい。",fn:()=>{fx({stamina:-5});log("ボトル1本でスタート。");done()}}]}));
+  T.push(()=>({title:"筆記用具を忘れた",text:"ブルベカードに通過時刻を書くペンがない。",items:[
+    {label:"スタッフに借りる",note:"2分",fn:()=>{R.t+=2;say("借りられた","「ゴールで返してくださいね」",done)}},
+    {label:"コンビニで買う",note:"4分・¥150",fn:()=>{R.t+=4;P.money-=150;done()}}]}));
+  T.push(()=>({title:"軽装で来てしまった",text:"周りはみんな冬用のジャケット。自分は七分丈……。「これは、負けた……」",items:[
+    {label:"コンビニでカイロを買う",note:"5分・¥300",fn:()=>{R.t+=5;P.money-=300;R.kairo+=2;say("備え","カイロを2つ。冷えたら使おう。",done)}},
+    {label:"走れば温まる",fn:()=>{fx({temp:-12,spirit:-5});log("寒い。走れば温まる……はず。");done()}}]}));
+  T.push(()=>({title:"クリートのネジがゆるんでいる",text:"ペダルを踏むたびにキコキコ鳴る。",items:[
+    ...(R.kit?[{label:"携帯工具で締める",note:"3分",fn:()=>{R.t+=3;say("直った","ネジが1本なくなりかけていた。危なかった。",done)}}]:[]),
+    {label:"気にせず走る",desc:"踏み込みが少し弱くなる。",fn:()=>{R.limp=Math.min(R.limp||1,0.98);log("キコキコ鳴らしながら走る。");done()}}]}));
+  T.push(()=>({title:"前夜祭で飲みすぎた",text:"頭が重い。昨夜の記憶が途中からない……。",items:[
+    {label:"水をがぶ飲みして出走",note:"3分",fn:()=>{R.t+=3;fx({sleepy:15,spirit:-5});done()}},
+    {label:"ウコンドリンクを買ってくる",note:"6分・¥250",fn:()=>{R.t+=6;P.money-=250;fx({sleepy:8});done()}}]}));
+  if(R.kit)T.push(()=>({title:"サドルバッグがない！",text:"ツールボトルを取りに戻ったら……サドルバッグごと車に置いてきていた。",items:[
+    {label:"取りに戻る",note:"15分",fn:()=>{R.t+=15;say("セーフ","修理道具は無事回収。スタートは遅れたけど安心。",done)}},
+    {label:"そのまま走る",desc:"パンクしても自分では直せない。",fn:()=>{R.kit=false;R.tubes=0;log("修理道具なし。パンクしないことを祈る。");done()}}]}));
   SFX.bad();const o=T[Math.floor(Math.random()*T.length)]();menu({...o,title:"スタート前のトラブル："+o.title});
 }
 // At a PC someone may ask to ride on together.
