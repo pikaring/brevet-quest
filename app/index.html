@@ -1162,7 +1162,7 @@ function speed(){
   if(hw>0)v/=1+hw*0.04*Math.sqrt(80/m)*(dh?0.7:1)*(R.train.length?0.6:1);
   else v*=1-hw*0.025;
   if(R.course.offroad)v*=B.off||0.68;
-  v*={slow:0.85,normal:1,hard:1.2}[R.pace];
+  v*=(R.effort?{slow:1,normal:1.15,hard:1.3}:{slow:0.85,normal:1,hard:1.2})[R.pace];
   if(R.stamina<10)v*=0.6;else if(R.stamina<30)v*=0.85;
   if(R.sleepy>=85)v*=0.8;else if(R.sleepy>=65)v*=0.92;
   if(raining())v*=0.96;
@@ -1186,7 +1186,7 @@ function fx(o){if(!o)return;
   if(o.weight)P.body=clamp(P.body+o.weight,55,95);
 }
 function rideTick(dt){
-  let left=dt*RATE*G.ff;
+  let left=dt*RATE*G.ff*(R&&R.effort&&G.mode==="ride"?clamp(R.effH/12,0.15,1):1);
   while(left>0&&G.mode==="ride"&&!UI.open){const dm=Math.min(0.25,left);left-=dm;simStep(dm)}
 }
 function simStep(dm){
@@ -1206,7 +1206,7 @@ function drain(dm,g,night){
   const h=dm/60,B=bikeOf();
   const tr=R.train.length?1:0;
   const hw=windNow(),rain=raining(),amb=ambient(R.t,R.km);
-  const base={slow:-1,normal:6,hard:22}[R.pace],climb={slow:2.5,normal:4,hard:8}[R.pace];
+  const base=R.effort?{slow:40,normal:80,hard:170}[R.pace]/Math.max(0.8,R.effH):{slow:-1,normal:6,hard:22}[R.pace],climb=R.effort?{slow:3,normal:5,hard:8}[R.pace]:{slow:2.5,normal:4,hard:8}[R.pace];
   const heat=Math.max(0,R.temp-60)*0.3;
   R.stamina=clamp(R.stamina-h*(bikeOf().stam||1)*(base+Math.max(0,g)*climb+Math.max(0,hw)*(R.pace==="hard"?1.5:0.5)+heat*1.0)*(tr?0.85:1)*(100/R.staMax),0,R.staMax);
   R.hunger=clamp(R.hunger-h*(({slow:7,normal:11,hard:16}[R.pace])+Math.max(0,g)*1.0),0,100);
@@ -1362,7 +1362,7 @@ function checkStates(night){
   if(R.temp>65&&R.windOn&&!f.hotAsk){f.hotAsk=true;return menu({title:"暑い！",text:"ウインドブレーカーの中が蒸し風呂みたいだ。脱ぐ？",items:[{label:"脱ぐ",note:"1分",fn:()=>{R.windOn=false;R.t+=1;log("ウインドブレーカーを脱いだ。")}},{label:"このまま",fn:()=>{}}]})}
   if(R.temp<70)f.heat=false;
   if(R.temp>85&&!f.heat){f.heat=true;return troubleHeat()}
-  if(R.pace==="hard"&&R.spirit<10){R.pace="normal";updatePaceBtns();log("気力が尽きた。もうがんばれない……。ペースを「ふつう」に落とした。")}
+  if(R.pace==="hard"&&R.spirit<10){R.pace="normal";updatePaceBtns();log(R.effort?"気力が尽きた。もう「すごく頑張る」は無理だ……。":"気力が尽きた。もうがんばれない……。ペースを「ふつう」に落とした。")}
   if(R.spirit<15!==!!f.lowSpi){f.lowSpi=R.spirit<15;updatePaceBtns()}
   if(R.stamina<=0)return troubleExhaust();
   if(mealCheck())return;
@@ -1699,6 +1699,7 @@ function setPace(p){if(!R)return;if(p==="hard"&&R.spirit<15){log("気力が残�
         {label:"やめる",fn:()=>{}}],cancel:()=>{}})}}
   for(const m of R.train)m.forced=false;
   R.pace=p;updatePaceBtns()}
+function setPaceLabels(e){const L=e?{slow:"頑張る",normal:"もっと頑張る",hard:"すごく頑張る"}:{slow:"ゆっくり",normal:"ふつう",hard:"がんばる"};document.querySelectorAll("[data-pace]").forEach(b=>b.textContent=L[b.dataset.pace])}
 function updatePaceBtns(){document.querySelectorAll("[data-pace]").forEach(b=>{b.classList.toggle("on",R&&b.dataset.pace===R.pace);if(b.dataset.pace==="hard")b.style.opacity=R&&R.spirit<15?0.35:1})}
 // the playback speed sticks (across rides and visits) until it is changed again
 function savedFF(){try{const v=+localStorage.getItem(SAVE_KEY+"-ff");return [1,2,4].includes(v)?v:1}catch(e){return 1}}
@@ -1727,6 +1728,8 @@ function startRun(C){
     sleepy:C.start<5*60?30:C.start>=20*60?25:0,legKm:0,woke:C.start<5*60?C.start-90:Math.min(C.start-60,7*60)};
   if(C.rain)R.rainZones=C.rain;
   else if(Math.random()<(C.rainChance??0.25)){const a=rnd(0.05,0.7)*C.dist;R.rainZones=[[a,a+rnd(0.15,0.35)*C.dist]]}
+  // Hill climbs, gravel and cyclocross are all-out: three levels of effort, a slower clock, and stamina to manage.
+  R.effort=["hill","gravel","cx"].includes(C.kind);R.effH=C.dist/(C.race?10:14);if(R.effort)R.pace="slow";setPaceLabels(R.effort);
   G.mode="pre";G.ff=savedFF();$("#c-ff").textContent="×"+G.ff;
   {const bf=breakfastOf();P.money-=packCost(p)+lodgeCost(C)+bf.price;fx({spirit:bf.spirit,temp:bf.temp,stamina:bf.stamina,sleepy:bf.sleepy})}
   // friends who offer to ride together at the start
@@ -1762,8 +1765,8 @@ function goal(ev){
 // Rank against a field of typical amateurs, simulated on the same course and weather.
 function refTime(){
   const sP=P,sR=R;let t=0;
-  P=Object.assign(newPlayer(),{bike:"alu",bikes:["alu"],leg:22,body:70,climb:0.03});
-  R=Object.assign({},sR,{pace:"hard",stamina:100,staMax:100,hunger:100,temp:50,spirit:100,train:[],load:0.3});
+  const rb=sR.course.kind==="cx"?"mtb":"alu";P=Object.assign(newPlayer(),{bike:rb,bikes:[rb],leg:22,body:70,climb:0.03});
+  R=Object.assign({},sR,{pace:sR.effort?"slow":"hard",stamina:100,staMax:100,hunger:100,temp:50,spirit:100,train:[],load:0.3});
   const d=R.course.dist;for(let km=0;km<d;km+=d/400){R.km=km;t+=d/400/speed()*60}
   P=sP;R=sR;return t;
 }
