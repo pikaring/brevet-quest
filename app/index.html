@@ -284,16 +284,16 @@ function pickShelf(chain){const out=[];
 const OILY=[[/焼肉|豚丼|天丼|カツ|和牛/,0.15],[/ラーメン|ピザ|ラッキーピエロ|オムカレー|やきとり|パスタ|バーガー|お好み焼き/,0.1],[/ソフト|シュークリーム|たい焼き|甘酒/,0.03]];
 // Riders live somewhere: they show up at brevets in their own region. "only" riders never travel.
 const FRIENDS={
-  samue:{home:"道南",name:"サムエさん",color:"#6888fc",trouble:"cold",trait:"函館の常連。寒がりで、下りで震えている。"},
   isaribi:{home:"道南",only:true,pace:"fast",name:"イサリビさん",color:"#f8b800",trouble:"puncture",trait:"函館のブルベにしか出ない地元の速い人。恵山の峠が庭。"},
-  goryo:{home:"道南",only:true,pace:"slow",name:"ゴリョウさん",color:"#f878f8",trouble:"hunger",trait:"道南のグルメ担当。寄り道ばかりで補給を忘れる。"},
+  hikari:{home:"道南",name:"ヒカリさん",color:"#fca044",trouble:"light",trait:"函館の夜型。ライトの扱いに弱い。"},
+  samue:{home:"道央",name:"サムエさん",color:"#6888fc",trouble:"cold",trait:"札幌の常連。寒がりで、下りで震えている。"},
+  goryo:{home:"道央",only:true,pace:"slow",name:"ゴリョウさん",color:"#f878f8",trouble:"hunger",trait:"札幌のグルメ担当。道央のブルベにしか出ない。寄り道ばかりで補給を忘れる。"},
   hayate:{home:"道央",pace:"fast",name:"ハヤテさん",color:"#d82800",trouble:"puncture",trait:"札幌の速い人。登りが速く、予備チューブをよく使い切る。"},
   teine:{home:"道央",name:"テイネさん",color:"#00a8a8",trouble:"light",trait:"札幌の夜練仲間。ライトの充電を忘れがち。"},
   popura:{home:"道央",only:true,pace:"slow",name:"ポプラさん",color:"#b8f818",trouble:"hunger",trait:"道央のブルベにだけ出るのんびり派。"},
+  yukino:{home:"道央",name:"ユキノさん",color:"#d8b8f8",trouble:"light",trait:"冬はファットバイク。夜の峠に強い。"},
   noro:{home:"道北",pace:"slow",name:"ノロさん",color:"#00b800",trouble:"hunger",trait:"旭川のマイペース完走派。補給を忘れがち。"},
   souya:{home:"道北",only:true,pace:"fast",name:"ソウヤさん",color:"#3cbcfc",trouble:"cold",trait:"道北の向かい風に鍛えられた人。道北のブルベでしか会えない。"},
-  yukino:{home:"道北",name:"ユキノさん",color:"#d8b8f8",trouble:"light",trait:"冬はファットバイク。夜の峠に強い。"},
-  hikari:{home:"道東",name:"ヒカリさん",color:"#fca044",trouble:"light",trait:"帯広の夜型。ライトの扱いに弱い。"},
   tokachi:{home:"道東",only:true,name:"トカチさん",color:"#c84c0c",trouble:"hunger",trait:"十勝のブルベにしか出ない。豚丼とスイーツの話が止まらない。"},
   mashu:{home:"道東",pace:"fast",name:"マシュウさん",color:"#0058f8",trouble:"puncture",trait:"道東の長距離派。1000kmを毎年走る。"},
   nebuta:{home:"青森",only:true,pace:"fast",name:"ネブタさん",color:"#f83800",trouble:"puncture",trait:"青森の地元ランドヌール。津軽の坂を知り尽くしている。"},
@@ -302,7 +302,8 @@ const FRIENDS={
 const HOME_REGION={hakodate:"道南",sapporo:"道央",asahikawa:"道北",obihiro:"道東"};
 // who turns up at this ride: locals often, travellers sometimes, the stay-at-home riders only at home
 function presentAt(C){const reg=C.region||HOME_REGION[P.home];
-  return Object.keys(FRIENDS).filter(id=>{const F=FRIENDS[id];return F.home===reg?Math.random()<0.75:!F.only&&Math.random()<0.12})}
+  const locals=Object.keys(FRIENDS).filter(id=>FRIENDS[id].home===reg).length,pl=Math.min(0.75,2.2/Math.max(1,locals));
+  return Object.keys(FRIENDS).filter(id=>{const F=FRIENDS[id];return F.home===reg?Math.random()<pl:!F.only&&Math.random()<0.12})}
 function metFriends(){return Object.keys(FRIENDS).filter(id=>(P.fp[id]||0)>0||(P.met||{})[id])}
 const COURSES=[
   {id:"hako200",name:"BRM503 北海道200km 函館",dist:200.7,limit:13.5*60,start:7*60,date:"5月3日",
