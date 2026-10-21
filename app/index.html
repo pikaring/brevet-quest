@@ -282,12 +282,28 @@ function pickShelf(chain){const out=[];
   return [...out,...STORE.goods]}
 // Restaurant stops along the courses: rich food adds a little body weight.
 const OILY=[[/焼肉|豚丼|天丼|カツ|和牛/,0.15],[/ラーメン|ピザ|ラッキーピエロ|オムカレー|やきとり|パスタ|バーガー|お好み焼き/,0.1],[/ソフト|シュークリーム|たい焼き|甘酒/,0.03]];
+// Riders live somewhere: they show up at brevets in their own region. "only" riders never travel.
 const FRIENDS={
-  hayate:{pace:"fast",name:"ハヤテさん",color:"#d82800",trouble:"puncture",trait:"登りが速い。予備チューブをよく使い切る。"},
-  noro:{pace:"slow",name:"ノロさん",color:"#00b800",trouble:"hunger",trait:"マイペースで完走する。補給を忘れがち。"},
-  hikari:{name:"ヒカリさん",color:"#fca044",trouble:"light",trait:"夜に強いが、ライトの扱いに弱い。"},
-  samue:{name:"サムエさん",color:"#6888fc",trouble:"cold",trait:"寒がり。下りで震えている。"},
+  samue:{home:"道南",name:"サムエさん",color:"#6888fc",trouble:"cold",trait:"函館の常連。寒がりで、下りで震えている。"},
+  isaribi:{home:"道南",only:true,pace:"fast",name:"イサリビさん",color:"#f8b800",trouble:"puncture",trait:"函館のブルベにしか出ない地元の速い人。恵山の峠が庭。"},
+  goryo:{home:"道南",only:true,pace:"slow",name:"ゴリョウさん",color:"#f878f8",trouble:"hunger",trait:"道南のグルメ担当。寄り道ばかりで補給を忘れる。"},
+  hayate:{home:"道央",pace:"fast",name:"ハヤテさん",color:"#d82800",trouble:"puncture",trait:"札幌の速い人。登りが速く、予備チューブをよく使い切る。"},
+  teine:{home:"道央",name:"テイネさん",color:"#00a8a8",trouble:"light",trait:"札幌の夜練仲間。ライトの充電を忘れがち。"},
+  popura:{home:"道央",only:true,pace:"slow",name:"ポプラさん",color:"#b8f818",trouble:"hunger",trait:"道央のブルベにだけ出るのんびり派。"},
+  noro:{home:"道北",pace:"slow",name:"ノロさん",color:"#00b800",trouble:"hunger",trait:"旭川のマイペース完走派。補給を忘れがち。"},
+  souya:{home:"道北",only:true,pace:"fast",name:"ソウヤさん",color:"#3cbcfc",trouble:"cold",trait:"道北の向かい風に鍛えられた人。道北のブルベでしか会えない。"},
+  yukino:{home:"道北",name:"ユキノさん",color:"#d8b8f8",trouble:"light",trait:"冬はファットバイク。夜の峠に強い。"},
+  hikari:{home:"道東",name:"ヒカリさん",color:"#fca044",trouble:"light",trait:"帯広の夜型。ライトの扱いに弱い。"},
+  tokachi:{home:"道東",only:true,name:"トカチさん",color:"#c84c0c",trouble:"hunger",trait:"十勝のブルベにしか出ない。豚丼とスイーツの話が止まらない。"},
+  mashu:{home:"道東",pace:"fast",name:"マシュウさん",color:"#0058f8",trouble:"puncture",trait:"道東の長距離派。1000kmを毎年走る。"},
+  nebuta:{home:"青森",only:true,pace:"fast",name:"ネブタさん",color:"#f83800",trouble:"puncture",trait:"青森の地元ランドヌール。津軽の坂を知り尽くしている。"},
+  ringo:{home:"青森",only:true,pace:"slow",name:"リンゴさん",color:"#d82800",trouble:"hunger",trait:"弘前から来る小径車乗り。青森のブルベでしか会えない。"},
 };
+const HOME_REGION={hakodate:"道南",sapporo:"道央",asahikawa:"道北",obihiro:"道東"};
+// who turns up at this ride: locals often, travellers sometimes, the stay-at-home riders only at home
+function presentAt(C){const reg=C.region||HOME_REGION[P.home];
+  return Object.keys(FRIENDS).filter(id=>{const F=FRIENDS[id];return F.home===reg?Math.random()<0.75:!F.only&&Math.random()<0.12})}
+function metFriends(){return Object.keys(FRIENDS).filter(id=>(P.fp[id]||0)>0||(P.met||{})[id])}
 const COURSES=[
   {id:"hako200",name:"BRM503 北海道200km 函館",dist:200.7,limit:13.5*60,start:7*60,date:"5月3日",
    sunrise:4*60+35,sunset:18*60+40,tDay:16,tNight:6,startName:"元町公園前",
@@ -925,7 +941,7 @@ let P=null;
 // Famicom palette choices for jersey, helmet and frame.
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
 function newPlayer(){return {money:150000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastTrain:0,
-  actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:{hayate:0,noro:0,hikari:0,samue:0},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
+  actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:Object.fromEntries(Object.keys(FRIENDS).map(id=>[id,0])),met:{},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
 function save(){try{localStorage.setItem(P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
 // Saves from before slot-based parts stored {wheel:true,post:true,tubeless:true}.
@@ -936,6 +952,7 @@ function migrate(p){
   if(p.pack&&p.pack.rain===undefined)p.pack.rain=0;
   if(p.week===undefined)Object.assign(p,{home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4});
   if(p.bike&&!p.gear.navi&&!p.test)p.gear.navi="cheap";
+  p.fp=p.fp||{};for(const id in FRIENDS)if(p.fp[id]==null)p.fp[id]=0;p.met=p.met||{};
   if(p.lastTrain===undefined)p.lastTrain=p.lastRide??p.week;if(!p.spiMax)p.spiMax=100;if(!p.sleepMax)p.sleepMax=100;
   if(p.leg>25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1&&!p.test)p.leg=25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1;
   return p;
@@ -1178,7 +1195,7 @@ function randomTrouble(dk,night){
   if(R.cool>0)return false;
   const rz=zone(R.course.rough,R.km),rough=rz?rz[2]:1;
   const pRate=0.0007*(trait().punctMul||1)*bikeOf().punct*partStat().punct*rough*(raining()?1.5:1);
-  const lostRate=(trait().lostMul||1)*(P.gear.navi?{cheap:0.0008,mid:0.0006,pro:0.00045}[gearTier("navi")]:(R.phone>0?0.0015:0.012));
+  const lostRate=(trait().lostMul||1)*(P.gear.navi&&!R.naviDead?{cheap:0.0008,mid:0.0006,pro:0.00045}[gearTier("navi")]:(R.phone>0?0.0015:0.012));
   const deerRate=night&&zone(R.course.deer,R.km)?0.03:0;
   const r=Math.random();
   let acc=pRate*dk;if(r<acc){R.cool=6;troublePuncture();return true}
@@ -1300,7 +1317,7 @@ function checkStates(night){
 /* ================= TROUBLES ================= */
 function helper(){
   if(R.train.length){const m=R.train[0];return {id:m.id,name:FRIENDS[m.id].name,how:"一緒に走っていた"}}
-  const c=Object.keys(FRIENDS).filter(id=>P.fp[id]>=70);
+  const c=(R.present||[]).filter(id=>P.fp[id]>=70);
   if(c.length&&Math.random()<0.5){const id=c[Math.floor(Math.random()*c.length)];return {id,name:FRIENDS[id].name,how:"ちょうど通りかかった"}}
   return null;
 }
@@ -1330,7 +1347,7 @@ function troubleChain(){
 }
 function troubleLost(){
   SFX.bad();fx({spirit:-4});const items=[];
-  if(P.gear.navi||R.phone>0)items.push({label:P.gear.navi?"サイコンのナビを確認":"Ride on QCで確認",note:"3分",fn:()=>{R.t+=3+Math.round(rnd(2,6));log("地図を見て正しい道に戻った。")}});
+  if((P.gear.navi&&!R.naviDead)||R.phone>0)items.push({label:P.gear.navi&&!R.naviDead?"サイコンのナビを確認":"Ride on QCで確認",note:"3分",fn:()=>{R.t+=3+Math.round(rnd(2,6));log("地図を見て正しい道に戻った。")}});
   items.push({label:"勘で進む",desc:"当たれば最短。外れると大回り。",fn:()=>{if(Math.random()<0.45){log("勘が当たった！ 合流できた。");fx({spirit:5})}else{const m=Math.round(rnd(20,35));R.t+=m;fx({spirit:-12});say("大外れ……",`峠をひとつ余計に越えてしまった。${m}分ロス。`)}}});
   items.push({label:"来た道を戻る",note:"約12分",fn:()=>{R.t+=Math.round(rnd(10,15));log("曲がり角まで戻った。")}});
   menu({title:"ミスコース！？",text:"景色がキューシートと合わない。曲がり角を見落としたかも……。",items});
@@ -1463,7 +1480,45 @@ function trainStop(stopped,doStop){
     {label:"先に行く",fn:()=>leaveTrain(m,"「じゃあ、また後で！」")}]});
 }
 function joinTrain(id,km){if(R.train.find(m=>m.id===id))return;R.train.push({id,until:R.km+km});SFX.friend();log(`${FRIENDS[id].name}とトレインを組んだ！`)}
-function gainFp(id,n){P.fp[id]=clamp(P.fp[id]+n,0,100);if(n>0)log(`${FRIENDS[id].name}との友情 +${n}`)}
+function gainFp(id,n){P.fp[id]=clamp((P.fp[id]||0)+n,0,100);if(n>0)log(`${FRIENDS[id].name}との友情 +${n}`)}
+// Things that go wrong before the start, at the start line.
+function startTrouble(done){
+  const h=(R.present||[]).find(id=>P.fp[id]>=20)||(R.present||[])[0],H=h?FRIENDS[h]:null,T=[];
+  T.push(()=>({title:"サイコンが起動しない！",text:"電源ボタンを押しても画面が真っ暗。充電したはずなのに……。",items:[
+    {label:"長押しでリセットしてみる",note:"5分",fn:()=>{R.t+=5;if(Math.random()<0.6)say("ついた！","10秒長押しで再起動した。ルートも読み込めている。",done);else{R.naviDead=true;say("だめだった","うんともすんとも言わない。今日はスマホのキューシートだけで走る。\nスマホの電池に気をつけよう。",done)}}},
+    ...(H?[{label:`${H.name}に聞いてみる`,note:"3分",fn:()=>{R.t+=3;gainFp(h,3);say("さすが常連",`${H.name}「それ、ボタン2つ同時押しで復帰するやつだよ」\n言われたとおりにしたら起動した！`,done)}}]:[]),
+    {label:"あきらめてスマホのキューシートで走る",fn:()=>{R.naviDead=true;log("サイコンなしで走る。スマホの電池が頼り。");done()}}]}));
+  T.push(()=>({title:"忘れ物！",text:"ポケットを探ると、補給食の袋がない。テーブルの上に置いてきた……。",items:[
+    {label:"スタート前にコンビニへ走る",note:"10分・¥600",fn:()=>{R.t+=10;P.money-=600;R.pocket.push({name:"おにぎり",hunger:14,stamina:3},{name:"羊羹",hunger:12,stamina:3});say("間に合った","近くのコンビニでおにぎりと羊羹を買ってきた。スタートには間に合った。",done)}},
+    {label:"最初のPCまでがまん",fn:()=>{R.pocket=[];fx({spirit:-5});log("補給食なしでスタート。最初のPCまでがまん。");done()}}]}));
+  if(R.bank)T.push(()=>({title:"忘れ物！",text:"モバイルバッテリーのケーブルがない。本体はあるのに……。",items:[
+    {label:"コンビニでケーブルを買う",note:"8分・¥1,500",fn:()=>{R.t+=8;P.money-=1500;say("買えた","割高だけど、これで夜も安心。",done)}},
+    ...(H?[{label:`${H.name}に借りる`,note:"2分",fn:()=>{R.t+=2;gainFp(h,2);say("助かった",`${H.name}「予備あるよ。ゴールで返してね」`,done)}}]:[]),
+    {label:"なしで走る",desc:"モバイルバッテリーが使えない。",fn:()=>{R.bank=0;log("充電ケーブルなし。ライトとスマホの電池を大事に使おう。");done()}}]}));
+  T.push(()=>({title:"Di2のバッテリー残量が少ない！",text:"変速のランプが赤く点滅している。充電を忘れていた……。",items:[
+    ...(R.bank?[{label:"モバイルバッテリーで充電してから出る",note:"20分",fn:()=>{R.t+=20;R.bank--;say("満充電","スタートは遅れたけど、これで最後まで変速できる。",done)}}]:[]),
+    {label:"変速を控えめにして走る",desc:"ギアを変えずにがまん。登りで少し不利。",fn:()=>{R.limp=0.97;log("変速を節約しながら走る。");done()}}]}));
+  T.push(()=>({title:"タイヤの空気が抜けている",text:"スタート前にタイヤを押すと、ふにゃっとしている。スローパンクだ。",items:[
+    {label:"今のうちにチューブを交換",note:"12分",disabled:R.tubes<1,fn:()=>{R.t+=12;R.tubes--;say("交換した","スタート前で落ち着いて直せた。",done)}},
+    {label:"空気を入れて様子を見る",note:"3分",fn:()=>{R.t+=3;R.repunct=rnd(15,50);log("空気を入れた。もつといいけど……。");done()}}]}));
+  T.push(()=>({title:"寝坊した！",text:"アラームを止めて二度寝していた。スタート受付はぎりぎり。",items:[
+    {label:"朝ごはん抜きで飛び出す",fn:()=>{R.hunger=Math.min(R.hunger,40);fx({spirit:-5});say("間に合った","最終ウェーブに滑り込み。おなかが空いている……。",done)}},
+    {label:"朝ごはんを食べて遅れてスタート",note:"20分遅れ",fn:()=>{R.t+=20;say("遅れてスタート","みんなの背中はもう見えない。マイペースで行こう。",done)}}]}));
+  T.push(()=>({title:"ライトのマウントがない",text:"前照灯の台座をもう1台の自転車に付けたままだった。",items:[
+    ...(R.kit?[{label:"結束バンドで固定する",note:"5分",fn:()=>{R.t+=5;say("固定できた","修理キットに結束バンドを入れておいてよかった。",done)}}]:[]),
+    ...(H?[{label:`${H.name}に予備の台座を借りる`,note:"3分",fn:()=>{R.t+=3;gainFp(h,3);say("さすが",`${H.name}「台座は3個持ってるんだ」`,done)}}]:[]),
+    {label:"ハンドルにテープで巻く",note:"5分",desc:"夜は少し照らしにくい。",fn:()=>{R.t+=5;R.lightNight=Math.max(0.8,R.lightNight-0.05);log("ライトを養生テープでぐるぐる巻きにした。");done()}}]}));
+  T.push(()=>({title:"ブルベカードに名前がない",text:"受付で渡されたブルベカード、自分の名前の欄が空欄だ。",items:[
+    {label:"スタッフに書いてもらう",note:"3分",fn:()=>{R.t+=3;say("一件落着","スタッフ「あ、すみません！」その場で書いてもらった。",done)}}]}));
+  SFX.bad();const o=T[Math.floor(Math.random()*T.length)]();menu({...o,title:"スタート前のトラブル："+o.title});
+}
+// At a PC someone may ask to ride on together.
+function pcInvite(){
+  const c=(R.present||[]).filter(id=>!R.train.some(m=>m.id===id));if(!c.length||R.f.pcInv===R.pc.km||Math.random()>0.3)return false;
+  const id=c[Math.floor(Math.random()*c.length)],F=FRIENDS[id];R.f.pcInv=R.pc.km;const nc=nextControl(R.pc.km+0.1);
+  SFX.friend();menu({title:`${F.name}「次のPCまで一緒に行きませんか？」`,text:`イートインで隣になった${F.name}に誘われた。${P.fp[id]<10?"\nはじめて話す人だ。":""}`,items:[
+    {label:"一緒に行く",fn:()=>{gainFp(id,5);R.train.push({id,until:nc?nc.km:R.pc.km+rnd(30,60)});log(`${F.name}とトレインを組んだ！`);pcMenu(false)}},
+    {label:"今日はソロで",fn:()=>{gainFp(id,1);pcMenu(false)}}]});return true}
 function friendEvent(ev){
   const id=ev.fid,F=FRIENDS[id];if(R.train.find(m=>m.id===id))return;
   const after=(n,km)=>{gainFp(id,n);if(n>=12)joinTrain(id,km||rnd(25,60))};
@@ -1498,7 +1553,7 @@ function arrivePC(ev){
   G.mode="pc";R.pc=ev;R.pcShelf=null;R.pcArrive=R.t;R.pcLast="";R.pcBought=[];SFX.pc();
   log(`${ev.name} 到着 ${fmt(R.t)}（クローズ目安 ${fmt(close)}）`);
   if(R.t>close){R.pcLast=`クローズ目安 ${fmt(close)} を過ぎてしまった。ゴールの制限時間に注意！`;fx({spirit:-5})}
-  pcMenu(false);
+  if(!pcInvite())pcMenu(false);
 }
 function pcAct(msg,min){R.pcLast=min?`${msg}（${min}分経過）`:msg;beep(1568,0.05);pcMenu(true)}
 function pcMenu(keep){
@@ -1579,7 +1634,8 @@ function startRun(C){
   const L=bestLight(),p=P.pack;
   const events=C.events.map(e=>({...e}));
   // schedule two friend troubles
-  const ids=C.race||C.kind==="cafe"||C.dist<60?[]:Object.keys(FRIENDS).sort(()=>Math.random()-0.5).slice(0,C.kind==="brm"?2:1);
+  const present=C.race||C.kind==="cafe"?[]:presentAt(C);
+  const ids=C.dist<60?[]:[...present].sort(()=>Math.random()-0.5).slice(0,C.kind==="brm"?2:1);
   for(const id of ids)events.push({type:"friend",fid:id,km:FRIENDS[id].trouble==="light"?0.05:Math.round(rnd(0.15,0.85)*C.dist*10)/10});
   (C.lodges||[]).forEach((L,li)=>events.push({type:"lodge",km:L.km,li}));
   events.sort((a,b)=>a.km-b.km);
@@ -1595,9 +1651,12 @@ function startRun(C){
   G.mode="pre";G.ff=savedFF();$("#c-ff").textContent="×"+G.ff;
   {const bf=breakfastOf();P.money-=packCost(p)+lodgeCost(C)+bf.price;fx({spirit:bf.spirit,temp:bf.temp,stamina:bf.stamina,sleepy:bf.sleepy})}
   // friends who offer to ride together at the start
-  const buddies=C.race||C.kind==="cafe"?[]:Object.keys(FRIENDS).filter(id=>P.fp[id]>=(C.kind==="brm"?40:15)&&Math.random()<0.6);
+  R.present=present;P.met=P.met||{};present.forEach(id=>{P.met[id]=true;if(P.fp[id]==null)P.fp[id]=0});
+  const buddies=present.filter(id=>P.fp[id]>=(C.kind==="brm"?40:15)&&Math.random()<0.6).slice(0,2);
   const steps=[];
-  steps.push(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
+  if(present.length&&C.kind!=="cafe")steps.push(()=>say("スタート地点で",`${present.map(id=>FRIENDS[id].name).join("、")}の顔が見える。${present.some(id=>FRIENDS[id].only)?"\n地元のブルベでしか会えない人もいる。":""}`,next));
+  if(C.kind==="brm"&&Math.random()<0.45)steps.push(()=>startTrouble(next));
+  steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
   for(const id of buddies)steps.push(()=>{SFX.friend();menu({title:"トレインのお誘い",text:`${FRIENDS[id].name}「一緒に行きませんか？」`,items:[{label:"一緒に走る",fn:()=>{R.train.push({id,until:rnd(30,90)});next()}},{label:"今日はソロで",fn:next}]})});
   steps.push(()=>say("ブリーフィング終了",`${fmt(C.start)} スタート！ 制限時間 ${dur(C.limit)}。\nゴールクローズは ${fmt(tod(C.start+C.limit))}。\n今日の風：${compass(R.windDay.dir)}の風 ${R.windDay.spd.toFixed(1)}m/s${R.rainZones?"\n予報：途中から雨":"\n予報：晴れ"}${C.race?"\nレースだ。「がんばる」で行こう！":""}`,()=>{R.t=C.start;G.mode="ride";for(const m of R.train)log(`${FRIENDS[m.id].name}とトレインを組んでスタート！`);log("スタート！ 安全第一で。");SFX.ok()}));
   let si=0;function next(){const s=steps[si++];if(s)s()}
@@ -1610,7 +1669,7 @@ function goal(ev){
   if(C.kind==="cafe"){SFX.win();G.mode="goal";P.fp[C.friend]=clamp(P.fp[C.friend]+12,0,100);
     const tr=applyTrain(trainFx({id:"cafe",kind:"cafe",dist:C.dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}));
     return endRun("楽しかった！",`${FRIENDS[C.friend].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[C.friend].name}との友情 +12\n練習効果：${tr}`,{fatigue:4})}
-  if(C.kind!=="brm"){SFX.win();G.mode="goal";Object.keys(FRIENDS).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
+  if(C.kind!=="brm"){SFX.win();G.mode="goal";(R.present||[]).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
     const tr=applyTrain(trainFx(C.ev));
     return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\n練習効果：${tr}\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
   if(R.t>close)return dnf(`${ev.name} ${fmt(R.t)} 着。制限時間 ${fmt(close)} を過ぎての時間外ゴール。認定はもらえなかった……。`);
@@ -1771,7 +1830,7 @@ function hub(){
   items.push({label:"残業する",note:"+¥40,000",desc:"機材費を稼ぐ。疲労+5。",fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5})});
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
   items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
-    menu({title:"誰を誘う？",items:[...Object.entries(FRIENDS).map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1,cafe:true})}})),{label:"もどる",fn:hub}],cancel:hub})}});
+    menu({title:"誰を誘う？",items:[...Object.entries(FRIENDS).filter(([id,f])=>f.home===HOME_REGION[P.home]||P.fp[id]>=50).map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1,cafe:true})}})),{label:"もどる",fn:hub}],cancel:hub})}});
   items.push({label:"サイクルショップ（週は進まない）",fn:shopMenu});
   if((P.wish||[]).length)items.push({label:`ほしい物リスト（${P.wish.length}）`,desc:P.wish.map(wishName).join("、"),fn:wishMenu});
   items.push({label:"年間カレンダー",fn:calendarView});
@@ -1880,9 +1939,11 @@ function status(){
   say("ステータス",`${P.trait?"タイプ："+TYPES[P.trait.type].name+"\n":""}${homeOf().name}在住　疲労 ${Math.round(P.fatigue||0)}　総走行 ${P.km.toLocaleString("ja-JP")}km\n愛車 ${bikeOf().name}（${bikeWeight().toFixed(2)}kg）\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%\n体力上限 ${P.staMax}　気力上限 ${P.spiMax||100}　眠気耐性 ${P.sleepMax||100}\nパーツ：${parts}\n前照灯 ${L?L.name:"なし"}\n装備：${owned}\n\n${recs}`,hub);
 }
 function friendsView(){
-  const lines=Object.entries(FRIENDS).map(([id,f])=>{const v=P.fp[id];const hearts="♥".repeat(Math.round(v/20))+"♡".repeat(5-Math.round(v/20));
-    return `${f.name} ${hearts}\n　${f.trait}${v>=70?"\n　→ 困ったときに助けてくれる":v>=40?"\n　→ スタートでトレインに誘ってくれる":""}`}).join("\n");
-  say("仲間",`道中で仲間を助けると友情が上がる。\n${lines}`,hub);
+  const regs=["道南","道央","道北","道東","青森"],out=[];
+  for(const r of regs){const ids=Object.keys(FRIENDS).filter(id=>FRIENDS[id].home===r);
+    out.push(`【${r}】`+ids.map(id=>{const f=FRIENDS[id],v=P.fp[id]||0;if(!metFriends().includes(id))return "\n　？？？（まだ会っていない）";
+      return `\n${f.name} ${"♥".repeat(Math.round(v/20))+"♡".repeat(5-Math.round(v/20))}\n　${f.trait}${v>=70?"\n　→ 困ったときに助けてくれる":v>=40?"\n　→ スタートでトレインに誘ってくれる":""}`}).join(""))}
+  say("仲間",`仲間は住んでいる地域のブルベに出てくる。地元でしか会えない人もいる。道中やPCで仲良くなろう。\n${out.join("\n")}`,hub);
 }
 function packing(C,keep){
   G.bg={scen:"town",tod:21*60,speed:0};
