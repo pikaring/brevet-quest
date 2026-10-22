@@ -1372,7 +1372,14 @@ function startTrial(){
   P.leg=Math.max(Number.isFinite(P.leg)?P.leg:22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;
   P.gear.rinko=true;Object.assign(P.pack,{kit:1,tube:3,wind:1,rain:1,bank:1,link:1,rinko:1});applyYear(2027);save();
   const B=COURSES.find(c=>c.id==="pbp2027"),d=QUAL_BY[2027];
-  say("2027年シーズン",`2026年11月から2027年シーズンが始まる。\n次の目標はPBP完走。6月末までにSRを取って、旅費をためて、足も鍛えなければならない。\n大変だけど頑張るぞ！`,winterPrep)}
+  say("2027年シーズン",TRIAL_INTRO,winterPrep)}
+const TRIAL_INTRO="2026年11月から2027年シーズンが始まる。\n次の目標はPBP完走。6月末までにSRを取って、旅費をためて、足も鍛えなければならない。\n大変だけど頑張るぞ！";
+// From the end of the 2026 season straight into 2027（仮）: same rider, money, bikes, gear and friends. Saved in the 体験版 slot; the 2026 save stays as it is.
+function continueTo2027(){
+  const go=()=>{P=JSON.parse(JSON.stringify(P));Object.assign(P,{trial:true,test:false,year:2027,week:0,seasonDone:{},qual:{},pbpReg:true,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:10,lastTrain:0,rodeWeek:-1,sickWeek:-1});
+    applyYear(2027);save();say("2027年シーズン",TRIAL_INTRO,winterPrep)};
+  if(trialLoad())return menu({title:"体験版のセーブがある",text:"体験版（2027年シーズン）のセーブを上書きして、2026年の続きから始める？\n2026年のセーブはそのまま残る。",items:[{label:"上書きして続ける",fn:go},{label:"やめる",fn:seasonEnd}],cancel:seasonEnd});
+  go()}
 // Week 1: the snow is coming. Spikes, a smart trainer, or the city gym (can buy later at the shop).
 function winterPrep(){
   const buy=(id,t)=>({label:GEAR.find(g=>g.id===id).name,note:yen(GEAR.find(g=>g.id===id).price),disabled:P.money<GEAR.find(g=>g.id===id).price,desc:GEAR.find(g=>g.id===id).desc,
@@ -2993,8 +3000,8 @@ function seasonEnd(){
   G.mode="hub";showRideUI(false);
   const d=P.seasonDone||{},sr=d[200]&&d[300]&&d[400]&&d[600];
   const best=Object.entries(FRIENDS).sort((a,b)=>P.fp[b[0]]-P.fp[a[0]])[0];
-  menu({title:`シーズン${P.season} 終了`,text:`11月。北海道のブルベシーズンが終わった。\n今季の認定：${seasonSummary()}${sr?"\n★ スーパーランドヌール（SR）達成！":""}${d[1000]?"\n★ 1000km完走！":""}\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\nいちばん仲良くなった仲間：${best[1].name}\n\n冬はローラーで脚を保とう。\n来年はPBPだ！ （原作開発中）`,
-    items:[{label:"来年はPBPだ！",fn:()=>say("来年はPBPだ！","2027年8月、フランス。\nパリ〜ブレスト〜パリ 1,220km。\n\n（原作開発中）",title)},{label:"2026年をもう一度",fn:()=>{P.season++;P.week=0;P.seasonDone={};P.lastMonth=4;P.fatigue=0;save();say("4月",`シーズン${P.season}が始まる。`,hub)}},{label:"タイトルへ",fn:title}]});
+  menu({title:`シーズン${P.season} 終了`,text:`11月。北海道のブルベシーズンが終わった。\n今季の認定：${seasonSummary()}${sr?"\n★ スーパーランドヌール（SR）達成！":""}${d[1000]?"\n★ 1000km完走！":""}\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\nいちばん仲良くなった仲間：${best[1].name}\n\n来年はPBPだ！`,
+    items:[{label:"2027年シーズンへ（来年はPBPだ！）",desc:"このまま2027年（仮）へ。所持金・自転車・装備・仲間を引き継いで、PBP完走を目指す。体験版のセーブに保存され、2026年のセーブはそのまま残る。",fn:continueTo2027},{label:"2026年をもう一度",fn:()=>{P.season++;P.week=0;P.seasonDone={};P.lastMonth=4;P.fatigue=0;save();say("4月",`シーズン${P.season}が始まる。`,hub)}},{label:"タイトルへ",fn:title}]});
 }
 function status(){
   const parts=Object.entries(PARTS).map(([sl,d])=>d.opts.find(o=>o.id===P.parts[sl]).name).join("、");
