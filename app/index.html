@@ -153,6 +153,9 @@ const GEAR=[
   {id:"navi",cat:"ナビ",name:"ナビ付きサイコン",price:30000,prices:{cheap:15000,mid:30000,pro:60000},desc:"道迷いが激減する。スマホの電池が切れても安心。高いものほど、さらに少しだけ迷いにくい。"},
   {id:"bag",cat:"バッグ",name:"サドルバッグ",price:5000,desc:"持ち物の上限が2kg→5kgに。"},
   {id:"whistle",cat:"小物",name:"鹿避け笛",price:1500,desc:"効くかどうかは……。大声のほうが効く説あり。"},
+  {id:"spike",cat:"冬",name:"スパイクタイヤ（前後）",price:30000,desc:"12〜3月も外を走れる。凍った路面でもよく効く。ただ、車のわだちで横にすべると転ぶことがある。"},
+  {id:"spike_pro",cat:"冬",name:"高級スパイクタイヤ（前後）",price:60000,desc:"ピンの多い高級品（Ice Spiker Pro級）。横すべりで転ぶことが少し減る。"},
+  {id:"trainer",cat:"冬",name:"スマートトレーナー",price:110000,desc:"家でZwift。12〜3月も天気に関係なくトレーニングできる。外は走れない。"},
   {id:"rain",cat:"ウェア",name:"レインウェア上下",price:12000,desc:"前日の準備で持っていくと、雨のときに着られる。着ないと靴まで水没して体が冷える。"},
 ];
 // Parts are slot-based: the first option of each slot is what every bike comes with.
@@ -474,7 +477,8 @@ const COURSES=[
 /* ================= 2026 SEASON (AJ北海道 + ランドヌール札幌 + local events) ================= */
 // Daylight and temperature by month for Hokkaido (rough averages).
 const MONTH_ENV={4:{sr:4*60+55,ss:18*60+20,day:11,night:1},5:{sr:4*60+15,ss:18*60+50,day:16,night:6},6:{sr:3*60+55,ss:19*60+15,day:20,night:11},
-  7:{sr:4*60+5,ss:19*60+10,day:25,night:16},8:{sr:4*60+40,ss:18*60+35,day:25,night:16},9:{sr:5*60+20,ss:17*60+45,day:21,night:11},10:{sr:5*60+55,ss:16*60+55,day:14,night:5}};
+  7:{sr:4*60+5,ss:19*60+10,day:25,night:16},8:{sr:4*60+40,ss:18*60+35,day:25,night:16},9:{sr:5*60+20,ss:17*60+45,day:21,night:11},10:{sr:5*60+55,ss:16*60+55,day:14,night:5},
+  11:{sr:6*60+20,ss:16*60+10,day:8,night:1},12:{sr:6*60+55,ss:16*60,day:1,night:-5},1:{sr:7*60,ss:16*60+25,day:-2,night:-9},2:{sr:6*60+35,ss:17*60,day:0,night:-8},3:{sr:5*60+50,ss:17*60+40,day:5,night:-3}};
 const LIMITS={200:13.5*60,300:20*60,400:27*60,600:40*60,1000:75*60};
 const WEEKDAY="日月火水木金土";
 function ymdDate(s){const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)}
@@ -768,6 +772,19 @@ function cafeCourse(fid){const c=CAFE[P.home]||CAFE.sapporo,m=MONTH_ENV[weekMont
 
 // Non-brevet events. Dates from organizers / event listings; distances, climbs and fees are game estimates.
 const EVENTS=[
+ // アイスブルベ: R札幌, 東川町せんとぴゅあ発着, held in January 2025 (none in winter 2025-26). In 2027（仮）on the same late-January weekend.
+ {id:"ice50",y27:"2027-01-24",kind:"snow",name:"アイスブルベ 50km（ゆるポタ）",region:"道北",dist:50,gain:250,base:200,fee:3000,scen:"field",snow:true,start:9*60,limit:6*60,tDay:-3,tNight:-12,
+  desc:"R札幌の冬のイベント。東川町のせんとぴゅあ発着。スパイクタイヤが必要。舗装路が多いが、山の中の下りは完全なアイスバーン。前夜祭と後夜祭つき。",
+  events:[{km:12,type:"note",text:"雲ひとつない小春日和。上着を脱いで、インナーと冬用ジャージで走る。",fx:{temp:6}},{km:15,type:"sight",name:"PC1 セブン-イレブン",text:"観光バスで大混雑。",min:10,price:300,fx:{hunger:15,temp:8}},
+   {km:24,type:"note",text:"山の中の下りは完全なアイスバーン。めちゃくちゃ怖い。ブレーキをかけすぎないように速度を抑える。",spirit:-5},
+   {km:30,type:"sight",name:"花輪食品店の自販機そば",text:"400円。たった25秒で出てくる。麺は作り置きだけど、つゆがうまい。",min:10,price:400,fx:{hunger:35,temp:15,spirit:10}},
+   {km:42,type:"sight",name:"PC3 森のゆ 花神楽",text:"売店は14時で閉店。アフォガートで我慢。ゴールしたら温泉だ。",min:10,price:500,fx:{hunger:10,spirit:8}}]},
+ {id:"ice100",y27:"2027-01-24",kind:"snow",name:"アイスブルベ 100km",region:"道北",dist:100,gain:600,base:200,fee:3000,scen:"field",snow:true,start:7*60,limit:10*60,tDay:-3,tNight:-12,
+  desc:"R札幌の冬のイベント。東川町のせんとぴゅあ発着、7時スタート。スパイクタイヤが必要。平均10km/hくらいの見込み。前夜祭で飲みすぎると起きられない。",
+  events:[{km:20,type:"sight",name:"PC1 セブン-イレブン",text:"観光バスで大混雑。",min:10,price:300,fx:{hunger:15,temp:8}},
+   {km:45,type:"note",text:"山の中の下りは完全なアイスバーン。めちゃくちゃ怖い。",spirit:-5},
+   {km:55,type:"sight",name:"花輪食品店の自販機そば",text:"400円。たった25秒で出てくる。つゆがうまい。",min:10,price:400,fx:{hunger:35,temp:15,spirit:10}},
+   {km:85,type:"sight",name:"PC3 森のゆ 花神楽",text:"ひと息。ゴールしたら温泉だ。",min:10,price:500,fx:{hunger:10,spirit:8}}]},
  {id:"horoshika_open",ymd:"2026-04-26",kind:"fun",name:"幌鹿峠・春の幕上げサイクリング",region:"道東",dist:40,gain:500,base:500,fee:2000,scen:"mountain",aid:"峠の開通を祝う甘酒",desc:"冬期通行止めが明けた幌鹿峠を、然別湖と糠平湖から同時スタートで走る。"},
  {id:"kamui_abira",ymd:"2026-05-10",kind:"fun",name:"TOUR OF KAMUI 安平",region:"道央",dist:75,gain:400,base:50,fee:6000,scen:"field",aid:"安平のエイド"},
  {id:"biei_tour",ymd:"2026-06-13",kind:"fun",name:"北海道美瑛 Cycling tour",region:"道央",dist:45,gain:500,base:300,fee:8000,scen:"field",aid:"青い池の近くのエイド"},
@@ -797,20 +814,20 @@ const EVENTS=[
  {id:"takino_gravel",ymd:"2026-10-10",kind:"gravel",name:"滝野グラベルサイクリングツアー",region:"道央",dist:30,gain:400,base:150,fee:5000,scen:"forest",aid:"滝野の森のエイド",off:1.8},
  {id:"cx_hokkaido",ymd:"2026-10-25",kind:"cx",name:"シクロクロス北海道選手権",region:"道央",dist:14,gain:100,base:10,fee:5000,scen:"field",field:60,off:2.5,desc:"長沼町 北長沼水郷公園の特設コース。周回レース。MTBでも出られるクラスで。"},
 ];
-const KIND_LABEL={brm:"ブルベ",fun:"ファンライド",hill:"ヒルクライム",gravel:"グラベル",cx:"シクロクロス"};
+const KIND_LABEL={brm:"ブルベ",fun:"ファンライド",hill:"ヒルクライム",gravel:"グラベル",cx:"シクロクロス",snow:"アイスブルベ"};
 // Turn a non-brevet event into a rideable short course.
 function eventCourse(ev){
-  const m=MONTH_ENV[+ev.ymd.slice(5,7)],d=ev.dist,b=ev.base||50,g=ev.gain||200,events=[];
+  const m=MONTH_ENV[+ev.ymd.slice(5,7)],d=ev.dist,b=ev.base||50,g=ev.gain||200,events=(ev.events||[]).map(e=>({...e}));
   let profile;
   if(ev.kind==="hill")profile=[[0,b],[d,b+g]];
   else if(ev.kind==="cx")profile=[[0,b],[d,b]];
   else{profile=[[0,b],[d*0.25,b+g*0.35],[d*0.45,b+g*0.1],[d*0.65,b+g*0.45],[d*0.85,b+g*0.1],[d,b]];
-    if(d>=40){events.push({km:Math.round(d*0.35),type:"sight",name:`エイド：${ev.aid}`,text:"エイドステーション。食べ放題！",min:12,price:0,fx:{hunger:35,spirit:20}});
+    if(d>=40&&!ev.events){events.push({km:Math.round(d*0.35),type:"sight",name:`エイド：${ev.aid}`,text:"エイドステーション。食べ放題！",min:12,price:0,fx:{hunger:35,spirit:20}});
       if(d>=90)events.push({km:Math.round(d*0.7),type:"sight",name:"エイド：地元のお母さんの手作りおにぎり",text:"もうひとつのエイド。",min:10,price:0,fx:{hunger:30,spirit:15}})}}
   events.push({km:d,type:"goal",name:ev.kind==="hill"?`ゴール ${ev.top}`:"ゴール"});
   const race=ev.kind==="hill"||ev.kind==="cx";
-  return {id:ev.id,name:ev.name,dist:d,limit:race?Math.max(90,d*12):Math.round(d/12*60)+90,start:race?9*60:8*60,date:jpDate(ev.ymd),ymd:ev.ymd,
-    sunrise:m.sr,sunset:m.ss,tDay:m.day,tNight:m.night,startName:ev.name,profile,scenery:[[0,ev.scen||"field"]],heading:[[0,0],[d/2,180]],
+  return {id:ev.id,name:ev.name,dist:d,limit:ev.limit||(race?Math.max(90,d*12):Math.round(d/12*60)+90),start:ev.start||(race?9*60:8*60),date:jpDate(ev.ymd),ymd:ev.ymd,snow:!!ev.snow,rainChance:ev.snow?0:undefined,
+    sunrise:m.sr,sunset:m.ss,tDay:ev.tDay??m.day,tNight:ev.tNight??m.night,startName:ev.name,profile,scenery:[[0,ev.scen||"field"]],heading:[[0,0],[d/2,180]],
     rough:ev.off?[[0,d,ev.off]]:[],offroad:!!ev.off,deer:[],events,kind:ev.kind,race,field:ev.field||200,ev,goalFood:"",desc:ev.desc||""};
 }
 
@@ -993,11 +1010,13 @@ let YEAR=2026;
 function applyYear(y){YEAR=y;
   for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.y23?null:c.ymd;if(c.name23===undefined)c.name23=c.name;if(c.pbp)continue;
     if(y===2026){c.ymd=c.y26||null;c.tent=false;c.name=c.name23}
+    else if(c.y27&&!c.y23){c.ymd=c.y27;c.tent=true}
     else if(c.y23){const d=ymdDate(c.y23);d.setDate(d.getDate()+1456);c.ymd=ymdOf(d);c.tent=true;c.name=c.name23.replace(/^BRM\d+/,`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`)}
     else if(Y2027[c.id]){c.ymd=Y2027[c.id];c.tent=false}
+    else if(c.y27){c.ymd=c.y27;c.tent=true}
     else c.ymd=null;
     if(c.kind==="brm"&&c.ymd)c.date=jpDate(c.ymd)}
-  WEEKS.length=0;const a=y===2026?new Date(2026,2,31):new Date(2027,2,30),z=y===2026?new Date(2026,9,27):new Date(2027,7,17);
+  WEEKS.length=0;const a=y===2026?new Date(2026,2,31):new Date(2026,10,3),z=y===2026?new Date(2026,9,27):new Date(2027,7,17);
   for(let d=a;d<=z;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7))WEEKS.push(d)}
 
 // The author's own PBP 2023 (PikaCycling「Road to PBP2023」), placed at the matching spots of the 2027 route.
@@ -1256,7 +1275,7 @@ c23({id:"aj23_617",cls:600,ymd:"2023-06-17",org:AJ,region:"道北",url:AJ23,name
    {km:301.7,type:"goal",name:"ゴール 元町公園前"}]})}
 c23({from:"mashu1000",id:"aj23_714",ymd:"2023-07-14",url:AJ23,name:"BRM714 北海道1000km 摩周湖",
   desc:"摩周湖を回る1000km。SRの期限のあとなのでPBPの資格にはならないが、PBP前の総仕上げに。（コースは2026年のもので代用）"});
-c23({id:"aj23_722",cls:400,ymd:"2023-07-22",org:AJ,region:"道東",url:AJ23,blog:PB23+"08/01/180000",estimated:false,name:"BRM722 北海道400km トカプチ朝駆",dist:400,start:3*60,startName:"道の駅おとふけ",tDay:25,tNight:14,
+c23({id:"aj23_722",cls:400,ymd:"2023-07-22",org:AJ,region:"道東",url:AJ23,blog:PB23+"08/01/180000",estimated:false,name:"BRM722 北海道400km トカプチ朝駆",dist:400,start:3*60,startName:"道の駅おとふけ",tDay:23,tNight:14,
   desc:"BRM100周年記念の400。午前3時スタートで然別湖、三国峠、タウシュベツ川橋梁。後半は浦幌、ナウマン国道、大樹を回る。日中は南風、夜は北風で、一日中向かい風。",
   goalFood:"深夜2時前にゴール。BRM100周年の記念メダルをもらった。\n山岡家の特製味噌ラーメンが、このライドでいちばん美味かった。",
   profile:[[0,80],[25,150],[40,300],[55,700],[70,560],[85,750],[100,1139],[115,700],[125,540],[140,450],[160,300],[180,150],[200,80],[230,50],[255,40],[270,10],[285,10],[300,60],[318,60],[340,150],[360,170],[380,120],[400,80]],
@@ -1312,15 +1331,15 @@ c23({id:"rs23_805",cls:200,ymd:"2023-08-05",org:RS,region:"道央",url:RS23+"202
 // 体験版「2027年シーズン（仮）」: the author's way to PBP — a chromoly road bike with DH bar, living in Hakodate. SR by the deadline, then PBP 2027.
 function trialLoad(){try{const s=localStorage.getItem(SAVE_KEY+"-trial"),t=s&&migrate(JSON.parse(s));return t&&t.year===2027?t:null}catch(e){return null}}
 function startTrial(){
-  const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,year:2027,week:0,season:1,seasonDone:{},qual:{},pbpReg:true,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:4,lastTrain:0,home:"hakodate",money:150000});
+  const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,year:2027,week:0,season:1,seasonDone:{},qual:{},pbpReg:true,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:10,lastTrain:0,rodeWeek:-1,sickWeek:-1,home:"hakodate",money:50000});
   Object.assign(P.gear,STARTER,{navi:"mid",light_hi:true,jersey:"mid",bib:"mid"});P.bikes=[...new Set([...(P.bikes||[]),"cromo"])];P.bike="cromo";P.parts={...P.parts,dh:"dh",comp:P.parts&&P.parts.comp!=="stock"?P.parts.comp:"ultegra"};
   P.leg=Math.max(P.leg||22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;
   Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,link:1});applyYear(2027);save();
   const B=COURSES.find(c=>c.id==="pbp2027"),d=QUAL_BY[2027];
-  say("2027年シーズン（仮）",`2027年4月、函館。\n2月にPBP 2027のプレレジを済ませた。スタートは${B.date} ${fmt(B.start)}。参加費も払ってある。\nあとは${+d.slice(5,7)}月${+d.slice(8)}日までにSR（200・300・400・600）をそろえて、旅費 ${yen(PBP_TRIP)} を貯めるだけ。\n\n自転車はDHバー付きのクロモリロード。\n2027年の日程はまだ出ていないので、作者がPBPを目指した2023年の日程を、2027年の同じ週末に置いた（仮）。\n${s?"能力はいまのセーブデータから（足りないところは作者に合わせた）。":"能力は作者に合わせた。"}本編のセーブには影響しない。\nSRが取れなかったり、PBPで完走できなかったりしたら、2027年の4月からやり直せる。`,hub)}
+  say("2027年シーズン（仮）",`2026年11月、函館。ブルベのシーズンが終わった。\n来年8月は4年に一度のPBP。スタートは${B.date} ${fmt(B.start)}。参加費はプレレジで先に払う。\n${+d.slice(5,7)}月${+d.slice(8)}日までにSR（200・300・400・600）をそろえて、出発までに旅費 ${yen(PBP_TRIP)} を貯める。いまの貯金は ${yen(P.money)}、おこづかいは月 ${yen(60000)}。\n12〜3月は雪。スパイクタイヤかスマートトレーナーがないと自転車に乗れず、体重が増えていく。\n\n自転車はDHバー付きのクロモリロード。\n2027年の日程はまだ出ていないので、作者がPBPを目指した2023年の日程を、2027年の同じ週末に置いた（仮）。\n${s?"能力はいまのセーブデータから（足りないところは作者に合わせた）。":"能力は作者に合わせた。"}本編のセーブには影響しない。\nSRが取れなかったり、PBPで完走できなかったりしたら、11月からやり直せる。`,hub)}
 function trialEnd(why){
   G.mode="hub";showRideUI(false);G.bg={scen:"village",tod:20*60+40,speed:0};
-  const again={label:"2027年をもう一度",desc:"4月の函館から。",fn:startTrial};
+  const again={label:"2027年をもう一度",desc:"2026年11月の函館から。",fn:startTrial};
   if(P.pbpDone){SFX.win();return menu({title:"★ PARIS-BREST-PARIS 完走 ★",text:`PBP 2027 完走。\n1,220km、ランブイエからブレストへ行って帰ってきた。\nあなたはもう「アンシエンヌ」——パリ〜ブレスト〜パリの完走者だ。\n\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\n北海道の仲間たちと、また次のブルベで会おう。\n\n〜 THE END 〜`,items:[again,{label:"タイトルへ",fn:title}]})}
   const q=pbpQual(),d=QUAL_BY[2027];
   menu({title:"2027年シーズン（仮） 終了",text:why==="sr"?`${+d.slice(5,7)}月${+d.slice(8)}日が過ぎた。SRがそろわなかった。\n資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}\nPBP 2027のスタートラインには立てない……。`
@@ -1340,7 +1359,7 @@ const CARRY=["t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","
 function pbpNext(i){const snap={};for(const k of CARRY)snap[k]=JSON.parse(JSON.stringify(R[k]??null));const C=pbpStage(i,R.t,R.course.baseId||"pbp2027");P.pbpSnap=snap;save();startRun(C)}
 function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300],400:!!q[400],600:!!(q[600]||q[1000])}}
 function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
-const PBP_TRIP=300000,PBP_FEE=20000;
+const PBP_TRIP=550000,PBP_FEE=20000; // the author's tour cost; the entry fee is paid at pre-registration
 function ymdOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 applyYear(2026);
 function weekItems(i){const a=WEEKS[i],b=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6),A=ymdOf(a),B=ymdOf(b);
@@ -1930,6 +1949,7 @@ function speed(){
   const hw=windNow();
   if(hw>0)v/=1+hw*0.04*Math.sqrt(80/m)*(dh?0.7:1)*(R.train.length?0.6:1);
   else v*=1-hw*0.025;
+  if(R.course.snow)v*=0.8; // spikes and snow: about 80% of the usual speed
   if(R.course.offroad)v*=(B.off||0.68)*(R.effort?0.85:1); // gravel: rolling resistance on top of the bike's off-road ability
   v*=(R.effort?{slow:1,normal:1.15,hard:1.3}:{slow:0.85,normal:1,hard:1.2})[R.pace];
   if(R.stamina<10)v*=0.6;else if(R.stamina<30)v*=0.85;
@@ -2001,9 +2021,13 @@ function drain(dm,g,night){
   R.lo={sta:Math.min(R.lo?.sta??1,R.stamina/R.staMax),spi:Math.min(R.lo?.spi??1,R.spirit/(R.spiMax||100)),slp:Math.max(R.lo?.slp??0,R.sleepy/100)};
   let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
   eff+=(hasGear("winter")?4+tierOf("winter").t*0.5:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
+  if(R.course.snow&&hasGear("winter"))eff+=12; // full winter kit; without it, the cold wins
   // 50 is just right. Below 14°C felt it pulls you colder, above 20°C hotter; the body follows over ~40 minutes.
   const target=clamp(eff<14?50-(14-eff)*3.5:eff>20?50+(eff-20)*3.5:50,0,100);
   R.temp=clamp(R.temp+(target-R.temp)*Math.min(1,dm/40),0,100);
+  // exposure for colds after the ride; too far either way and the ride is over
+  if(R.temp<30)R.coldMin=(R.coldMin||0)+dm;if(rain&&!R.rainOn)R.wetMin=(R.wetMin||0)+dm;
+  R.hypoMin=R.temp<=5?(R.hypoMin||0)+dm:0;R.heatMin=R.temp>=97?(R.heatMin||0)+dm:0;
   if(night&&R.light>0)R.light=Math.max(0,R.light-h);
   R.phone=Math.max(0,R.phone-h*6);
   R.cool=Math.max(0,R.cool-(speed()*h));
@@ -2018,6 +2042,8 @@ function randomTrouble(dk,night){
     return true}
   if(R.repunct&&R.km>=R.repunct){R.repunct=null;R.cool=6;say("またパンク！","やっぱりガラス片が残っていた……。",troublePuncture);return true}
   if(R.cool>0)return false;
+  if(R.course.snow&&Math.random()<dk*(P.gear.spike_pro?0.0025:0.004)){R.cool=6;SFX.bad();R.t+=5;fx({stamina:-8,spirit:-12});
+    say("横すべり！","車のわだちに前輪を取られて、横にすべって転んだ。\nスパイクは凍った路面ではよく効くけど、横すべりには弱い。",()=>log("わだちで転倒。気をつけよう。"));return true}
   const rz=zone(R.course.rough,R.km),rough=rz?rz[2]:1;
   const pRate=0.0007*(trait().punctMul||1)*bikeOf().punct*partStat().punct*rough*(raining()?1.5:1);
   const lostRate=(trait().lostMul||1)*(P.gear.navi&&!R.naviDead?{cheap:0.0008,mid:0.0006,pro:0.00045}[gearTier("navi")]:(R.phone>0?0.0015:0.012));
@@ -2104,6 +2130,8 @@ function wishMenu(){P.wish=P.wish||[];
   menu({title:"ほしい物リスト",text:`所持金 ${yen(P.money)}\n仲間と走っているときに勧められたもの。買うと最大気力が少し上がる。`,items,cancel:hub})}
 function checkStates(night){
   const f=R.f;
+  if(R.hypoMin>=30)return dnf("体が冷え切って、震えが止まらない。ろれつも回らない。低体温症だ。\nこれ以上走るのは危ない。");
+  if(R.heatMin>=20)return dnf("めまいと吐き気。汗も止まった。熱中症だ。\nこれ以上走るのは危ない。");
   if(night&&!f.night){f.night=true;log("日が暮れた。ライト点灯。")}
   if(!night&&f.night&&!f.dawn){f.dawn=true;log("空が白んできた。朝だ！");fx({spirit:15})}
   if(R.hunger>40){f.hungry=false;f.bonk=false}
@@ -2586,6 +2614,10 @@ function endRun(title,text,o={}){
   if(R&&R.km>20){const b=R.km/1000;P.body=clamp(P.body-b,55,95)}
   P.fatigue=clamp((P.fatigue||0)+(o.fatigue||0),0,100);
   let extra="";
+  if(R)P.rodeWeek=P.week;
+  // cold or wet for too long: a cold, and next week off the bike
+  if(R&&!P.test){const risk=clamp((R.coldMin||0)/500+(R.wetMin||0)/300+(R.hypoMin>=30?0.5:0),0,0.7);
+    if(risk>0.05&&Math.random()<risk){P.sickWeek=P.week+1;extra+=`\n帰ってから熱が出た。${R.wetMin>60?"雨に濡れたまま走ったのがいけなかった。":"体を冷やしすぎた。"}風邪をひいたらしい。来週は自転車に乗れない。`}}
   // a brevet doesn't make you faster, but it keeps the training from fading for a while
   if(o.grow&&R&&P.leg>legBase()+0.005){const wk=o.grow>=1000?3:o.grow>=400?2:1,before=P.lastTrain??P.week;P.lastTrain=Math.min(P.week,before+wk);
     if(P.lastTrain>before)extra+=`\nトレーニングの効果が${P.lastTrain-before}週間長持ちする。`}
@@ -2711,7 +2743,8 @@ function hub(){
     items.unshift({label:"PBPに本登録する",note:yen(PBP_FEE),disabled:n<3||P.money<PBP_FEE,desc:`本登録の受付は5/29〜7/4。資格のブルベ4本のうち3本以上の完走が必要（いま${n}本）。残りもPBPのスタートまでに完走すること。参加費は2027年分が未発表のため仮。`,
       fn:()=>{P.money-=PBP_FEE;P.pbpReg=true;SFX.win();save();say("本登録完了！","PBP 2027に登録した。8月22日、ランブイエのスタートラインへ。\nあとは旅費を貯めて、脚を仕上げよう。",hub)}})}}
   items.push({label:"トレーニングする",note:"疲労+12",desc:"ローラー・峠・ロング・ダイエットから選ぶ。トレーニングで上げた巡航は、4週間トレーニングしないと落ちはじめる（ブルベに出ると先延ばしできる）。",fn:trainingMenu});
-  items.push({label:"残業する",note:"+¥40,000",desc:"機材費を稼ぐ。疲労+5。",fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5})});
+  {const m=weekMonth(wk),n=Object.values(P.overtime||{}).filter(v=>v===m+"/"+WEEKS[wk].getFullYear()).length;
+   items.push({label:"残業する",note:"+¥40,000",disabled:n>=2,desc:`機材費を稼ぐ。疲労+5。残業できるのは月2回まで（今月あと${2-n}回）。`,fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5;(P.overtime=P.overtime||{})[wk+"-"+(P.season||1)+"-"+YEAR]=m+"/"+WEEKS[wk].getFullYear()})})}
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
   items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
     const mates=Object.entries(FRIENDS).filter(([id])=>(P.trained||{})[id]&&P.fp[id]>0);if(!mates.length)return say("誘える仲間がいない","まだ一緒にトレインを組んだ仲間がいない。\nブルベやイベントで仲間を助けたり、PCで声をかけられたりしてトレインを組もう。",hub);
@@ -2722,8 +2755,12 @@ function hub(){
   items.push({label:"ステータス",fn:status});
   items.push({label:"仲間",fn:friendsView});
   items.push({label:"タイトルへ",fn:title});
-  menu({title:`${YEAR!==2026?YEAR+"年 ":P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
-    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
+  const sick=P.sickWeek===wk,wl=winterWeek(wk);
+  for(const x of items){if(sick&&(/^【/.test(x.label)||/トレーニング|カフェライド/.test(x.label)))x.disabled=true;
+    if(wl&&/トレーニング/.test(x.label)&&!P.gear.trainer&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤかスマートトレーナーがないと自転車に乗れない。"}
+    if(wl&&/カフェライド/.test(x.label)&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤがないと外を走れない。"}}
+  menu({title:`${YEAR!==2026?`${new Date(WEEKS[wk].getFullYear(),WEEKS[wk].getMonth(),WEEKS[wk].getDate()+4).getFullYear()}年 `:P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
+    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${sick?"風邪で寝込んでいる。今週は自転車に乗れない。\n":""}${wl&&!P.gear.trainer&&!spikeOn()?"冬。スパイクタイヤかスマートトレーナーがないと自転車に乗れない。乗らない週は体重が増える。\n":""}${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
 }
 function pbpLine(){if(YEAR===2026)return `来年2027年はPBP（パリ〜ブレスト〜パリ）の年。旅費の目安 ${yen(PBP_TRIP)}。\n`;
   const q=pbpQual(),d=QUAL_BY[YEAR];return `PBPへの道：資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}（${+d.slice(5,7)}/${+d.slice(8)}まで）　登録 ${P.pbpReg?"済":"まだ"}　旅費 ${yen(Math.min(P.money,PBP_TRIP))}/${yen(PBP_TRIP)}\n`}
@@ -2764,6 +2801,7 @@ function eventDesc(it,c){
 function enter(it,c){
   const miss=missingGear(it.kind,it.cls||0);
   if(miss.length)return say("車検に通らない",`${it.kind==="brm"?`${it.cls}kmのブルベ`:"このイベント"}に必要な装備が足りない：\n${miss.join("、")}\nサイクルショップでそろえよう。`,hub);
+  if(it.kind==="snow"&&!spikeOn())return say("スパイクタイヤがない","アイスブルベにはスパイクタイヤが必要。ショップで買おう。",hub);
   if(it.kind==="cx"&&P.bike!=="mtb"&&!P.bikes.includes("mtb"))return say("MTBがない","シクロクロス北海道選手権には、MTBで出られるクラスで出る。ショップでMTBを用意しよう。",hub);
   if(it.kind==="cx"&&P.bike!=="mtb"){P.bike="mtb";}
   P.money-=c;save();
@@ -2772,9 +2810,19 @@ function enter(it,c){
   packing(C,false);
 }
 function weekAct(t,msg,fn){fn();SFX.ok();save();say(t,msg,nextWeek)}
+// December to March: no bike without spike tires or a smart trainer.
+function winterWeek(i=P.week){return YEAR!==2026&&[12,1,2,3].includes(weekMonth(i))}
+function spikeOn(){return !!(P.gear.spike||P.gear.spike_pro)}
+function winterRide(){
+  if(!winterWeek())return "";
+  if(P.gear.trainer)return "\n"+["平日の朝6時から7時まで、Zwiftのグループライド。","Zwiftのレースで追い込んだ。","雪の日も、部屋の中なら関係ない。"][Math.floor(Math.random()*3)];
+  let t="\nスパイクタイヤで雪の道を走った。";
+  if(Math.random()<(P.gear.spike_pro?0.05:0.08)){P.fatigue+=10;t+="\n車のわだちで横すべりして転んだ。打ち身が痛い（疲労+10）。"}
+  if(Math.random()<(hasGear("winter")?0.05:0.35)){P.sickWeek=P.week+1;t+=`\n${hasGear("winter")?"汗が冷えた。":"防寒着なしで走ったら体が冷え切った。"}風邪をひいた。来週は自転車に乗れない。`}
+  return t}
 function trainingMenu(){
-  const it=(label,desc,fn)=>({label,desc,fn:()=>weekAct(label,fn()+"\n疲労+12",()=>{P.fatigue+=12;P.lastTrain=P.week})});
-  menu({title:"トレーニング",text:`巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}`,items:[
+  const it=(label,desc,fn)=>({label,desc,fn:()=>weekAct(label,fn()+winterRide()+"\n疲労+12",()=>{P.fatigue+=12;P.lastTrain=P.week})});
+  menu({title:winterWeek()?(P.gear.trainer?"トレーニング（スマートトレーナー）":"トレーニング（スパイクタイヤで外へ）"):"トレーニング",text:`巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}`,items:[
     it("ローラー練","平地の巡航速度がほんの少し上がる。上がるほど伸びにくい。上げた分は、トレーニングしない週が4週続くと落ちていく（ブルベに出ると先延ばし。元の巡航より下がることはない）。",()=>{const g=gainLeg(0.12);return g<0.01?`巡航 ${P.leg.toFixed(2)}km/h。もう伸びしろがない。ここからは機材と走り方で。`:`巡航 ${P.leg.toFixed(2)}km/h になった（+${g.toFixed(2)}）。`}),
     it("峠練","登りで速度が落ちにくくなる。",()=>{P.climb=Math.min(0.3,P.climb+0.04);return `登坂力 ${Math.round(P.climb*100)}% になった。`}),
     it("ロング練","体力の最大値が上がる。",()=>{P.staMax=Math.min(160,P.staMax+10);return `持久力 ${P.staMax} になった。`}),
@@ -2800,8 +2848,9 @@ function testMenu(){
 }
 function nextWeek(){
   if(P.test){save();return testMenu()}
-  P.week++;P.fatigue=clamp((P.fatigue||0)-12,0,100);
   const msgs=[];
+  if(winterWeek()&&P.lastTrain!==P.week&&P.rodeWeek!==P.week){P.body=clamp(P.body+0.5,55,95);msgs.push(["冬太り",`今週は自転車に乗らなかった。鍋と晩酌がすすむ。\n体重 ${P.body.toFixed(1)}kg（+0.5）`])}
+  P.week++;P.fatigue=clamp((P.fatigue||0)-12,0,100);
   // a month off the bike and the legs fade
   if(P.week-(P.lastTrain??P.week)>=4){const d=Math.min(0.2,Math.max(0,P.leg-legBase()));
     if(d>0){P.leg-=d;msgs.push(["脚がなまった",`もう${P.week-P.lastTrain}週間、トレーニングしていない。巡航 ${P.leg.toFixed(2)}km/h に落ちた……。\nトレーニングで上げた分は、トレーニングかブルベで保てる。元の巡航より下がることはない。`])}}
