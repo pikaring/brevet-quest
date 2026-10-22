@@ -216,8 +216,8 @@ function wearName(id){const g=GEAR.find(x=>x.id===id),k=gearTier(id);return WEAR
 // worn during this ride and not broken
 function hasGear(id){return !!P.gear[id]&&!(R&&R.broken&&R.broken[id])}
 const PACK=[
-  {id:"kit",name:"修理キット(チューブ1本+ポンプ)",w:0.35,max:1,desc:"パンクを自分で直すのに必要。"},
-  {id:"tube",name:"予備チューブ",w:0.13,max:3,desc:"1本で1回パンクを直せる。仲間に渡すこともできる。"},
+  {id:"kit",name:"修理キット(ポンプ・タイヤレバー)",w:0.22,max:1,desc:"パンクを自分で直すのに必要。チューブは別に持っていく。"},
+  {id:"tube",name:"予備チューブ",w:0.13,max:4,buy:1000,desc:"1本で1回パンクを直せる。仲間に渡すこともできる。使った分はなくなるので、前日の準備で買い足す。"},
   {id:"link",name:"ミッシングリンク",w:0.03,max:1,desc:"チェーントラブルをその場で直せる。"},
   {id:"wind",name:"ウインドブレーカー",w:0.2,max:1,needs:"wind",desc:"寒くなったら着る。"},
   {id:"rain",name:"レインウェア上下",w:0.35,max:1,needs:"rain",desc:"雨が降ったら着る。"},
@@ -1370,7 +1370,7 @@ function startTrial(){
   const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,year:2027,week:0,season:1,seasonDone:{},qual:{},pbpReg:true,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:10,lastTrain:0,rodeWeek:-1,sickWeek:-1,home:"hakodate",money:50000});
   Object.assign(P.gear,STARTER,{navi:"mid",light_hi:true,jersey:"mid",bib:"mid"});P.bikes=[...new Set([...(P.bikes||[]),"cromo"])];P.bike="cromo";P.parts={...P.parts,dh:"dh",comp:P.parts&&P.parts.comp!=="stock"?P.parts.comp:"ultegra"};
   P.leg=Math.max(Number.isFinite(P.leg)?P.leg:22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;
-  P.gear.rinko=true;Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,link:1,rinko:1});applyYear(2027);save();
+  P.gear.rinko=true;Object.assign(P.pack,{kit:1,tube:3,wind:1,rain:1,bank:1,link:1,rinko:1});applyYear(2027);save();
   const B=COURSES.find(c=>c.id==="pbp2027"),d=QUAL_BY[2027];
   say("2027年シーズン",`2026年11月から2027年シーズンが始まる。\n次の目標はPBP完走。6月末までにSRを取って、旅費をためて、足も鍛えなければならない。\n大変だけど頑張るぞ！`,winterPrep)}
 // Week 1: the snow is coming. Spikes, a smart trainer, or the city gym (can buy later at the shop).
@@ -1400,7 +1400,7 @@ function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id),ST=B
     rain:(B.rain||[]).filter(z=>z[1]>a&&z[0]<b).map(z=>[Math.max(0,sh(z[0])),sh(Math.min(b,z[1]))]),lodges:(B.lodges||[]).filter(L=>L.km>a&&L.km<b).map(L=>({...L,km:sh(L.km)})),events:ev,
     startName:i===0?B.startName:ev.length?`${nm.split(" → ")[0]}`:"",cont:i>0}}
 // what carries over from one stage to the next
-const CARRY=["winterOn","rinko","t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
+const CARRY=["tubesUsed","winterOn","rinko","t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
 function pbpNext(i){const snap={};for(const k of CARRY)snap[k]=JSON.parse(JSON.stringify(R[k]??null));const C=pbpStage(i,R.t,R.course.baseId||"pbp2027");P.pbpSnap=snap;save();startRun(C)}
 function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300],400:!!q[400],600:!!(q[600]||q[1000])}}
 function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
@@ -1472,7 +1472,7 @@ let P=null;
 // Famicom palette choices for jersey, helmet and frame.
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
 function newPlayer(){return {money:150000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastTrain:0,
-  actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:Object.fromEntries(Object.keys(FRIENDS).map(id=>[id,0])),met:{},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
+  actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:Object.fromEntries(Object.keys(FRIENDS).map(id=>[id,0])),met:{},rec:{},tubeV2:true,pack:{kit:1,tube:1,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
 function save(){try{localStorage.setItem(P&&P.trial?SAVE_KEY+"-trial":P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
 // Saves from before slot-based parts stored {wheel:true,post:true,tubeless:true}.
@@ -1488,6 +1488,7 @@ function migrate(p){
   // numbers missing from older saves (or broken by the old legCap bug) would turn speeds into NaN: fill them from a new player
   {const D=newPlayer();for(const k of ["leg","body","climb","staMax","spiMax","sleepMax","money","fatigue","km","week","season","lastMonth","lastTrain"])
     if(!Number.isFinite(p[k]))p[k]=k==="leg"?22+typeLeg(p.trait):D[k]}
+  if(!p.tubeV2){p.tubeV2=true;if(p.pack)p.pack.tube=Math.min(4,(p.pack.tube||0)+(p.pack.kit?1:0))}
   if(p.gear&&p.gear.rinko===undefined){p.gear.rinko=true;if(p.pack&&p.pack.rinko===undefined)p.pack.rinko=1} // the 輪行袋 joined the cheap basics later
   if(p.leg>25+typeLeg(p.trait)&&!p.test)p.leg=25+typeLeg(p.trait);
   return p;
@@ -1956,6 +1957,7 @@ function missingGear(kind,cls){
 function hasRequired(){return !missingGear("brm",200).length}
 function packCap(){return P.gear.bag?5:2}
 function packWeight(p){return PACK.reduce((s,it)=>s+(p[it.id]||0)*it.w*(it.needs&&WEAR_NAMES[it.needs]?tierOf(it.needs).w:1),0)}
+function useTube(){if(R.tubes>0){R.tubes--;R.tubesUsed=(R.tubesUsed||0)+1}}
 function packCost(p){return PACK.reduce((s,it)=>s+(p[it.id]||0)*(it.cost||0),0)}
 function lodgeCost(C){return C.lodges&&P.lodgePick>=0&&C.lodges[P.lodgePick]?C.lodges[P.lodgePick].price:0}
 
@@ -2091,7 +2093,7 @@ function randomTrouble(dk,night){
     say("ひどくなってきた",R.broken&&R.broken.wheel?"もう1本スポークが折れた。ホイールの振れが大きくなって、さらに遅くなった。":"チェーンが外れやすくなってきた。使えるギアがさらに減った。");return true}}
   if(R.curseKm&&R.km>=R.curseKm){R.curseKm=null;if(breakSomething()){log("……まさか、自由の女神の呪い？");return true}}
   if(R.recut&&R.km>=R.recut){R.recut=null;R.cool=6;SFX.bad();R.t+=15;fx({spirit:-10});
-    if(R.tubes>0){R.tubes--;say("また裂けた！","応急処置のお札がずれて、サイドカットからチューブがはみ出して破裂した。\n予備チューブを1本使って、お札を2枚重ねで当て直した。");}
+    if(R.tubes>0){useTube();say("また裂けた！","応急処置のお札がずれて、サイドカットからチューブがはみ出して破裂した。\n予備チューブを1本使って、お札を2枚重ねで当て直した。");}
     else{R.t+=25;say("また裂けた！","応急処置がずれてチューブが破裂。予備チューブがない……。\nパッチを何枚も貼り、お札を重ねて40分かけて何とか直した。")}
     return true}
   if(R.repunct&&R.km>=R.repunct){R.repunct=null;R.cool=6;say("またパンク！","やっぱりガラス片が残っていた……。",troublePuncture);return true}
@@ -2243,9 +2245,9 @@ function troublePuncture(){
   if(partStat().sealant&&Math.random()<0.5){R.t+=2;log("プシュッ……シーラントが穴を塞いだ。チューブレス最高！");return}
   const h=helper(),items=[],can=R.kit&&R.tubes>0;
   if(can){
-    items.push({label:"急いで直す",note:"8分",desc:"チューブだけ替えてすぐ出発。タイヤの異物を見落とすと、またパンクするかも。",fn:()=>{R.tubes--;R.t+=8;
+    items.push({label:"急いで直す",note:"8分",desc:"チューブだけ替えてすぐ出発。タイヤの異物を見落とすと、またパンクするかも。",fn:()=>{useTube();R.t+=8;
       if(Math.random()<0.35){R.cool=0;R.repunct=R.km+rnd(2,10);say("しまった……","急いだせいで、タイヤに刺さったガラス片を取り忘れたかもしれない。","")}else log("急いで直した。うまくいった！")}});
-    items.push({label:"丁寧に直す",note:"18分",desc:"タイヤの内側を指でなぞって異物を探す。時間はかかるが確実。",fn:()=>{R.tubes--;R.t+=18;fx({spirit:5});log("小さなガラス片を見つけて取り除いた。これで安心。")}});
+    items.push({label:"丁寧に直す",note:"18分",desc:"タイヤの内側を指でなぞって異物を探す。時間はかかるが確実。",fn:()=>{useTube();R.t+=18;fx({spirit:5});log("小さなガラス片を見つけて取り除いた。これで安心。")}});
   }
   items.push({label:"誰かが来るのを待つ",note:"?分",desc:h?`${h.name}が近くにいるはず。`:"仲間か、通りかかる参加者を待つ。",fn:()=>{
     if(h&&Math.random()<0.8){R.t+=12;P.fp[h.id]=clamp(P.fp[h.id]+3,0,100);fx({spirit:5});return say("助かった！",`${h.name}が${h.how}。チューブとポンプを貸してくれて、一緒に直した。（12分）`)}
@@ -2421,7 +2423,7 @@ function startTrouble(done){
     ...(R.bank?[{label:"モバイルバッテリーで充電してから出る",note:"20分",fn:()=>{R.t+=20;R.bank--;say("満充電","スタートは遅れたけど、これで最後まで変速できる。",done)}}]:[]),
     {label:"変速を控えめにして走る",desc:"ギアを変えずにがまん。登りで少し不利。",fn:()=>{R.limp=0.97;log("変速を節約しながら走る。");done()}}]}));
   T.push(()=>({title:"タイヤの空気が抜けている",text:"スタート前にタイヤを押すと、ふにゃっとしている。スローパンクだ。",items:[
-    {label:"今のうちにチューブを交換",note:"12分",disabled:R.tubes<1,fn:()=>{R.t+=12;R.tubes--;say("交換した","スタート前で落ち着いて直せた。",done)}},
+    {label:"今のうちにチューブを交換",note:"12分",disabled:R.tubes<1,fn:()=>{R.t+=12;useTube();say("交換した","スタート前で落ち着いて直せた。",done)}},
     {label:"空気を入れて様子を見る",note:"3分",fn:()=>{R.t+=3;R.repunct=rnd(15,50);log("空気を入れた。もつといいけど……。");done()}}]}));
   T.push(()=>({title:"寝坊した！",text:"アラームを止めて二度寝していた。スタート受付はぎりぎり。",items:[
     {label:"朝ごはん抜きで飛び出す",fn:()=>{R.hunger=Math.min(R.hunger,40);fx({spirit:-5});say("間に合った","最終ウェーブに滑り込み。おなかが空いている……。",done)}},
@@ -2468,7 +2470,7 @@ function friendEvent(ev){
   const items=[];let text="";
   if(F.trouble==="puncture"){
     text=`${F.name}がパンクで止まっている。予備チューブを使い切ったらしい……。`;
-    if(R.tubes>0)items.push({label:"チューブを渡して一緒に直す",note:"12分",desc:"自分のチューブが1本減る。",fn:()=>{R.tubes--;R.t+=12;after(30)}});
+    if(R.tubes>0)items.push({label:"チューブを渡して一緒に直す",note:"12分",desc:"自分のチューブが1本減る。",fn:()=>{useTube();R.t+=12;after(30)}});
     if(R.kit)items.push({label:"パッチ当てを手伝う",note:"20分",fn:()=>{R.t+=20;after(22)}});
   }else if(F.trouble==="hunger"){
     text=`${F.name}が道端でうずくまっている。ハンガーノックらしい。`;
@@ -2587,7 +2589,7 @@ function startRun(C){
   const fat=P.fatigue||0,smax=Math.round(P.staMax*(1-fat/250));
   R={course:C,t:C.start-25,km:0,pace:"normal",stamina:smax,staMax:smax,hunger:breakfastOf().hunger,spirit:Math.round((P.spiMax||100)-fat*0.4),spiMax:P.spiMax||100,temp:50,
     light:L.light.hours,lightMax:L.light.hours,lightType:L.light.type,lightNight:Math.min(1,L.light.night+(P.gear.helmet_light?0.03:0)),backup:frontLights()[1]||null,phone:100,bank:p.bank?2:0,
-    kit:p.kit>0,tubes:(p.kit?1:0)+(p.tube||0),link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,rinko:p.rinko>0,
+    kit:p.kit>0,tubes:p.tube||0,tubesUsed:0,link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,rinko:p.rinko>0,
     pocket,load:packWeight(p),receipts:{},train:[],events,evIdx:0,f:{},log:[],cool:3,deer:false,windDay:{dir:rnd(0,360),spd:rnd(1,6.5)},meals:{},lastMeal:C.start,lodge:C.lodges&&P.lodgePick>=0&&P.lodgePick<C.lodges.length?P.lodgePick:null,
     sleepy:C.start<5*60?30:C.start>=20*60?25:0,legKm:0,woke:C.start<5*60?C.start-90:Math.min(C.start-60,7*60)};
   // dress for the start: winter kit on when it's cold out
@@ -2607,7 +2609,7 @@ function startRun(C){
     return say(C.name,`${fmt(tod(R.t))}、${C.startName}のコントロールを出発。\nゴールのランブイエまで あと${COURSES.find(c=>c.id===C.baseId).dist-(C.stages||PBP_STAGES)[C.stage][0]}km。制限まで ${dur(C.limit)}。\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,()=>{G.mode="ride";renderIdle()})}
   if(C.pbp){P.pbpTried=true;
     steps.push(()=>menu({title:"前日：フランスにて",text:"自転車は無事に飛行機から降りてきた。ホテルで組み立ても終わった。明日はいよいよスタート。今日はどう過ごす？",items:[
-      {label:"ヴェルサイユまで観光ライド",desc:"浮かれモード。でも道は木の根でボコボコ……。",fn:()=>{fx({spirit:20});if(Math.random()<0.35){fx({stamina:-10,spirit:-15});R.tubes=Math.max(0,R.tubes-1);say("前日に落車！","速い2人組を追いかけて歩道の段差に当たり、ライトのマウントが外れた。慌ててブレーキをかけて前輪ロック、ジャックナイフで落車。膝をすりむき、後輪もパンク。\n2人が戻ってきて薬局まで案内してくれた。予備チューブを1本使った。",next)}else say("ルイ14世の像の前で","記念撮影。完全に浮かれモード。",next)}},
+      {label:"ヴェルサイユまで観光ライド",desc:"浮かれモード。でも道は木の根でボコボコ……。",fn:()=>{fx({spirit:20});if(Math.random()<0.35){fx({stamina:-10,spirit:-15});useTube();say("前日に落車！","速い2人組を追いかけて歩道の段差に当たり、ライトのマウントが外れた。慌ててブレーキをかけて前輪ロック、ジャックナイフで落車。膝をすりむき、後輪もパンク。\n2人が戻ってきて薬局まで案内してくれた。予備チューブを1本使った。",next)}else say("ルイ14世の像の前で","記念撮影。完全に浮かれモード。",next)}},
       {label:"ホテルで昼寝して過ごす",desc:"観光はおあずけ。",fn:()=>{R.sleepy=Math.max(0,R.sleepy-20);say("昼寝","17時までぐっすり。",next)}}]}));
     steps.push(()=>say("受付と車検","ランブイエ城で受付。ブルベカード、ICチップ入りのフレームバッジ、反射ベスト、PBPのボトル。\n車検は日本のブルベよりゆるい。バッジとライトの点灯確認だけ。",next));
     steps.push(()=>menu({title:"スタート会場",text:"スタートまで、まだ時間がある。",items:[
@@ -2707,6 +2709,7 @@ function endRun(title,text,o={}){
   P.fatigue=clamp((P.fatigue||0)+(o.fatigue||0),0,100);
   let extra="";
   if(R)P.rodeWeek=P.week;
+  if(R&&R.tubesUsed&&P.pack)P.pack.tube=Math.max(0,(P.pack.tube||0)-R.tubesUsed);
   // cold or wet for too long: a cold, and next week off the bike
   if(R&&!P.test){const risk=clamp((R.coldMin||0)/500+(R.wetMin||0)/300+(R.hypoMin>=30?0.5:0),0,0.7);
     if(risk>0.05&&Math.random()<risk){P.sickWeek=P.week+1;extra+=`\n帰ってから熱が出た。${R.wetMin>60?"雨に濡れたまま走ったのがいけなかった。":"体を冷やしすぎた。"}風邪をひいたらしい。来週は自転車に乗れない。`}}
@@ -2746,7 +2749,7 @@ function title(){
 // Everyone starts with the cheap basics, so a new season begins with choosing a bike only.
 const STARTER={navi:"cheap",light_aaa:true,light_usb:true,rear:true,vest:true,bell:true,helmet:true,helmet_tail:true,bank:true,bag:true,whistle:true,
   jersey:"cheap",bib:"cheap",winter:"cheap",wind:"cheap",rain:"cheap",rinko:true};
-function giveStarter(){Object.assign(P.gear,STARTER);Object.assign(P.pack,{kit:1,tube:1,wind:1,rain:1,bank:1,rinko:1})}
+function giveStarter(){Object.assign(P.gear,STARTER);Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,rinko:1})}
 function bikeStats(b){const r=(v,hi)=>v>=hi+0.04?"◎":v>=hi?"○":v>=hi-0.04?"△":"×";
   return `平地${r(b.aero,1)} 登り${r(2-b.climb-(b.weight-9)*0.02,1)} 下り${r(b.descent,1)} パンク${r(2-b.punct*0.98,1.02)} 気力${r(2-b.comfort,1)} 体力${r(2-(b.stam||1),1)} ${b.weight}kg`}
 function startNew(){P=newPlayer();menu({title:"どこに住んでいる？",text:"住んでいる場所で、各地のイベントへの交通費が変わる。",items:HOMES.map(h=>({label:`${h.name}（${h.region}）`,fn:()=>{P.home=h.id;giveStarter();runQuiz(()=>say("サイクルショップ",`所持金 ${yen(P.money)}。\nライトやウェアなど、安い基本装備はひととおり持っている。\nまずはブルベを走る自転車を選ぼう。`,()=>bikeShop(true)))}}))})}
@@ -3003,8 +3006,11 @@ function packing(C,keep){
   G.bg={scen:"town",tod:21*60,speed:0};
   const p=P.pack,w=packWeight(p),cap=packCap();
   const items=PACK.map(it=>{const owned=!it.needs||P.gear[it.needs];const n=p[it.id]||0;
+    if(it.buy)return {label:`${it.name}を買い足す`,note:`${n}本${n<it.max?` +${yen(it.buy)}`:"（いっぱい）"}`,disabled:n>=it.max||P.money<it.buy,desc:`${it.desc}（1本${Math.round(it.w*1000)}g）`,
+      fn:()=>{p[it.id]=n+1;if(packWeight(p)>cap+1e-9){p[it.id]=n;BQA.sfx("no")}else{P.money-=it.buy;BQA.sfx("coin")}packing(C,true)}};
     return {label:it.name,note:owned?`${n}/${it.max}${it.cost?" "+yen(it.cost):""}`:"未所持",disabled:!owned,desc:`${it.desc}（${Math.round(it.w*(it.needs&&WEAR_NAMES[it.needs]&&P.gear[it.needs]?tierOf(it.needs).w:1)*1000)}g）`,
-      fn:()=>{let v=(n+1)%(it.max+1);p[it.id]=v;if(packWeight(p)>cap+1e-9){p[it.id]=0;BQA.sfx("no")}packing(C,true)}}});
+      fn:()=>{if(it.buy){if(n>=it.max||P.money<it.buy){BQA.sfx("no");return packing(C,true)}p[it.id]=n+1;if(packWeight(p)>cap+1e-9){p[it.id]=n;BQA.sfx("no");return packing(C,true)}P.money-=it.buy;BQA.sfx("coin");return packing(C,true)}
+        let v=(n+1)%(it.max+1);p[it.id]=v;if(packWeight(p)>cap+1e-9){p[it.id]=0;BQA.sfx("no")}packing(C,true)}}});
   const bfs=BREAKFASTS.filter(b=>!b.region||b.region===homeOf().region||b.region===C.region),bf=breakfastOf();
   items.push({label:`朝ごはん：${bf.name}`,note:bf.price?yen(bf.price):"",desc:`選ぶたびに切り替わる。満腹${bf.hunger}でスタート。${describeFx({spirit:bf.spirit,temp:bf.temp,stamina:bf.stamina,sleepy:bf.sleepy})}`,
     fn:()=>{const i=bfs.findIndex(b=>b.id===bf.id);P.breakfastId=bfs[(i+1)%bfs.length].id;packing(C,true)}});
@@ -3015,7 +3021,7 @@ function packing(C,keep){
       fn:()=>{P.lodgePick=P.lodgePick+1>=C.lodges.length?-1:P.lodgePick+1;packing(C,true)}})}
   else P.lodgePick=-1;
   items.push({label:"準備完了！ スタート地点へ",disabled:P.money<packCost(p)+lodgeCost(C)+breakfastOf().price,fn:()=>{save();startRun(C)}});
-  menu({title:`前日の準備：${C.name}`,text:`荷物 ${w.toFixed(2)} / ${cap}kg　買い足し ${yen(packCost(p)+lodgeCost(C))}　所持金 ${yen(P.money)}\n選ぶたびに個数が増える（上限で0に戻る）。重いほど遅くなる。`,items,keep,cancel:null});
+  menu({title:`前日の準備：${C.name}`,text:`荷物 ${w.toFixed(2)} / ${cap}kg　買い足し ${yen(packCost(p)+lodgeCost(C))}　所持金 ${yen(P.money)}\n選ぶたびに個数が増える（上限で0に戻る）。重いほど遅くなる。チューブは使った分なくなる。`,items,keep,cancel:null});
 }
 
 /* ================= HUD ================= */
