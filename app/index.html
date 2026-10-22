@@ -779,7 +779,7 @@ function meetEvent(ev){const F=FRIENDS[ev.fid],known=metFriends().includes(ev.fi
   // people don't put さん on their own name
   const me=F.name.replace(/さん$/,""),pick=a=>a[Math.floor(Math.random()*a.length)];
   const hello=known?pick(["あれ？ どこまで行くんですか？","お、奇遇ですね！ 今日はどちらまで？","この前のブルベ以来ですね！ 元気でした？","やっぱり！ 後ろ姿でわかりましたよ"])
-    :pick([`${me}っていいます。このへんのブルベによく出てるんですよ`,`もしかして、PikaCyclingの方ですか？ ブログ読んでます！ ${me}です`,`Xで見ました！ ${me}っていいます`,
+    :pick([`${me}っていいます。このへんのブルベによく出てるんですよ`,`いつもブログ読んでます！ ${me}です`,`Xで見ました！ ${me}っていいます`,
       `Stravaでよくお見かけします。${me}です`,`そのジャージ、ブルベの方ですよね？ ${me}っていいます`,`去年のブルベ、PCですれ違いましたよね？ ${me}です`]);
   menu({title:"カフェライドの途中で",text:known?`後ろから聞き覚えのある声。\n${F.name}「${hello}」`:`見慣れないランドヌールが追いついてきた。\n「${hello}」\n（${F.trait}）`,items:[
     {label:`${(CAFE[P.home]||CAFE.sapporo).dest}まで一緒に行く`,fn:()=>{R.cafeMate=ev.fid;joinTrain(ev.fid,R.course.dist-R.km+1);
