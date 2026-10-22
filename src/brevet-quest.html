@@ -1404,6 +1404,11 @@ function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300
 function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
 const PBP_TRIP=550000,PBP_FEE=20000; // the author's tour cost; the entry fee is paid at pre-registration
 function ymdOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+// A hot meal warms you up: anything hot and filling without its own temperature effect gets one.
+{const HOT=/温|ホット|ラーメン|そば|うどん|定食|丼|カレー|パスタ|スープ|ジンギスカン|焼肉|モーニング|朝ごはん|ガレット|ハンバーグ|カツ|肉まん|おでん|カップ麺|鍋|味噌|ステーキ|食堂|レストラン|ファミレス/,COLD=/冷|アイス|ソフト|ざる|シェイク|ジェラート|寿司|海鮮丼|サンド|バゲット|パン|ウニ|カニ|イクラ|いくら|サーモン|刺身|ちらし|しらす|ホタテ/;
+ const warm=it=>{const f=it&&it.fx;if(!f||f.temp!==undefined||!((f.hunger||0)>=20)||!HOT.test(it.name||"")||COLD.test(it.name||""))return;f.temp=f.hunger>=45?12:8};
+ for(const k in STORE)STORE[k].forEach(warm);for(const k in MEALS)MEALS[k].forEach(warm);
+ for(const c of [...COURSES,...EVENTS])for(const e of c.events||[])if(e.type==="sight")warm(e)}
 applyYear(2026);
 function weekItems(i){const a=WEEKS[i],b=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6),A=ymdOf(a),B=ymdOf(b);
   return [...COURSES.filter(c=>c.ymd&&!c.memory&&c.ymd>=A&&c.ymd<=B),...EVENTS.filter(e=>e.ymd>=A&&e.ymd<=B)].sort((x,y)=>x.ymd<y.ymd?-1:1)}
@@ -2509,7 +2514,8 @@ function pcAct(msg,min){R.pcLast=min?`${msg}（${min}分経過）`:msg;BQA.sfx("
 function pcMenu(keep){
   const ev=R.pc,items=[];if(!R.pcShelf)R.pcShelf=pickShelf(ev.chain);const list=R.pcShelf;
   const seated=it=>it.fx?{...it.fx,stamina:(it.fx.stamina||0)+Math.round(it.min*1.2)}:it.fx;
-  const buy=it=>{P.money-=it.price;R.receipts[ev.km]=true;R.t+=1+(it.min||0);fx(seated(it));if(it.pocket)R.pocket.push({...it.pocket});if(it.give)R[it.give]++;R.pcBought.push(it.name.replace(/\(持ち出し\)/,""))};
+  // what you buy is gone from the shelf (spare batteries and kairo come in packs)
+  const buy=it=>{if(!it.give){const i=R.pcShelf.indexOf(it);if(i>=0)R.pcShelf.splice(i,1)}P.money-=it.price;R.receipts[ev.km]=true;R.t+=1+(it.min||0);fx(seated(it));if(it.pocket)R.pocket.push({...it.pocket});if(it.give)R[it.give]++;R.pcBought.push(it.name.replace(/\(持ち出し\)/,""))};
   const sec=t=>items.push({header:true,disabled:true,label:t});
   sec("イートインで座って食べる（体力も回復）");
   for(const it of list.filter(i=>i.fx))items.push({label:`${it.name}　<small>${describeFx(seated(it))}</small>`,note:`${yen(it.price)}・${it.min+1}分`,disabled:P.money<it.price,
