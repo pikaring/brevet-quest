@@ -782,7 +782,11 @@ function meetEvent(ev){const F=FRIENDS[ev.fid],known=metFriends().includes(ev.fi
     :pick([`${me}っていいます。このへんのブルベによく出てるんですよ`,`もしかして、PikaCyclingの方ですか？ ブログ読んでます！ ${me}です`,`Xで見ました！ ${me}っていいます`,
       `Stravaでよくお見かけします。${me}です`,`そのジャージ、ブルベの方ですよね？ ${me}っていいます`,`去年のブルベ、PCですれ違いましたよね？ ${me}です`]);
   menu({title:"カフェライドの途中で",text:known?`後ろから聞き覚えのある声。\n${F.name}「${hello}」`:`見慣れないランドヌールが追いついてきた。\n「${hello}」\n（${F.trait}）`,items:[
-    {label:`${(CAFE[P.home]||CAFE.sapporo).dest}まで一緒に行く`,fn:()=>{R.cafeMate=ev.fid;joinTrain(ev.fid,R.course.dist-R.km+1);log(`${F.name}「いいですね、ご一緒します！」`)}},
+    {label:`${(CAFE[P.home]||CAFE.sapporo).dest}まで一緒に行く`,fn:()=>{R.cafeMate=ev.fid;joinTrain(ev.fid,R.course.dist-R.km+1);
+      // a cafe-ride companion: same pace, and lunch together at the cafe
+      const m=R.train.find(x=>x.id===ev.fid);if(m)m.cafe=true;const c=CAFE[P.home]||CAFE.sapporo;
+      for(const e of R.events)if(e.type==="sight"&&e.name===c.dest)e.text=`${c.food}。${F.name}と一緒に食べながら、ブルベの話で盛り上がる。`;
+      log(`${F.name}「いいですね、ご一緒します！」`)}},
     {label:"ひとりで走る",fn:()=>{gainFp(ev.fid,2);log(`${F.name}「じゃあ、また次のブルベで！」`)}}]})}
 
 // Non-brevet events. Dates from organizers / event listings; distances, climbs and fees are game estimates.
