@@ -1465,7 +1465,6 @@ function save(){try{localStorage.setItem(P&&P.trial?SAVE_KEY+"-trial":P&&P.test?
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
 // Saves from before slot-based parts stored {wheel:true,post:true,tubeless:true}.
 function migrate(p){
-  if(!Number.isFinite(p.leg))p.leg=22+typeLeg(p.trait); // saves hit by the old legCap bug (types without a cruise bonus)
   p.owned=p.owned||{};const o=p.parts||{};
   if(o.wheel===true||o.post===true||o.tubeless===true)p.parts={wheel:o.wheel?"alloy":"stock",post:o.post?"carbon":"stock",tire:o.tubeless?"tubeless":"stock"};
   for(const sl in PARTS){if(!PARTS[sl].opts.some(x=>x.id===p.parts[sl]))p.parts[sl]=PARTS[sl].opts[0].id;p.owned[sl+":"+p.parts[sl]]=true}
@@ -1474,7 +1473,10 @@ function migrate(p){
   if(p.bike&&!p.gear.navi&&!p.test)p.gear.navi="cheap";
   p.fp=p.fp||{};for(const id in FRIENDS)if(p.fp[id]==null)p.fp[id]=0;p.met=p.met||{};
   if(p.lastTrain===undefined)p.lastTrain=p.lastRide??p.week;if(!p.spiMax)p.spiMax=100;if(!p.sleepMax)p.sleepMax=100;
-  if(p.leg>25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1&&!p.test)p.leg=25+((TYPES[(p.trait||{}).type]||{}).fx||{leg:0}).leg*1;
+  // numbers missing from older saves (or broken by the old legCap bug) would turn speeds into NaN: fill them from a new player
+  {const D=newPlayer();for(const k of ["leg","body","climb","staMax","spiMax","sleepMax","money","fatigue","km","week","season","lastMonth","lastTrain"])
+    if(!Number.isFinite(p[k]))p[k]=k==="leg"?22+typeLeg(p.trait):D[k]}
+  if(p.leg>25+typeLeg(p.trait)&&!p.test)p.leg=25+typeLeg(p.trait);
   return p;
 }
 function wipe(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
@@ -2764,6 +2766,7 @@ function travelCost(region,oneWay){if(region==="フランス")return PBP_TRIP;co
 function feeOf(it){return it.kind==="brm"?(it.fee||(it.org===RS?1700:3000)):it.fee}
 function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
 function hub(){
+  migrate(P);
   if(P.test)return testMenu();
   if(YEAR!==(P.year||2026))applyYear(P.year||2026);
   if(YEAR===2027){if(P.pbpTried||P.week>=WEEKS.length)return trialEnd();if(ymdOf(WEEKS[P.week])>QUAL_BY[2027]&&!Object.values(pbpQual()).every(Boolean))return trialEnd("sr")}
