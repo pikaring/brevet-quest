@@ -1432,7 +1432,8 @@ const BQA_SFX = {
   bad: { bpm: 600, tracks: [{ ch: 'pulse', duty: 0.5, vol: 0.8, seq: 'E4:1 C4:2' }, { ch: 'noise', vol: 0.6, seq: 's:1 r:2' }] },   // パンク・トラブル
   friend: { bpm: 900, tracks: [{ ch: 'pulse', duty: 0.25, vol: 0.8, seq: 'G5:0.5 B5:0.5 D6:0.5 G6:1.5' }] },              // 仲間と会う
   win: { bpm: 480, tracks: [{ ch: 'pulse', duty: 0.25, seq: 'C5:0.5 E5:0.5 G5:0.5 C6:1.5' }, { ch: 'pulse', duty: 0.125, vol: 0.5, seq: 'G4:0.5 C5:0.5 E5:0.5 G5:1.5' }] },   // 勝った・手に入れた
-  coin: { bpm: 1200, tracks: [{ ch: 'pulse', duty: 0.25, vol: 0.7, seq: 'B5:1 E6:2' }] },                                 // お金
+  coin: { bpm: 1200, tracks: [{ ch: 'pulse', duty: 0.25, vol: 0.7, seq: 'B5:1 E6:2' }] },                                 // お金・PC で買う
+  no: { bpm: 600, tracks: [{ ch: 'pulse', duty: 0.5, vol: 0.6, seq: 'A3:0.5 r:0.25 A3:0.75' }] },                          // できない（荷物が重すぎる）
 };
 BQA.load(BQA_SONGS);
 
@@ -1490,7 +1491,7 @@ function moveSel(d){
   if(!UI.items.length)return;
   let i=UI.idx;
   for(let n=0;n<UI.items.length;n++){i=(i+d+UI.items.length)%UI.items.length;if(!UI.items[i].disabled)break}
-  UI.idx=i;renderWin();beep(990,0.02);
+  UI.idx=i;renderWin();BQA.sfx("sel");
 }
 $("#win").addEventListener("click",e=>{const b=e.target.closest(".opt");if(b)choose(+b.dataset.i)});
 $("#win").addEventListener("mouseover",e=>{const b=e.target.closest(".opt");if(b&&!b.disabled&&+b.dataset.i!==UI.idx){UI.idx=+b.dataset.i;renderWin()}});
@@ -2056,7 +2057,7 @@ function arrivePC(ev){
   if(R.t>close){R.pcLast=`クローズ目安 ${fmt(close)} を過ぎてしまった。ゴールの制限時間に注意！`;fx({spirit:-5})}
   if(!pcInvite())pcMenu(false);
 }
-function pcAct(msg,min){R.pcLast=min?`${msg}（${min}分経過）`:msg;beep(1568,0.05);pcMenu(true)}
+function pcAct(msg,min){R.pcLast=min?`${msg}（${min}分経過）`:msg;BQA.sfx("coin");pcMenu(true)}
 function pcMenu(keep){
   const ev=R.pc,items=[];if(!R.pcShelf)R.pcShelf=pickShelf(ev.chain);const list=R.pcShelf;
   const seated=it=>it.fx?{...it.fx,stamina:(it.fx.stamina||0)+Math.round(it.min*1.2)}:it.fx;
@@ -2489,7 +2490,7 @@ function packing(C,keep){
   const p=P.pack,w=packWeight(p),cap=packCap();
   const items=PACK.map(it=>{const owned=!it.needs||P.gear[it.needs];const n=p[it.id]||0;
     return {label:it.name,note:owned?`${n}/${it.max}${it.cost?" "+yen(it.cost):""}`:"未所持",disabled:!owned,desc:`${it.desc}（${Math.round(it.w*(it.needs&&WEAR_NAMES[it.needs]&&P.gear[it.needs]?tierOf(it.needs).w:1)*1000)}g）`,
-      fn:()=>{let v=(n+1)%(it.max+1);p[it.id]=v;if(packWeight(p)>cap+1e-9){p[it.id]=0;beep(220,0.1)}packing(C,true)}}});
+      fn:()=>{let v=(n+1)%(it.max+1);p[it.id]=v;if(packWeight(p)>cap+1e-9){p[it.id]=0;BQA.sfx("no")}packing(C,true)}}});
   const bfs=BREAKFASTS.filter(b=>!b.region||b.region===homeOf().region||b.region===C.region),bf=breakfastOf();
   items.push({label:`朝ごはん：${bf.name}`,note:bf.price?yen(bf.price):"",desc:`選ぶたびに切り替わる。満腹${bf.hunger}でスタート。${describeFx({spirit:bf.spirit,temp:bf.temp,stamina:bf.stamina,sleepy:bf.sleepy})}`,
     fn:()=>{const i=bfs.findIndex(b=>b.id===bf.id);P.breakfastId=bfs[(i+1)%bfs.length].id;packing(C,true)}});
