@@ -757,10 +757,17 @@ for(let i=COURSES.length-1;i>=0;i--)if(COURSES[i].memory)COURSES.splice(i,1);
 // Weekend cafe rides near home with one friend.
 const CAFE={hakodate:{dest:"大沼湖畔のカフェ",dist:50,gain:300,scen:"lake",food:"ジェラートとコーヒー"},sapporo:{dest:"定山渓のカフェ",dist:60,gain:400,scen:"forest",food:"焼き菓子とコーヒー"},
   asahikawa:{dest:"美瑛の丘のカフェ",dist:60,gain:500,scen:"field",food:"牧場のソフトクリーム"},obihiro:{dest:"中札内のカフェ",dist:50,gain:150,scen:"field",food:"十勝のチーズケーキ"}};
-function cafeCourse(fid){const c=CAFE[P.home]||CAFE.sapporo,m=MONTH_ENV[weekMonth(P.week)],d=c.dist;
-  return {id:"cafe",name:`${FRIENDS[fid].name}とカフェライド`,dist:d,limit:8*60,start:9*60,date:weekLabel(P.week),sunrise:m.sr,sunset:m.ss,tDay:m.day,tNight:m.night,
+// Cafe ride with a friend you have ridden with, or alone — and sometimes a local rider catches up on the way.
+function cafeCourse(fid){const c=CAFE[P.home]||CAFE.sapporo,m=MONTH_ENV[weekMonth(P.week)],d=c.dist,ev=[];
+  if(!fid&&Math.random()<0.6){const reg=HOME_REGION[P.home],loc=Object.keys(FRIENDS).filter(id=>FRIENDS[id].home===reg),other=Object.keys(FRIENDS).filter(id=>FRIENDS[id].home!==reg&&(P.fp[id]||0)>0);
+    const pool=[...loc,...loc,...other];if(pool.length)ev.push({km:Math.round(d*rnd(0.12,0.4)*10)/10,type:"meet",fid:pool[Math.floor(Math.random()*pool.length)]})}
+  return {id:"cafe",name:fid?`${FRIENDS[fid].name}とカフェライド`:"ひとりでカフェライド",dist:d,limit:8*60,start:9*60,date:weekLabel(P.week),sunrise:m.sr,sunset:m.ss,tDay:m.day,tNight:m.night,
     startName:"近所の公園",profile:[[0,50],[d/2,50+c.gain],[d,50]],scenery:[[0,c.scen]],heading:[[0,0],[d/2,180]],rough:[],deer:[],kind:"cafe",friend:fid,rainChance:0.15,goalFood:"",
-    events:[{km:d/2,type:"sight",name:c.dest,text:`${c.food}。${FRIENDS[fid].name}とブルベの話で盛り上がる。`,min:45,price:1200,fx:{hunger:30,spirit:35}},{km:d,type:"goal",name:"家に到着"}]}}
+    events:[...ev,{km:d/2,type:"sight",name:c.dest,text:fid?`${c.food}。${FRIENDS[fid].name}とブルベの話で盛り上がる。`:`${c.food}。来年のブルベの計画を立てながら。`,min:45,price:1200,fx:{hunger:30,spirit:35}},{km:d,type:"goal",name:"家に到着"}]}}
+function meetEvent(ev){const F=FRIENDS[ev.fid],known=metFriends().includes(ev.fid);P.met=P.met||{};P.met[ev.fid]=true;if(P.fp[ev.fid]==null)P.fp[ev.fid]=0;SFX.friend();
+  menu({title:"カフェライドの途中で",text:known?`後ろから聞き覚えのある声。\n${F.name}「あれ？ どこまで行くんですか？」`:`見慣れないランドヌールが追いついてきた。\n「${F.name}っていいます。このへんのブルベによく出てるんですよ」\n（${F.trait}）`,items:[
+    {label:`${(CAFE[P.home]||CAFE.sapporo).dest}まで一緒に行く`,fn:()=>{R.cafeMate=ev.fid;joinTrain(ev.fid,R.course.dist-R.km+1);log(`${F.name}「いいですね、ご一緒します！」`)}},
+    {label:"ひとりで走る",fn:()=>{gainFp(ev.fid,2);log(`${F.name}「じゃあ、また次のブルベで！」`)}}]})}
 
 // Non-brevet events. Dates from organizers / event listings; distances, climbs and fees are game estimates.
 const EVENTS=[
@@ -2314,6 +2321,7 @@ function trigger(ev){
   if(ev.type==="check"){SFX.ok();return say(ev.name,ev.photo?`${ev.photo}\nブルベカードに通過時刻を書いた。(2分)`:"ブルベカードに通過を記録した。(2分)",()=>{R.t+=2;R.receipts[ev.km]=true;log(`${ev.name} 通過 ${fmt(R.t)}`)})}
   if(ev.type==="sight")return sightEvent(ev);
   if(ev.type==="friend")return friendEvent(ev);
+  if(ev.type==="meet")return meetEvent(ev);
   if(ev.type==="lodge")return lodgeEvent(R.course.lodges[ev.li],ev.li);
   if(ev.type==="goal")return goal(ev);
 }
@@ -2570,7 +2578,7 @@ function startRun(C){
     steps.push(()=>{SFX.win();say("LAST STAGE","PARIS - BREST - PARIS\n\nランブイエ城の前の広場。世界中から集まったランドヌールの言葉が飛び交っている。\n日本から来たランドヌールも大勢いる。\n4年に一度のこの日のために、北海道で走ってきた。",next)})}
   if(present.length&&C.kind!=="cafe")steps.push(()=>say("スタート地点で",`${present.map(id=>FRIENDS[id].name).join("、")}の顔が見える。${present.some(id=>FRIENDS[id].only)?"\n地元のブルベでしか会えない人もいる。":""}`,next));
   if(C.kind==="brm"&&Math.random()<0.45)steps.push(()=>startTrouble(next));
-  steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
+  steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?(C.friend?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:"今日はひとりで、のんびり行こう。"):C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
   for(const id of buddies)steps.push(()=>{SFX.friend();menu({title:"トレインのお誘い",text:`${FRIENDS[id].name}「一緒に行きませんか？」`,items:[{label:"一緒に走る",fn:()=>{R.train.push({id,until:rnd(30,90)});markTrained(id);next()}},{label:"今日はソロで",fn:next}]})});
   steps.push(()=>say("ブリーフィング終了",`${fmt(C.start)} スタート！ 制限時間 ${dur(C.limit)}。\nゴールクローズは ${fmt(tod(C.start+C.limit))}。\n今日の風：${compass(R.windDay.dir)}の風 ${R.windDay.spd.toFixed(1)}m/s${R.rainZones?"\n予報：途中から雨":"\n予報：晴れ"}${C.race?"\nレースだ。「がんばる」で行こう！":""}`,()=>{R.t=C.start;G.mode="ride";for(const m of R.train)log(`${FRIENDS[m.id].name}とトレインを組んでスタート！`);log("スタート！ 安全第一で。");SFX.ok()}));
   let si=0;function next(){const s=steps[si++];if(s)s()}
@@ -2588,9 +2596,9 @@ function goal(ev){
       {label:`第${C.stage+2}ステージへ`,fn:()=>pbpNext(C.stage+1)}]});
     return show("")}
   if(C.race)return raceResult(el);
-  if(C.kind==="cafe"){G.mode="goal";P.fp[C.friend]=clamp(P.fp[C.friend]+12,0,100);
+  if(C.kind==="cafe"){G.mode="goal";const mate=C.friend||R.cafeMate,n=C.friend?12:10;if(mate)P.fp[mate]=clamp((P.fp[mate]||0)+n,0,100);
     const tr=applyTrain(trainFx({id:"cafe",kind:"cafe",dist:C.dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}));
-    return endRun("楽しかった！",`${FRIENDS[C.friend].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[C.friend].name}との友情 +12\n練習効果：${tr}`,{fatigue:4})}
+    return endRun("楽しかった！",mate?`${FRIENDS[mate].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[mate].name}との友情 +${n}${C.friend?"":"\nこれからはカフェライドに誘える。"}\n練習効果：${tr}`:`ひとりでのんびりカフェライド。たまにはこういうのもいい。\n練習効果：${tr}`,{fatigue:4})}
   if(C.kind!=="brm"){G.mode="goal";(R.present||[]).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
     const tr=applyTrain(trainFx(C.ev));
     return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\n練習効果：${tr}\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.after?"\n"+C.ev.after:""}${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
@@ -2771,9 +2779,9 @@ function hub(){
     fn:()=>{P.money+=25000;P.fatigue=clamp(P.fatigue+35,0,100);const r=clamp((P.fatigue-40)/80,0,0.6),down=Math.random()<r;if(down)P.sickWeek=wk+1;SFX.ok();save();
       say("残業した",`${yen(25000)} 稼いだ。疲労 ${Math.round(P.fatigue)}${down?"\n連日の残業で体調を崩した。来週は寝込みそうだ……。":P.fatigue>=60?"\n疲れがたまっている。そろそろ休んだほうがいい。":""}`,nextWeek)}});
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
-  items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
-    const mates=Object.entries(FRIENDS).filter(([id])=>(P.trained||{})[id]&&P.fp[id]>0);if(!mates.length)return say("誘える仲間がいない","まだ一緒にトレインを組んだ仲間がいない。\nブルベやイベントで仲間を助けたり、PCで声をかけられたりしてトレインを組もう。",hub);
-    menu({title:"誰を誘う？",text:"一度トレインを組んだ仲間を誘える。",items:[...mates.map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1,cafe:true})}})),{label:"もどる",fn:hub}],cancel:hub})}});
+  items.push({label:"カフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。仲間を誘うか、ひとりで走る（途中で誰かに会えるかも）。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
+    const mates=Object.entries(FRIENDS).filter(([id])=>(P.trained||{})[id]&&P.fp[id]>0);
+    menu({title:"カフェライド",text:mates.length?"一度トレインを組んだ仲間を誘える。":"まだ誘える仲間がいない。ひとりで走れば、途中で誰かに会えるかも。",items:[{label:"ひとりで走る",note:"途中で誰かに会えるかも",fn:()=>startRun(cafeCourse(null))},...mates.map(([id,f])=>({label:f.name,note:"♥".repeat(Math.round(P.fp[id]/20))||"―",desc:f.trait,fn:()=>{const C=cafeCourse(id);startRun(C);R.train.push({id,until:C.dist+1,cafe:true})}})),{label:"もどる",fn:hub}],cancel:hub})}});
   items.push({label:"サイクルショップ（週は進まない）",fn:shopMenu});
   if((P.wish||[]).length)items.push({label:`ほしい物リスト（${P.wish.length}）`,desc:P.wish.map(wishName).join("、"),fn:wishMenu});
   items.push({label:"年間カレンダー",fn:calendarView});
