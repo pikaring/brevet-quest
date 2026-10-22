@@ -796,17 +796,16 @@ const EVENTS=[
   desc:"道南の冬ヒルクライムの聖地。山頂に施設があるので除雪がよく、サーキットのような路面。約10kmで2時間。大会ではなく、Stravaのセグメントでタイムを競う。スパイクタイヤが必要。（日付は仮）",
   events:[{km:2,type:"note",text:"冬は体が熱くならない。夏よりも登りが楽に感じる。",fx:{temp:5}},{km:5,type:"note",text:"普通のタイヤの人がジグザグに登っていて、途中であきらめた。"},
    {km:8,type:"note",text:"下りてくる人とすれ違う。下りのほうが緊張する。"}]},
- // 凍った湖: the 大沼 fat bike guided tour (early February 2025, ¥7,590 with a fat bike, about 8 km in 2.5 hours).
- {id:"onuma_fat",y27:"2027-02-06",kind:"fun",snow:true,rental:true,name:"凍った大沼のファットバイクツアー",region:"道南",dist:8,gain:40,base:130,fee:7590,scen:"lake",start:10*60,limit:4*60,vmax:5,tDay:-3,tNight:-10,
-  desc:"凍った大沼の上を、ファットバイクで渡るガイドツアー（期間限定、2名から）。ファットバイクのレンタル込みなので、スパイクタイヤはいらない。氷の厚さは約30cm。氷の上に積もった雪が重くて、ずっと5%の坂を登っているみたい。",
-  after:"帰りは森商店のスパイスチキンカレー。",
-  events:[{km:0.3,type:"sight",name:"大沼の採氷場",text:"湖の氷を切り出している。",min:10,price:0,fx:{spirit:12}},
-   {km:2,type:"note",text:"踏切を渡って小沼へ。"},
-   {km:3,type:"note",text:"水の流れで凍らないセバットは、歩いて渡る。足元で氷がミシミシ鳴る。ガイドのザックには長いロープ……。",spirit:-3},
-   {km:4.5,type:"sight",name:"氷のグラスのシードル",text:"切り出した氷のブロックの上で、七飯のりんごのシードル。グラスも氷。",min:10,price:0,fx:{spirit:15,temp:-3}},
-   {km:5,type:"sight",name:"函館醸造の酒粕の甘酒",text:"体の芯から温まる。",min:8,price:0,fx:{temp:15,hunger:10,spirit:8}},
-   {km:6,type:"note",text:"小島に登って、氷の上に寝転ぶ。双眼鏡でシマエナガを探す。声は聞こえたけど、姿は見えなかった。",spirit:10},
-   {km:7.8,type:"sight",name:"倉岡岩",text:"相原周防の伝説が残る岩。ここで湖から上がる。",min:5,price:0,fx:{spirit:8}}]},
+ // 凍った湖: a fat bike guided tour on a frozen lake near home (after the author's 2025 tour; kept general so it fits every region).
+ {id:"icelake_fat",y27:"2027-02-06",kind:"fun",snow:true,rental:true,homeRegion:true,name:"凍った湖のファットバイクツアー",region:"道南",dist:8,gain:40,base:130,fee:7500,scen:"lake",start:10*60,limit:4*60,vmax:5,tDay:-3,tNight:-10,
+  desc:"近くの凍った湖の上を、ファットバイクで渡るガイドツアー（冬の期間限定）。ファットバイクのレンタル込みなので、スパイクタイヤはいらない。氷の上に積もった雪が重くて、ずっと坂を登っているみたい。",
+  after:"帰りは地元の食堂で、温かいカレー。",
+  events:[{km:0.3,type:"sight",name:"氷の切り出し",text:"湖の氷を四角く切り出している。",min:10,price:0,fx:{spirit:12}},
+   {km:3,type:"note",text:"氷が薄いところは、自転車を押して歩く。足元で氷がミシミシ鳴る。ガイドのザックには長いロープ……。",spirit:-3},
+   {km:4.5,type:"sight",name:"氷のグラスで乾杯",text:"切り出した氷のブロックの上で、地元のりんごジュース。グラスも氷。",min:10,price:0,fx:{spirit:15,temp:-3}},
+   {km:5,type:"sight",name:"温かい甘酒",text:"体の芯から温まる。",min:8,price:0,fx:{temp:15,hunger:10,spirit:8}},
+   {km:6,type:"note",text:"小島に登って、氷の上に寝転ぶ。双眼鏡で野鳥を探す。シマエナガの声は聞こえたけど、姿は見えなかった。",spirit:10},
+   {km:7.8,type:"note",text:"岸に上がって、ツアー終了。"}]},
  {id:"ice100",y27:"2027-01-24",kind:"snow",name:"アイスブルベ 100km",region:"道北",dist:100,gain:600,base:200,fee:3000,scen:"field",snow:true,start:7*60,limit:10*60,tDay:-3,tNight:-12,
   desc:"R札幌の冬のイベント。東川町のせんとぴゅあ発着、7時スタート。スパイクタイヤが必要。平均10km/hくらいの見込み。前夜祭で飲みすぎると起きられない。",
   events:[{km:20,type:"sight",name:"PC1 セブン-イレブン",text:"観光バスで大混雑。",min:10,price:300,fx:{hunger:15,temp:8}},
@@ -2805,7 +2804,7 @@ function shopMenu(){
 function homeOf(){return HOMES.find(h=>h.id===P.home)||HOMES[1]}
 function travelCost(region,oneWay){if(region==="フランス")return PBP_TRIP;const f=P.bike&&BIKES[P.bike]&&BIKES[P.bike].fold;return Math.round(((TRAVEL[homeOf().region][region]||10000)*(f?0.7:1)+(oneWay?(f?4000:8000):0))/100)*100}
 function feeOf(it){return it.kind==="brm"?(it.fee||(it.org===RS?1700:3000)):it.fee}
-function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
+function costOf(it){return feeOf(it)+travelCost(it.homeRegion?HOME_REGION[P.home]:it.region,it.oneWay)}
 function hub(){
   migrate(P);
   if(P.test)return testMenu();
