@@ -147,7 +147,7 @@ const GEAR=[
   {id:"helmet_light",cat:"前照灯",name:"ヘルメットライト",price:7000,desc:"顔を向けた方を照らせる。夜の速度が少し上がり、前照灯が切れても真っ暗にならない。主催クラブによっては推奨・必須。"},
   {id:"jersey",cat:"ウェア",name:"サイクルジャージ",price:10000,desc:"汗が乾きやすい。気力の減りが少し減る。"},
   {id:"bib",cat:"ウェア",name:"パッド付きレーパン",price:9000,desc:"お尻を守る。荒れた路面で気力が減りにくい。"},
-  {id:"winter",cat:"ウェア",name:"冬用グローブ＋レッグウォーマー",price:7000,desc:"いつも少し暖かい。寒さに強くなる。"},
+  {id:"winter",cat:"ウェア",name:"冬用グローブ＋レッグウォーマー",price:7000,desc:"防寒着。寒い日は着けてスタートする。走っていて寒くなったら着る、暑くなったら外す。"},
   {id:"wind",cat:"ウェア",name:"ウインドブレーカー",price:8000,desc:"前日の準備で持っていくと、寒いときに着られる。"},
   {id:"bank",cat:"電源",name:"モバイルバッテリー",price:4000,desc:"前日の準備で持っていくと、ライトやスマホを2回充電できる。"},
   {id:"navi",cat:"ナビ",name:"ナビ付きサイコン",price:30000,prices:{cheap:15000,mid:30000,pro:60000},desc:"道迷いが激減する。スマホの電池が切れても安心。高いものほど、さらに少しだけ迷いにくい。"},
@@ -1402,7 +1402,7 @@ function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id),ST=B
     rain:(B.rain||[]).filter(z=>z[1]>a&&z[0]<b).map(z=>[Math.max(0,sh(z[0])),sh(Math.min(b,z[1]))]),lodges:(B.lodges||[]).filter(L=>L.km>a&&L.km<b).map(L=>({...L,km:sh(L.km)})),events:ev,
     startName:i===0?B.startName:ev.length?`${nm.split(" → ")[0]}`:"",cont:i>0}}
 // what carries over from one stage to the next
-const CARRY=["rinko","t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
+const CARRY=["winterOn","rinko","t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
 function pbpNext(i){const snap={};for(const k of CARRY)snap[k]=JSON.parse(JSON.stringify(R[k]??null));const C=pbpStage(i,R.t,R.course.baseId||"pbp2027");P.pbpSnap=snap;save();startRun(C)}
 function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300],400:!!q[400],600:!!(q[600]||q[1000])}}
 function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
@@ -2076,8 +2076,8 @@ function drain(dm,g,night){
   const work=R.effort?{slow:2,normal:4,hard:6}[R.pace]:{slow:-2,normal:0,hard:4}[R.pace];
   const up=Math.max(0,g)*0.8*(R.pace==="hard"?1.4:R.pace==="slow"?0.7:1),down=g<-2?Math.min(12,speed()/4):0;
   let eff=amb+up+work-down-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
-  eff+=(hasGear("winter")?4+tierOf("winter").t*0.5:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
-  if(R.course.snow&&hasGear("winter"))eff+=12; // full winter kit; without it, the cold wins
+  eff+=(R.winterOn&&hasGear("winter")?8+tierOf("winter").t:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
+  if(R.course.snow&&R.winterOn&&hasGear("winter"))eff+=12; // full winter kit; without it, the cold wins
   // 50 is just right. Below 14°C felt it pulls you colder, above 20°C hotter; the body follows over ~40 minutes.
   const target=clamp(eff<14?50-(14-eff)*3.5:eff>20?50+(eff-20)*3.5:50,0,100);
   R.temp=clamp(R.temp+(target-R.temp)*Math.min(1,dm/40),0,100);
@@ -2211,11 +2211,19 @@ function checkStates(night){
   if(R.sleepy>=99)return forcedCrash();
   if(R.sleepy>=80&&Math.random()<(R.sleepy-75)*0.004)return troubleDoze();
   if(R.temp>45)f.coldAsk=false;
-  if(R.temp<38&&R.wind&&!R.windOn&&!f.coldAsk){f.coldAsk=true;return menu({title:"寒い！",text:"体が冷えてきた。ウインドブレーカーを着る？",items:[{label:"着る",note:"1分",fn:()=>{R.windOn=true;R.t+=1;log("ウインドブレーカーを着た。")}},{label:"まだ我慢する",fn:()=>{}}]})}
+  const canW=hasGear("winter")&&!R.winterOn,canB=R.wind&&!R.windOn;
+  if(R.temp<38&&(canW||canB)&&!f.coldAsk){f.coldAsk=true;return menu({title:"寒い！",text:"体が冷えてきた。何か着る？",items:[
+    ...(canW?[{label:`防寒着を着る（${wearName("winter")}）`,note:"2分",fn:()=>{R.winterOn=true;R.t+=2;log(`${wearName("winter")}を着けた。`)}}]:[]),
+    ...(canB?[{label:"ウインドブレーカーを着る",note:"1分",fn:()=>{R.windOn=true;R.t+=1;log("ウインドブレーカーを着た。")}}]:[]),
+    ...(canW&&canB?[{label:"両方着る",note:"3分",fn:()=>{R.winterOn=R.windOn=true;R.t+=3;log(`${wearName("winter")}とウインドブレーカーで完全防備。`)}}]:[]),
+    {label:"まだ我慢する",fn:()=>{}}]})}
   if(R.temp>35)f.freeze=false;
   if(R.temp<25&&!f.freeze){f.freeze=true;return troubleCold()}
   if(R.temp<58)f.hotAsk=false;
-  if(R.temp>65&&R.windOn&&!f.hotAsk){f.hotAsk=true;return menu({title:"暑い！",text:"ウインドブレーカーの中が蒸し風呂みたいだ。脱ぐ？",items:[{label:"脱ぐ",note:"1分",fn:()=>{R.windOn=false;R.t+=1;log("ウインドブレーカーを脱いだ。")}},{label:"このまま",fn:()=>{}}]})}
+  if(R.temp>65&&(R.windOn||R.winterOn)&&!f.hotAsk){f.hotAsk=true;return menu({title:"暑い！",text:"汗だくだ。蒸れた汗が冷えると、あとで寒くなる。脱ぐ？",items:[
+    ...(R.windOn?[{label:"ウインドブレーカーを脱ぐ",note:"1分",fn:()=>{R.windOn=false;R.t+=1;log("ウインドブレーカーを脱いだ。")}}]:[]),
+    ...(R.winterOn?[{label:`防寒着を脱ぐ（${wearName("winter")}）`,note:"2分",fn:()=>{R.winterOn=false;R.t+=2;log(`${wearName("winter")}を外した。`)}}]:[]),
+    {label:"このまま",fn:()=>{}}]})}
   if(R.temp<70)f.heat=false;
   if(R.temp>85&&!f.heat){f.heat=true;return troubleHeat()}
   if(R.pace==="hard"&&R.spirit<10){R.pace="normal";updatePaceBtns();log(R.effort?"気力が尽きた。もう「すごく頑張る」は無理だ……。":"気力が尽きた。もうがんばれない……。ペースを「ふつう」に落とした。")}
@@ -2297,6 +2305,7 @@ function troubleHeat(){
 function troubleCold(){
   SFX.bad();const items=[];
   if(R.kairo>0)items.push({label:"カイロを使う",note:`残${R.kairo}`,fn:()=>{R.kairo--;fx({temp:20});log("カイロで少し温まった。")}});
+  if(hasGear("winter")&&!R.winterOn)items.push({label:`防寒着を着る（${wearName("winter")}）`,fn:()=>{R.winterOn=true;fx({temp:12});log(`${wearName("winter")}を着けた。`)}});
   if(R.wind&&!R.windOn)items.push({label:"ウインドブレーカーを着る",fn:()=>{R.windOn=true;fx({temp:10});log("ウインドブレーカーを着た。")}});
   items.push({label:"震えながら走る",fn:()=>log("ガタガタ震えながら走る。次のPCで温まろう。")});
   menu({title:"寒くて震えが止まらない",text:"体温が下がりすぎている。速度も気力も落ちていく。",items});
@@ -2583,6 +2592,8 @@ function startRun(C){
     kit:p.kit>0,tubes:(p.kit?1:0)+(p.tube||0),link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,rinko:p.rinko>0,
     pocket,load:packWeight(p),receipts:{},train:[],events,evIdx:0,f:{},log:[],cool:3,deer:false,windDay:{dir:rnd(0,360),spd:rnd(1,6.5)},meals:{},lastMeal:C.start,lodge:C.lodges&&P.lodgePick>=0&&P.lodgePick<C.lodges.length?P.lodgePick:null,
     sleepy:C.start<5*60?30:C.start>=20*60?25:0,legKm:0,woke:C.start<5*60?C.start-90:Math.min(C.start-60,7*60)};
+  // dress for the start: winter kit on when it's cold out
+  R.winterOn=hasGear("winter")&&ambient(C.start,0)<12;
   if(C.cont&&P.pbpSnap){for(const k of CARRY)if(P.pbpSnap[k]!==undefined&&P.pbpSnap[k]!==null)R[k]=P.pbpSnap[k];const ST=C.stages||PBP_STAGES;R.train=(R.train||[]).map(m=>({...m,until:Math.max(1,m.until-(ST[C.stage][0]-ST[C.stage-1][0]))}))}
   if(C.rain)R.rainZones=C.rain;
   else if(Math.random()<(C.rainChance??0.25)){const a=rnd(0.05,0.7)*C.dist;R.rainZones=[[a,a+rnd(0.15,0.35)*C.dist]]}
@@ -2609,7 +2620,7 @@ function startRun(C){
   if(C.kind==="brm"&&Math.random()<0.45)steps.push(()=>startTrouble(next));
   steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?(C.friend?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:"今日はひとりで、のんびり行こう。"):C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
   for(const id of buddies)steps.push(()=>{SFX.friend();menu({title:"トレインのお誘い",text:`${FRIENDS[id].name}「一緒に行きませんか？」`,items:[{label:"一緒に走る",fn:()=>{R.train.push({id,until:rnd(30,90)});markTrained(id);next()}},{label:"今日はソロで",fn:next}]})});
-  steps.push(()=>say("ブリーフィング終了",`${fmt(C.start)} スタート！ 制限時間 ${dur(C.limit)}。\nゴールクローズは ${fmt(tod(C.start+C.limit))}。\n今日の風：${compass(R.windDay.dir)}の風 ${R.windDay.spd.toFixed(1)}m/s${R.rainZones?"\n予報：途中から雨":"\n予報：晴れ"}${C.race?"\nレースだ。「がんばる」で行こう！":""}`,()=>{R.t=C.start;G.mode="ride";for(const m of R.train)log(`${FRIENDS[m.id].name}とトレインを組んでスタート！`);log("スタート！ 安全第一で。");SFX.ok()}));
+  steps.push(()=>say("ブリーフィング終了",`${fmt(C.start)} スタート！ 制限時間 ${dur(C.limit)}。\nゴールクローズは ${fmt(tod(C.start+C.limit))}。\n今日の風：${compass(R.windDay.dir)}の風 ${R.windDay.spd.toFixed(1)}m/s${R.rainZones?"\n予報：途中から雨":"\n予報：晴れ"}${R.winterOn?`\n寒いので、${wearName("winter")}を着けてスタート。`:""}${C.race?"\nレースだ。「がんばる」で行こう！":""}`,()=>{R.t=C.start;G.mode="ride";for(const m of R.train)log(`${FRIENDS[m.id].name}とトレインを組んでスタート！`);log("スタート！ 安全第一で。");SFX.ok()}));
   let si=0;function next(){const s=steps[si++];if(s)s()}
   showRideUI(true);updatePaceBtns();next();
 }
