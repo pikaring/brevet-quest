@@ -1090,23 +1090,368 @@ function migrate(p){
 function wipe(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
 
 /* ================= SOUND ================= */
-let AC=null,muted=false;
-function beep(f=880,d=0.05,type="square",vol=0.04,when=0){
-  if(muted)return;
-  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
-    const t=AC.currentTime+when,o=AC.createOscillator(),g=AC.createGain();
-    o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
-    o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+0.02);}catch(e){}
-}
-const jingle=(notes,step=0.1)=>notes.forEach((n,i)=>n&&beep(n,step*0.9,"square",0.04,i*step));
-const SFX={
-  sel:()=>beep(1320,0.03),
-  ok:()=>jingle([784,1047]),
-  pc:()=>jingle([659,784,988,1319],0.08),
-  bad:()=>jingle([392,330,262],0.12),
-  win:()=>jingle([523,659,784,1047,0,784,1047],0.12),
-  friend:()=>jingle([880,1109,1319],0.09),
+/* ===== 音（BQA）：ファミコン風の自作の曲と効果音。録音のファイルは使わず、Web Audio で鳴らす =====
+   Ride on Quest の音の仕組み（sequencer・synth・music）を1つにまとめて移した（同じ作者の作品）。
+   ・曲は「音符の並びのデータ」（BQA_SONGS）。"G4:1 B4:0.5 r:1" … 音名:長さ（拍。省くと1）、r は休み。ノイズの声部は k・s・h・o（キック・スネア・ハイハット・開いたハイハット）
+   ・声：矩形波（pulse。デューティ比 12.5%・25%・50%）、三角波（tri）、ノイズ（noise）
+   ・場面 → 曲は BQA.scene(名前)。曲が変わるときだけ、短いフェードで切り替える
+   ・BGM と効果音は音量・オン・オフを別々に持つ（localStorage に保存）
+   ・ブラウザの決まりで、最初のクリックかキーまでは音が出ない（そのときに鳴り始める） */
+const BQA = (() => {
+  /* ---------- シーケンサー（純粋） ---------- */
+  const SEMI = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }, DRUM = { k: 36, s: 38, h: 42, o: 46 };
+  const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  function noteNum(name) {
+    const m = /^([A-G])([#b]?)(-?\d)$/.exec(name);
+    if (!m) throw new Error('音名が正しくありません: ' + name);
+    return (+m[3] + 1) * 12 + SEMI[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+  }
+  const noteName = n => NAMES[((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+  function parseSeq(text) {
+    const notes = []; let b = 0;
+    for (const tok of String(text).trim().split(/\s+/)) {
+      if (!tok || tok === '|') continue;
+      const [nm, ds] = tok.split(':'), d = ds === undefined ? 1 : +ds;
+      if (!(d > 0)) throw new Error('長さが正しくありません: ' + tok);
+      if (nm !== 'r') notes.push({ b, d, n: DRUM[nm] !== undefined ? DRUM[nm] : noteNum(nm) });
+      b += d;
+    }
+    return { notes, beats: b };
+  }
+  function compile(def) {
+    const beats = def.beats || 4, length = def.bars * beats;
+    const tracks = def.tracks.map((t, i) => {
+      const p = parseSeq(t.seq);
+      if (Math.abs(p.beats - length) > 1e-9) throw new Error(def.id + ' の ' + (i + 1) + ' 番目の声部が ' + p.beats + ' 拍（曲は ' + length + ' 拍）');
+      return { ch: t.ch, vol: t.vol == null ? 1 : t.vol, duty: t.duty || 0.5, notes: p.notes };
+    });
+    return { id: def.id, name: def.name, bpm: def.bpm, beats, length, loop: def.loop !== false, tracks };
+  }
+  const start = (song, time) => ({ beat: 0, time, bpm: song.bpm, done: false });
+  // until（秒）より前に鳴る音を取り出す。st.beat は次に取り出す拍、st.time はその拍が鳴る時刻
+  function step(st0, song, until) {
+    const st = { ...st0 }, events = [];
+    while (!st.done && st.time < until) {
+      const room = st.beat + (until - st.time) * st.bpm / 60, stop = Math.min(room, song.length);
+      song.tracks.forEach(t => {
+        for (const n of t.notes) if (n.b >= st.beat && n.b < stop) events.push({ time: st.time + (n.b - st.beat) * 60 / st.bpm, ch: t.ch, n: n.n, d: n.d * 60 / st.bpm, v: t.vol, duty: t.duty });
+      });
+      st.time = stop === room ? until : st.time + (stop - st.beat) * 60 / st.bpm;
+      st.beat = stop;
+      if (st.beat >= song.length - 1e-9) { if (song.loop) st.beat = 0; else st.done = true; }
+    }
+    return { events, state: st };
+  }
+
+  /* ---------- 合成器（AudioContext に触るのはここだけ） ---------- */
+  let ctx = null, comp = null;
+  const bus = {}, waves = {}, LEVEL = { pulse: 0.16, tri: 0.3, noise: 0.14 };
+  let noiseBuf = null;
+  function ensure() {
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctx = new AC();
+    const master = ctx.createGain(); master.gain.value = 0.9;
+    comp = ctx.createDynamicsCompressor(); master.connect(comp); comp.connect(ctx.destination);   // 重なっても割れないように
+    for (const name of ['bgm', 'sfx']) { bus[name] = ctx.createGain(); bus[name].gain.value = 0; bus[name].connect(master); }
+    return ctx;
+  }
+  const ready = () => !!ctx && ctx.state === 'running';
+  function pulseWave(d) {
+    if (waves[d]) return waves[d];
+    const N = 48, re = new Float32Array(N + 1), im = new Float32Array(N + 1);
+    for (let k = 1; k <= N; k++) { re[k] = Math.sin(2 * Math.PI * k * d) / (Math.PI * k); im[k] = (1 - Math.cos(2 * Math.PI * k * d)) / (Math.PI * k); }
+    return (waves[d] = ctx.createPeriodicWave(re, im));
+  }
+  function noise() {
+    if (noiseBuf) return noiseBuf;
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const a = noiseBuf.getChannelData(0);
+    for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+  }
+  // 1音を鳴らす。ev：{ time, ch, n, d（秒）, v, duty }、out：つなぐ先
+  function note(ev, out) {
+    const t = Math.max(ev.time, ctx.currentTime), v = ev.v == null ? 1 : ev.v;
+    if (ev.ch === 'noise') return drum(ev.n, t, v, out);
+    const o = ctx.createOscillator(), g = ctx.createGain(), dur = Math.max(0.03, ev.d * 0.92), peak = LEVEL[ev.ch === 'tri' ? 'tri' : 'pulse'] * v, sus = ev.ch === 'tri' ? 1 : 0.7;
+    if (ev.ch === 'tri') o.type = 'triangle'; else o.setPeriodicWave(pulseWave(ev.duty || 0.5));
+    o.frequency.value = hz(ev.n);
+    const dec = Math.min(dur, 0.12);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.004); g.gain.linearRampToValueAtTime(peak * sus, t + 0.004 + dec);
+    if (dur > 0.004 + dec) g.gain.linearRampToValueAtTime(peak * sus, t + dur);
+    g.gain.linearRampToValueAtTime(0, t + dur + 0.025);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.06);
+    o.onended = () => { try { g.disconnect(); } catch (_) {} };
+  }
+  function drum(n, t, v0, out) {
+    const v = LEVEL.noise * v0, g = ctx.createGain(); g.connect(out);
+    if (n === 36) {   // キック：三角波の音程が急に落ちる
+      const o = ctx.createOscillator(); o.type = 'triangle';
+      o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.13);
+      g.gain.setValueAtTime(v * 3.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      o.connect(g); o.start(t); o.stop(t + 0.2); o.onended = () => { try { g.disconnect(); } catch (_) {} };
+      return;
+    }
+    const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), len = n === 38 ? 0.13 : n === 46 ? 0.16 : 0.045;
+    src.buffer = noise(); src.loop = true;
+    f.type = n === 38 ? 'bandpass' : 'highpass'; f.frequency.value = n === 38 ? 1800 : 7000;
+    g.gain.setValueAtTime(v * (n === 38 ? 2.4 : 1.4), t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+    src.connect(f); f.connect(g); src.start(t, Math.random() * 0.5); src.stop(t + len + 0.02);
+    src.onended = () => { try { g.disconnect(); } catch (_) {} };
+  }
+  const makeGain = (name, v) => { const g = ctx.createGain(); g.gain.value = v; g.connect(bus[name]); return g; };
+  function fade(g, to, sec) { const t = ctx.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(to, t + Math.max(0.005, sec)); }
+  function kill(g, sec) { fade(g, 0, sec); setTimeout(() => { try { g.disconnect(); } catch (_) {} }, sec * 1000 + 100); }
+
+  /* ---------- BGM の操作盤と、設定（localStorage） ---------- */
+  const KEY = (typeof SAVE_KEY !== 'undefined' ? SAVE_KEY : 'brevet-quest') + '-sound';
+  const opt = Object.assign({ bgmOn: true, sfxOn: true, bgmVol: 60, sfxVol: 70 }, (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (_) { return {}; } })());
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(opt)); } catch (_) {} };
+  const gainOf = (on, v) => (on ? Math.pow(Math.max(0, Math.min(100, v)) / 100, 2) : 0);   // 音量は2乗くらいが耳にちょうどよい
+  function applyVolume() {
+    if (!ctx) return;
+    bus.bgm.gain.setTargetAtTime(gainOf(opt.bgmOn, opt.bgmVol), ctx.currentTime, 0.02);
+    bus.sfx.gain.setTargetAtTime(gainOf(opt.sfxOn, opt.sfxVol), ctx.currentTime, 0.02);
+  }
+  const compiled = {};
+  let want = null, cur = null, paused = false, sfxOut = null;
+  const FADE = 0.35, LOOKAHEAD = 0.15;
+  function pump() {
+    if (!ready() || paused) return;
+    const t = ctx.currentTime;
+    if (want !== (cur ? cur.id : null)) {
+      if (cur) kill(cur.gain, FADE);
+      cur = null;
+      if (want && compiled[want]) { const gain = makeGain('bgm', 0); fade(gain, 1, FADE); cur = { id: want, song: compiled[want], st: start(compiled[want], t + 0.05), gain }; }
+    }
+    if (!cur) return;
+    if (cur.st.time < t) cur.st = { ...cur.st, time: t + 0.05 };   // 画面が止まっていたら、いまから続ける
+    const r = step(cur.st, cur.song, t + LOOKAHEAD);
+    cur.st = r.state;
+    for (const ev of r.events) note(ev, cur.gain);
+  }
+  function unlock() {
+    const c = ensure(); if (!c) return;
+    (c.state === 'running' ? Promise.resolve() : c.resume()).then(() => { applyVolume(); pump(); }, () => {});
+  }
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    addEventListener('pointerdown', unlock, true); addEventListener('keydown', unlock, true); addEventListener('touchstart', unlock, true);
+    setInterval(pump, 25);
+  }
+
+  return {
+    noteNum, noteName, parseSeq, compile, step, start, DRUM,
+    // 曲のデータを登録する（BQA_SONGS）
+    load(songs) { for (const id of Object.keys(songs)) compiled[id] = compile(songs[id]); },
+    songs: compiled,
+    // 場面の曲（曲の ID か null）。同じ曲なら何もしない
+    scene(id) { want = id && compiled[id] ? id : null; pump(); },
+    current: () => (cur ? cur.id : null),
+    pause(p) { paused = !!p; if (p && cur) { kill(cur.gain, 0.05); cur = null; } },
+    // 効果音（BQA_SFX の ID）。BGM とは別のバス
+    sfx(id) {
+      const def = BQA_SFX[id];
+      if (!def || !ready() || !opt.sfxOn) return;
+      if (!sfxOut) sfxOut = makeGain('sfx', 1);
+      const sec = 60 / def.bpm, t0 = ctx.currentTime + 0.01;
+      for (const tr of def.tracks) for (const n of parseSeq(tr.seq).notes) note({ time: t0 + n.b * sec, ch: tr.ch, n: n.n, d: n.d * sec, v: tr.vol == null ? 1 : tr.vol, duty: tr.duty || 0.5 }, sfxOut);
+    },
+    // 任意の高さの短い音（f：Hz、d：秒）。前の beep() の代わり
+    tone(f, d = 0.05, duty = 0.5, v = 0.7) {
+      if (!ready() || !opt.sfxOn) return;
+      if (!sfxOut) sfxOut = makeGain('sfx', 1);
+      note({ time: ctx.currentTime + 0.005, ch: 'pulse', n: 69 + 12 * Math.log2(f / 440), d, v, duty }, sfxOut);
+    },
+    // 設定：{ bgmOn, sfxOn, bgmVol, sfxVol }（0〜100）。保存する
+    set(o) { Object.assign(opt, o); save(); applyVolume(); },
+    get: () => ({ ...opt }),
+  };
+})();
+
+/* ===== 曲のデータ（すべてオリジナル。特定の曲の旋律・和音進行に似せない） =====
+   場面：title（タイトル）・hub（自宅）・day（走行・昼）・night（走行・夜）・rain（雨）・pc（コンビニの PC）・
+   race（レース・グラベル）・pbp（PBP。フランスの3拍子）・goal（完走。1回）・dnf（リタイア。1回）
+   和音は「C」「Am」「B」のような名前で書き、伴奏（分散和音・低音）は下の小物が作る。 */
+const BQA_SONGS = (() => {
+  const N = BQA.noteNum, NM = BQA.noteName, bars = (...b) => b.join(' '), rep = (s, n) => Array(n).fill(s).join(' ');
+  // 和音の名前 → 中音域の3音と、低音（根音・5度・オクターブ）
+  const ROOT = { C: 'C3', D: 'D3', E: 'E2', F: 'F2', G: 'G2', A: 'A2', B: 'B2', Bb: 'Bb2', Eb: 'Eb3' };
+  function chord(name) {
+    const m = /^([A-G]b?)(m?)$/.exec(name), r = N(ROOT[m[1]]), third = m[2] ? 3 : 4;
+    let mid = r + 12; while (mid < N('G3')) mid += 12; while (mid > N('C4') + 2) mid -= 12;   // 中音域は G3〜D4 から
+    return { t: [mid, mid + third, mid + 7].map(NM), b: NM(r), f: NM(r + 7), o: NM(r + 12) };
+  }
+  const C = s => s.trim().split(/\s+/).map(chord);
+  const arp = (cs, pat, d) => cs.map(c => pat.map(i => `${c.t[i]}:${d}`).join(' ')).join(' ');                 // 分散和音（1つの和音で pat の長さ×d 拍）
+  const ride = cs => cs.map(c => `${c.b}:0.5 ${c.b}:0.5 ${c.f}:0.5 ${c.b}:0.5 ${c.b}:0.5 ${c.o}:0.5 ${c.f}:0.5 ${c.b}:0.5`).join(' ');   // 8分の低音（ペダルを回す感じ）
+  const walk = cs => cs.map(c => `${c.b}:1 ${c.f}:1 ${c.o}:1 ${c.f}:1`).join(' ');
+  const longb = cs => cs.map(c => `${c.b}:2 ${c.f}:2`).join(' ');
+  const ROCK = 'k:0.5 h:0.5 s:0.5 h:0.5 k:0.5 k:0.5 s:0.5 h:0.5', FILL = 'k:0.5 h:0.5 s:0.5 h:0.5 s:0.25 s:0.25 s:0.25 s:0.25 s:0.5 o:0.5';
+  const EASY = 'k:1 h:1 s:1 h:1', SOFT = 'r:1 h:1 r:1 h:1';
+
+  /* 1. タイトル：ブルベの朝、出発の高揚（C メジャー、120 BPM、16 小節＝32秒） */
+  const tC = C('C G Am F C G F G Am F C G F G C C');
+  const title = {
+    id: 'title', name: 'ブルベクエスト（タイトル）', bpm: 120, bars: 16,
+    tracks: [
+      { ch: 'pulse', duty: 0.25, seq: bars('E5:1 G5:1 C6:1.5 B5:0.5', 'A5:1 G5:1 D5:2', 'E5:1 A5:1 C6:1 B5:0.5 A5:0.5', 'A5:1.5 G5:0.5 F5:2',
+        'E5:1 G5:0.5 E5:0.5 C5:1 E5:1', 'D5:1 G5:1 B5:1 D6:1', 'C6:1.5 A5:0.5 F5:1 A5:1', 'G5:3 r:1',
+        'A5:1 C6:1 E6:1.5 D6:0.5', 'C6:1 A5:1 F5:2', 'G5:1 E5:0.5 G5:0.5 C6:1 E6:1', 'D6:2 B5:1 G5:1',
+        'A5:1 C6:1 F6:1 E6:0.5 D6:0.5', 'D6:1 B5:1 G5:1 D6:1', 'C6:1.5 G5:0.5 E5:1 G5:1', 'C6:3 r:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.5, seq: arp(tC, [0, 1, 2, 1, 0, 1, 2, 1], 0.5) },
+      { ch: 'tri', seq: walk(tC) },
+      { ch: 'noise', vol: 0.55, seq: bars(rep(ROCK, 7), FILL, rep(ROCK, 7), FILL) },
+    ],
+  };
+
+  /* 2. 自宅：週の予定を決める、のんびりした部屋（F メジャー、96 BPM、8 小節＝20秒） */
+  const hC = C('F Dm Bb C F Dm Gm F');
+  const hub = {
+    id: 'hub', name: '自宅の週末', bpm: 96, bars: 8,
+    tracks: [
+      { ch: 'pulse', duty: 0.5, vol: 0.8, seq: bars('A4:1.5 C5:0.5 F5:2', 'E5:1 D5:1 A4:2', 'Bb4:1 D5:1 F5:1 D5:1', 'E5:2 C5:2', 'A4:1 C5:1 F5:1 A5:1', 'G5:1.5 F5:0.5 D5:2', 'Bb4:1 D5:1 E5:1 G5:1', 'F5:3 r:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.45, seq: arp(hC, [0, 2, 1, 2], 1) },
+      { ch: 'tri', seq: longb(hC) },
+      { ch: 'noise', vol: 0.35, seq: rep(EASY, 8) },
+    ],
+  };
+
+  /* 3. 走行・昼：北海道の広い道をこぐ（G メジャー、132 BPM、16 小節＝29秒）。低音は8分で、ペダルを回す感じ */
+  const dC = C('G C Em D G C Am D Em C G D C D G G');
+  const day = {
+    id: 'day', name: '北の大地を走る（昼）', bpm: 132, bars: 16,
+    tracks: [
+      { ch: 'pulse', duty: 0.25, seq: bars('D5:1 G5:1 B5:1 G5:1', 'E5:1 G5:0.5 E5:0.5 C5:2', 'B4:1 E5:1 G5:1.5 F#5:0.5', 'A5:2 F#5:1 D5:1',
+        'G5:1 B5:1 D6:1 B5:1', 'C6:1 G5:1 E5:1 G5:1', 'A5:1 C6:0.5 A5:0.5 E5:1 C5:1', 'D5:2 F#5:1 A5:1',
+        'G5:1.5 F#5:0.5 E5:1 B4:1', 'C5:1 E5:1 G5:2', 'B5:1 A5:0.5 G5:0.5 D5:1 G5:1', 'F#5:2 A5:2',
+        'E5:1 G5:1 C6:1 E6:1', 'D6:1.5 C6:0.5 A5:2', 'B5:1 G5:1 D5:1 B4:1', 'G4:2 D5:1 G5:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.45, seq: arp(dC, [0, 1, 2, 1, 2, 1, 0, 1], 0.5) },
+      { ch: 'tri', seq: ride(dC) },
+      { ch: 'noise', vol: 0.5, seq: bars(rep(ROCK, 7), FILL, rep(ROCK, 7), FILL) },
+    ],
+  };
+
+  /* 4. 走行・夜：ライトの輪だけが続く夜道（A マイナー、92 BPM、8 小節＝21秒）。静かに、星のような分散和音 */
+  const nC = C('Am F C G Am F E E');
+  const night = {
+    id: 'night', name: '夜の峠', bpm: 92, bars: 8,
+    tracks: [
+      { ch: 'pulse', duty: 0.5, vol: 0.7, seq: bars('E5:2 A5:1 B5:1', 'C6:3 A5:1', 'G5:2 E5:1 G5:1', 'D5:3 r:1', 'E5:1 A5:1 C6:1 B5:1', 'A5:2 F5:2', 'G#5:2 B5:1 E5:1', 'E5:3 r:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.35, seq: arp(nC, [0, 1, 2, 1, 2, 1, 0, 1], 0.5) },
+      { ch: 'tri', seq: nC.map(c => `${c.b}:4`).join(' ') },
+      { ch: 'noise', vol: 0.25, seq: rep(SOFT, 8) },
+    ],
+  };
+
+  /* 5. 雨：雨音のハイハットと、少し沈んだ旋律（D マイナー、108 BPM、8 小節＝18秒） */
+  const rC = C('Dm Bb C Am Dm Gm A A');
+  const rain = {
+    id: 'rain', name: '雨の国道', bpm: 108, bars: 8,
+    tracks: [
+      { ch: 'pulse', duty: 0.25, vol: 0.85, seq: bars('A4:1 D5:1 F5:1.5 E5:0.5', 'D5:2 Bb4:2', 'C5:1 E5:1 G5:1 E5:1', 'A4:3 r:1', 'F5:1 A5:1 D6:1.5 C6:0.5', 'Bb5:2 G5:2', 'A5:1 C#6:0.5 A5:0.5 E5:1 C#5:1', 'A4:3 r:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.4, seq: arp(rC, [0, 2, 1, 2], 1) },
+      { ch: 'tri', seq: walk(rC) },
+      { ch: 'noise', vol: 0.35, seq: rep('h:0.25 h:0.25 h:0.25 h:0.25 s:0.5 h:0.25 h:0.25 h:0.25 h:0.25 h:0.25 h:0.25 s:0.5 h:0.5', 8) },
+    ],
+  };
+
+  /* 6. PC（コンビニ）：ひと息つく明るい小曲（C メジャー、112 BPM、8 小節＝17秒） */
+  const pC = C('C Am Dm G C Am F G');
+  const pc = {
+    id: 'pc', name: 'コンビニでひと息', bpm: 112, bars: 8,
+    tracks: [
+      { ch: 'pulse', duty: 0.5, vol: 0.8, seq: bars('G5:0.5 E5:0.5 G5:0.5 C6:0.5 r:0.5 G5:0.5 E5:1', 'A5:0.5 E5:0.5 A5:0.5 C6:0.5 r:0.5 A5:0.5 E5:1', 'F5:1 A5:1 D6:1 C6:1', 'B5:1 D6:0.5 B5:0.5 G5:2',
+        'E6:1 D6:0.5 C6:0.5 G5:1 E5:1', 'C6:1 B5:0.5 A5:0.5 E5:2', 'F5:1 A5:1 C6:1 A5:1', 'G5:1 B5:1 D6:1 r:1') },
+      { ch: 'pulse', duty: 0.25, vol: 0.4, seq: pC.map(c => `r:0.5 ${c.t[1]}:0.5 r:0.5 ${c.t[2]}:0.5 r:0.5 ${c.t[1]}:0.5 r:0.5 ${c.t[2]}:0.5`).join(' ') },
+      { ch: 'tri', seq: pC.map(c => `${c.b}:1 ${c.o}:1 ${c.f}:1 ${c.o}:1`).join(' ') },
+      { ch: 'noise', vol: 0.4, seq: rep('k:1 h:0.5 h:0.5 s:1 h:0.5 h:0.5', 8) },
+    ],
+  };
+
+  /* 7. レース・グラベル：速く、追い込む（E マイナー、160 BPM、16 小節＝24秒） */
+  const xC = C('Em C D B Em C Am B C D Em Em C D B B');
+  const race = {
+    id: 'race', name: '全開！', bpm: 160, bars: 16,
+    tracks: [
+      { ch: 'pulse', duty: 0.25, seq: bars('E5:0.5 B4:0.5 E5:0.5 G5:0.5 B5:1 G5:1', 'C6:1 B5:0.5 G5:0.5 E5:2', 'F#5:0.5 D5:0.5 F#5:0.5 A5:0.5 D6:1 A5:1', 'B5:2 D#5:1 F#5:1',
+        'E5:0.5 G5:0.5 B5:0.5 E6:0.5 D6:1 B5:1', 'C6:1 G5:1 E5:1 C5:1', 'A5:1 C6:0.5 E6:0.5 D6:1 C6:1', 'B5:2 F#5:1 D#5:1',
+        'E5:1 G5:1 C6:1.5 B5:0.5', 'A5:1 F#5:1 D5:2', 'G5:1 B5:1 E6:1.5 D6:0.5', 'B5:4',
+        'C6:1 E6:1 G6:1 E6:1', 'F#6:1 D6:1 A5:2', 'B5:1 D#6:1 F#6:1 B6:1', 'F#6:2 D#6:1 B5:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.45, seq: arp(xC, [0, 1, 2, 1, 0, 1, 2, 1], 0.5) },
+      { ch: 'tri', seq: ride(xC) },
+      { ch: 'noise', vol: 0.6, seq: bars(rep('k:0.5 h:0.5 s:0.5 h:0.5 k:0.5 h:0.5 s:0.5 s:0.5', 7), FILL, rep('k:0.5 h:0.5 s:0.5 h:0.5 k:0.5 h:0.5 s:0.5 s:0.5', 7), FILL) },
+    ],
+  };
+
+  /* 8. PBP（パリ〜ブレスト〜パリ）：最終ステージ。フランスのアコーディオン風の3拍子（G メジャー、138 BPM、16 小節＝21秒） */
+  const bC = C('G D G G C G D D G E Am Am D D G G');
+  const pbp = {
+    id: 'pbp', name: 'パリ〜ブレスト〜パリ', bpm: 138, bars: 16, beats: 3,
+    tracks: [
+      { ch: 'pulse', duty: 0.5, vol: 0.85, seq: bars('B4:1 D5:1 G5:1', 'F#5:1.5 E5:0.5 D5:1', 'G5:1 B5:1 G5:1', 'D5:3', 'E5:1 G5:1 C6:1', 'B5:1.5 A5:0.5 G5:1', 'A5:1 F#5:1 D5:1', 'A4:3',
+        'B4:1 D5:1 G5:1', 'G#5:1.5 F#5:0.5 E5:1', 'A5:1 C6:1 A5:1', 'E5:3', 'F#5:1 A5:1 D6:1', 'C6:1.5 B5:0.5 A5:1', 'B5:1 G5:1 D5:1', 'G5:2 r:1') },
+      { ch: 'pulse', duty: 0.25, vol: 0.4, seq: bC.map(c => `r:1 ${c.t[1]}:0.5 r:0.5 ${c.t[2]}:0.5 r:0.5`).join(' ') },   // ブン・チャッ・チャッ
+      { ch: 'tri', seq: bC.map((c, i) => `${i % 2 ? c.f : c.b}:1 r:2`).join(' ') },
+      { ch: 'noise', vol: 0.3, seq: rep('k:1 h:1 h:1', 16) },
+    ],
+  };
+
+  /* 9. 完走：ファンファーレ（C メジャー、140 BPM、4 小節。1回鳴らして止める） */
+  const goal = {
+    id: 'goal', name: '完走！', bpm: 140, bars: 4, loop: false,
+    tracks: [
+      { ch: 'pulse', duty: 0.25, seq: bars('G4:0.5 C5:0.5 E5:0.5 G5:1.5 E5:0.5 G5:0.5', 'C6:2 G5:1 E5:1', 'F5:1 A5:1 C6:1 F6:1', 'E6:0.5 D6:0.5 E6:0.5 G6:0.5 C7:2') },
+      { ch: 'pulse', duty: 0.5, vol: 0.5, seq: bars('E4:0.5 G4:0.5 C5:0.5 E5:1.5 C5:0.5 E5:0.5', 'E5:2 E5:1 C5:1', 'C5:1 F5:1 A5:1 C6:1', 'C6:0.5 B5:0.5 C6:0.5 D6:0.5 E6:2') },
+      { ch: 'tri', seq: bars('C3:2 G2:2', 'C3:2 E3:2', 'F2:2 A2:2', 'G2:1 G2:1 C3:2') },
+      { ch: 'noise', vol: 0.55, seq: bars('k:1 s:1 k:1 s:1', 'k:1 s:1 k:1 s:1', 'k:1 s:1 k:1 s:1', 's:0.25 s:0.25 s:0.25 s:0.25 k:1 o:2') },
+    ],
+  };
+
+  /* 10. リタイア：静かに終わる（A マイナー、80 BPM、2 小節。1回鳴らして止める） */
+  const dnf = {
+    id: 'dnf', name: 'リタイア', bpm: 80, bars: 2, loop: false,
+    tracks: [
+      { ch: 'pulse', duty: 0.5, vol: 0.8, seq: bars('E5:1 D5:1 C5:1 B4:1', 'A4:3 r:1') },
+      { ch: 'pulse', duty: 0.125, vol: 0.45, seq: bars('C5:2 A4:2', 'E4:2 C5:2') },
+      { ch: 'tri', seq: bars('A2:2 F2:2', 'E2:2 A2:2') },
+    ],
+  };
+
+  return { title, hub, day, night, rain, pc, race, pbp, goal, dnf };
+})();
+
+/* ===== 効果音（短い音符の並び。bpm は1拍の長さを決めるだけ） ===== */
+const BQA_SFX = {
+  sel: { bpm: 1200, tracks: [{ ch: 'pulse', duty: 0.25, vol: 0.7, seq: 'A5:1' }] },                                      // カーソル・選ぶ
+  ok: { bpm: 900, tracks: [{ ch: 'pulse', duty: 0.25, seq: 'C6:1 G6:1.5' }] },                                             // 決定
+  back: { bpm: 900, tracks: [{ ch: 'pulse', duty: 0.25, seq: 'G5:1 C5:1.5' }] },                                           // 戻る
+  pc: { bpm: 600, tracks: [{ ch: 'pulse', duty: 0.5, seq: 'E5:0.5 G5:0.5 C6:1' }, { ch: 'pulse', duty: 0.125, vol: 0.5, seq: 'C5:0.5 E5:0.5 G5:1' }] },   // PC に着いた
+  bad: { bpm: 600, tracks: [{ ch: 'pulse', duty: 0.5, vol: 0.8, seq: 'E4:1 C4:2' }, { ch: 'noise', vol: 0.6, seq: 's:1 r:2' }] },   // パンク・トラブル
+  friend: { bpm: 900, tracks: [{ ch: 'pulse', duty: 0.25, vol: 0.8, seq: 'G5:0.5 B5:0.5 D6:0.5 G6:1.5' }] },              // 仲間と会う
+  win: { bpm: 480, tracks: [{ ch: 'pulse', duty: 0.25, seq: 'C5:0.5 E5:0.5 G5:0.5 C6:1.5' }, { ch: 'pulse', duty: 0.125, vol: 0.5, seq: 'G4:0.5 C5:0.5 E5:0.5 G5:1.5' }] },   // 勝った・手に入れた
+  coin: { bpm: 1200, tracks: [{ ch: 'pulse', duty: 0.25, vol: 0.7, seq: 'B5:1 E6:2' }] },                                 // お金
 };
+BQA.load(BQA_SONGS);
+
+// 前からの呼び方（beep・jingle・SFX）は、BQA の効果音につなぐ
+function beep(f=880,d=0.05){BQA.tone(f,d)}
+const jingle=(notes,step=0.1)=>notes.forEach((n,i)=>n&&setTimeout(()=>BQA.tone(n,step*0.9),i*step*1000));
+const SFX={sel:()=>BQA.sfx("sel"),ok:()=>BQA.sfx("ok"),pc:()=>BQA.sfx("pc"),bad:()=>BQA.sfx("bad"),win:()=>BQA.sfx("win"),friend:()=>BQA.sfx("friend")};
+// 今の場面の曲：title・hub（スタート前も）・pc・goal・dnf、走行中は PBP → レース・グラベル → 雨 → 夜 → 昼 の順に見る
+function bgmFor(){
+  const m=G.mode;
+  if(m==="ride"&&R)return R.course.pbp?"pbp":R.effort?"race":raining()?"rain":isNight(R.t)?"night":"day";
+  return {title:"title",hub:"hub",pre:"hub",pc:"pc",goal:"goal",dnf:"dnf"}[m]||null;
+}
+// 音の設定（メニューの項目）
+function soundItems(back){
+  const o=BQA.get();
+  return [{label:o.bgmOn?"音楽を消す":"音楽を鳴らす",fn:()=>{BQA.set({bgmOn:!o.bgmOn});back()}},
+          {label:o.sfxOn?"効果音を消す":"効果音を鳴らす",fn:()=>{BQA.set({sfxOn:!o.sfxOn});back()}}];
+}
 
 /* ================= UI (message window) ================= */
 const UI={open:false,items:[],idx:0,title:"",text:"",live:null,cancel:null};
@@ -1764,7 +2109,7 @@ function pauseMenu(){
   items.push({label:"道端で仮眠する",note:"15分",desc:"眠気・気力・体力が回復するが、体が冷える。",fn:()=>nap(15,"15分だけ目を閉じた。少し楽になった。")});
   items.push({label:"しっかり仮眠する",note:"45分",desc:"バス停や道の駅のベンチで。",fn:()=>nap(45,"バス停のベンチで45分眠った。体が冷えた。")});
   items.push({label:"道の駅で眠る",note:"90分",desc:"寝袋代わりにエマージェンシーシートをかぶって。90分以上眠ると、たまった眠気と脚の疲れがかなり抜ける。",fn:()=>nap(90,"道の駅の軒下で90分眠った。頭がすっきりした。")});
-  items.push({label:muted?"音を出す":"音を消す",fn:()=>{muted=!muted}});
+  items.push(...soundItems(()=>{}));
   items.push({label:"リタイアする",fn:()=>menu({title:"本当にリタイアする？",items:[{label:"やめない",fn:()=>{}},{label:"リタイアする",fn:()=>dnf("自分の判断でリタイアした。")}],cancel:()=>{}})});
   menu({title:"ひと休み（時間は止まっている）",text:`${R.course.name}\n${R.train.length?"トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("、"):"ソロで走行中"}`,items,cancel:()=>{}});
 }
@@ -1913,6 +2258,7 @@ function title(){
   menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道・ランドヌール札幌・AJたまがわ（青森）のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
     {label:"はじめから",fn:()=>{if(s)menu({title:"セーブデータを消して最初から？",items:[{label:"消して始める",fn:()=>{wipe();startNew()}},{label:"やめる",fn:title}],cancel:title});else startNew()}},
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
+    {label:"音の設定",fn:()=>menu({title:"音の設定",items:[...soundItems(title),{label:"もどる",fn:title}],cancel:title})},
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
 }
@@ -2336,6 +2682,7 @@ function frame(now){
   const dt=Math.min(0.1,(now-last)/1000);last=now;
   if(G.mode==="ride"&&!UI.open&&R)rideTick(dt);
   draw(dt);updateHUD(dt);
+  BQA.scene(bgmFor());
   requestAnimationFrame(frame);
 }
 (document.fonts&&document.fonts.load?document.fonts.load('16px "DotGothic16"').catch(()=>{}):Promise.resolve()).finally(()=>{});
