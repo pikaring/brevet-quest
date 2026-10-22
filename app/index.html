@@ -776,7 +776,12 @@ function cafeCourse(fid){const c=CAFE[P.home]||CAFE.sapporo,m=MONTH_ENV[weekMont
     startName:"近所の公園",profile:[[0,50],[d/2,50+c.gain],[d,50]],scenery:[[0,c.scen]],heading:[[0,0],[d/2,180]],rough:[],deer:[],kind:"cafe",friend:fid,rainChance:0.15,goalFood:"",
     events:[...ev,{km:d/2,type:"sight",name:c.dest,text:fid?`${c.food}。${FRIENDS[fid].name}とブルベの話で盛り上がる。`:`${c.food}。来年のブルベの計画を立てながら。`,min:45,price:1200,fx:{hunger:30,spirit:35}},{km:d,type:"goal",name:"家に到着"}]}}
 function meetEvent(ev){const F=FRIENDS[ev.fid],known=metFriends().includes(ev.fid);P.met=P.met||{};P.met[ev.fid]=true;if(P.fp[ev.fid]==null)P.fp[ev.fid]=0;SFX.friend();
-  menu({title:"カフェライドの途中で",text:known?`後ろから聞き覚えのある声。\n${F.name}「あれ？ どこまで行くんですか？」`:`見慣れないランドヌールが追いついてきた。\n「${F.name}っていいます。このへんのブルベによく出てるんですよ」\n（${F.trait}）`,items:[
+  // people don't put さん on their own name
+  const me=F.name.replace(/さん$/,""),pick=a=>a[Math.floor(Math.random()*a.length)];
+  const hello=known?pick(["あれ？ どこまで行くんですか？","お、奇遇ですね！ 今日はどちらまで？","この前のブルベ以来ですね！ 元気でした？","やっぱり！ 後ろ姿でわかりましたよ"])
+    :pick([`${me}っていいます。このへんのブルベによく出てるんですよ`,`もしかして、PikaCyclingの方ですか？ ブログ読んでます！ ${me}です`,`Xで見ました！ ${me}っていいます`,
+      `Stravaでよくお見かけします。${me}です`,`そのジャージ、ブルベの方ですよね？ ${me}っていいます`,`去年のブルベ、PCですれ違いましたよね？ ${me}です`]);
+  menu({title:"カフェライドの途中で",text:known?`後ろから聞き覚えのある声。\n${F.name}「${hello}」`:`見慣れないランドヌールが追いついてきた。\n「${hello}」\n（${F.trait}）`,items:[
     {label:`${(CAFE[P.home]||CAFE.sapporo).dest}まで一緒に行く`,fn:()=>{R.cafeMate=ev.fid;joinTrain(ev.fid,R.course.dist-R.km+1);log(`${F.name}「いいですね、ご一緒します！」`)}},
     {label:"ひとりで走る",fn:()=>{gainFp(ev.fid,2);log(`${F.name}「じゃあ、また次のブルベで！」`)}}]})}
 
