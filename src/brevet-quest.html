@@ -770,6 +770,23 @@ const EVENTS=[
    {km:24,type:"note",text:"山の中の下りは完全なアイスバーン。めちゃくちゃ怖い。ブレーキをかけすぎないように速度を抑える。",spirit:-5},
    {km:30,type:"sight",name:"花輪食品店の自販機そば",text:"400円。たった25秒で出てくる。麺は作り置きだけど、つゆがうまい。",min:10,price:400,fx:{hunger:35,temp:15,spirit:10}},
    {km:42,type:"sight",name:"PC3 森のゆ 花神楽",text:"売店は14時で閉店。アフォガートで我慢。ゴールしたら温泉だ。",min:10,price:500,fx:{hunger:10,spirit:8}}]},
+ // 冬ヒルクライム: YK2, "道南の冬ヒルクライムの聖地" — plowed for the facility at the top, about 10 km / 2 hours. Not a race: a Strava segment.
+ {id:"yk2",y27:"2027-01-16",kind:"hill",snow:true,strava:true,name:"冬ヒルクライム YK2（Stravaセグメント）",region:"道南",dist:10,gain:750,base:150,fee:0,top:"YK2",field:40,limit:4*60,tDay:-4,tNight:-10,
+  desc:"道南の冬ヒルクライムの聖地。山頂に施設があるので除雪がよく、サーキットのような路面。約10kmで2時間。大会ではなく、Stravaのセグメントでタイムを競う。スパイクタイヤが必要。（日付は仮）",
+  events:[{km:2,type:"note",text:"冬は体が熱くならない。夏よりも登りが楽に感じる。",fx:{temp:5}},{km:5,type:"note",text:"普通のタイヤの人がジグザグに登っていて、途中であきらめた。"},
+   {km:8,type:"note",text:"下りてくる人とすれ違う。下りのほうが緊張する。"}]},
+ // 凍った湖: the 大沼 fat bike guided tour (early February 2025, ¥7,590 with a fat bike, about 8 km in 2.5 hours).
+ {id:"onuma_fat",y27:"2027-02-06",kind:"fun",snow:true,rental:true,name:"凍った大沼のファットバイクツアー",region:"道南",dist:8,gain:40,base:130,fee:7590,scen:"lake",start:10*60,limit:4*60,vmax:5,tDay:-3,tNight:-10,
+  desc:"凍った大沼の上を、ファットバイクで渡るガイドツアー（期間限定、2名から）。ファットバイクのレンタル込みなので、スパイクタイヤはいらない。氷の厚さは約30cm。氷の上に積もった雪が重くて、ずっと5%の坂を登っているみたい。",
+  after:"帰りは森商店のスパイスチキンカレー。",
+  events:[{km:0.3,type:"sight",name:"大沼の採氷場",text:"湖の氷を切り出している。",min:10,price:0,fx:{spirit:12}},
+   {km:0.5,type:"note",text:"自分のMTBで来たけど、雪に沈んで50mであきらめた。4インチのファットバイクに乗り換える。"},
+   {km:2,type:"note",text:"踏切を渡って小沼へ。"},
+   {km:3,type:"note",text:"水の流れで凍らないセバットは、歩いて渡る。足元で氷がミシミシ鳴る。ガイドのザックには長いロープ……。",spirit:-3},
+   {km:4.5,type:"sight",name:"氷のグラスのシードル",text:"切り出した氷のブロックの上で、七飯のりんごのシードル。グラスも氷。",min:10,price:0,fx:{spirit:15,temp:-3}},
+   {km:5,type:"sight",name:"函館醸造の酒粕の甘酒",text:"体の芯から温まる。",min:8,price:0,fx:{temp:15,hunger:10,spirit:8}},
+   {km:6,type:"note",text:"小島に登って、氷の上に寝転ぶ。双眼鏡でシマエナガを探す。声は聞こえたけど、姿は見えなかった。",spirit:10},
+   {km:7.8,type:"sight",name:"倉岡岩",text:"相原周防の伝説が残る岩。ここで湖から上がる。",min:5,price:0,fx:{spirit:8}}]},
  {id:"ice100",y27:"2027-01-24",kind:"snow",name:"アイスブルベ 100km",region:"道北",dist:100,gain:600,base:200,fee:3000,scen:"field",snow:true,start:7*60,limit:10*60,tDay:-3,tNight:-12,
   desc:"R札幌の冬のイベント。東川町のせんとぴゅあ発着、7時スタート。スパイクタイヤが必要。平均10km/hくらいの見込み。前夜祭で飲みすぎると起きられない。",
   events:[{km:20,type:"sight",name:"PC1 セブン-イレブン",text:"観光バスで大混雑。",min:10,price:300,fx:{hunger:15,temp:8}},
@@ -817,7 +834,7 @@ function eventCourse(ev){
       if(d>=90)events.push({km:Math.round(d*0.7),type:"sight",name:"エイド：地元のお母さんの手作りおにぎり",text:"もうひとつのエイド。",min:10,price:0,fx:{hunger:30,spirit:15}})}}
   events.push({km:d,type:"goal",name:ev.kind==="hill"?`ゴール ${ev.top}`:"ゴール"});
   const race=ev.kind==="hill"||ev.kind==="cx";
-  return {id:ev.id,name:ev.name,dist:d,limit:ev.limit||(race?Math.max(90,d*12):Math.round(d/12*60)+90),start:ev.start||(race?9*60:8*60),date:jpDate(ev.ymd),ymd:ev.ymd,snow:!!ev.snow,rainChance:ev.snow?0:undefined,
+  return {id:ev.id,name:ev.name,dist:d,limit:ev.limit||(race?Math.max(90,d*12):Math.round(d/12*60)+90),start:ev.start||(race?9*60:8*60),date:jpDate(ev.ymd),ymd:ev.ymd,snow:!!ev.snow,vmax:ev.vmax,rainChance:ev.snow?0:undefined,
     sunrise:m.sr,sunset:m.ss,tDay:ev.tDay??m.day,tNight:ev.tNight??m.night,startName:ev.name,profile,scenery:[[0,ev.scen||"field"]],heading:[[0,0],[d/2,180]],
     rough:ev.off?[[0,d,ev.off]]:[],offroad:!!ev.off,deer:[],events,kind:ev.kind,race,field:ev.field||200,ev,goalFood:"",desc:ev.desc||""};
 }
@@ -1940,7 +1957,8 @@ function speed(){
   const hw=windNow();
   if(hw>0)v/=1+hw*0.04*Math.sqrt(80/m)*(dh?0.7:1)*(R.train.length?0.6:1);
   else v*=1-hw*0.025;
-  if(R.course.snow)v*=0.8; // spikes and snow: about 80% of the usual speed
+  if(R.course.snow)v*=0.8;
+  if(R.course.vmax)v=Math.min(v,R.course.vmax); // spikes and snow: about 80% of the usual speed
   if(R.course.offroad)v*=(B.off||0.68)*(R.effort?0.85:1); // gravel: rolling resistance on top of the bike's off-road ability
   v*=(R.effort?{slow:1,normal:1.15,hard:1.3}:{slow:0.85,normal:1,hard:1.2})[R.pace];
   if(R.stamina<10)v*=0.6;else if(R.stamina<30)v*=0.85;
@@ -2562,7 +2580,7 @@ function goal(ev){
     return endRun("楽しかった！",`${FRIENDS[C.friend].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[C.friend].name}との友情 +12\n練習効果：${tr}`,{fatigue:4})}
   if(C.kind!=="brm"){G.mode="goal";(R.present||[]).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
     const tr=applyTrain(trainFx(C.ev));
-    return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\n練習効果：${tr}\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
+    return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\n練習効果：${tr}\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.after?"\n"+C.ev.after:""}${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
   if(R.t>close)return dnf(`${ev.name} ${fmt(R.t)} 着。制限時間 ${fmt(close)} を過ぎての時間外ゴール。認定はもらえなかった……。`);
   const miss=controls().filter(c=>!R.receipts[c.km]);
   if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
@@ -2585,7 +2603,8 @@ function raceResult(el){
   const C=R.course,ref=refTime(),r=ref/el,pct=clamp(50+(r-1)*220,0.3,99.7),n=C.field,rank=Math.max(1,Math.min(n,Math.round((100-pct)/100*n)));
   const rec=recOf(C.id);if(rec.best==null||el<rec.best)rec.best=el;rec.done++;
   let prize="",bonus={};
-  if(rank<=3){prize=`\n表彰台！ 副賞で地元の名産品と賞金 ${yen(10000)} をもらった。`;P.money+=10000}
+  if(C.ev&&C.ev.strava)prize=`\nStravaのセグメントで${rank}位。${rank<=3?"仲間からKudosがたくさん届いた！":""}`;
+  else if(rank<=3){prize=`\n表彰台！ 副賞で地元の名産品と賞金 ${yen(10000)} をもらった。`;P.money+=10000}
   else if(rank<=n*0.1)prize="\n上位10%！ 仲間に自慢できる。";
   prize+="\n練習効果："+applyTrain(trainFx(C.ev));
   G.mode="goal";
@@ -2792,7 +2811,7 @@ function eventDesc(it,c){
 function enter(it,c){
   const miss=missingGear(it.kind,it.cls||0);
   if(miss.length)return say("車検に通らない",`${it.kind==="brm"?`${it.cls}kmのブルベ`:"このイベント"}に必要な装備が足りない：\n${miss.join("、")}\nサイクルショップでそろえよう。`,hub);
-  if(it.kind==="snow"&&!spikeOn())return say("スパイクタイヤがない","アイスブルベにはスパイクタイヤが必要。ショップで買おう。",hub);
+  if(it.snow&&!it.rental&&!spikeOn())return say("スパイクタイヤがない",`${it.name}にはスパイクタイヤが必要。ショップで買おう。`,hub);
   if(it.kind==="cx"&&P.bike!=="mtb"&&!P.bikes.includes("mtb"))return say("MTBがない","シクロクロス北海道選手権には、MTBで出られるクラスで出る。ショップでMTBを用意しよう。",hub);
   if(it.kind==="cx"&&P.bike!=="mtb"){P.bike="mtb";}
   P.money-=c;save();
@@ -2931,7 +2950,11 @@ function ring(cx,cy,r,c){cx=Math.round(cx);cy=Math.round(cy);let x=r,y=0,e=1-r;c
   while(x>=y){for(const [a,b] of [[x,y],[y,x],[-y,x],[-x,y],[-x,-y],[-y,-x],[y,-x],[x,-y]])ctx.fillRect(cx+a,cy+b,1,1);y++;if(e<0)e+=2*y+1;else{x--;e+=2*(y-x)+1}}}
 const hash=n=>{const s=Math.sin(n*127.1)*43758.5453;return s-Math.floor(s)};
 
-function palette(t){const base=paletteBase(t);if(R&&R.course&&R.course.pbp&&["ride","pc","pre"].includes(G.mode)&&!base.night)Object.assign(base,{field:"#f8b800",field2:"#d88800",far:"#7c7c3c",bld:"#f0d0b0"});return base}
+// winter: the ground goes white, lakes freeze, and it snows a little
+function snowScene(){if(G.mode==="title"||!P)return false;if(R&&R.course&&["ride","pc","pre","goal","dnf"].includes(G.mode))return !!R.course.snow||(!R.course.pbp&&!R.course.ymd&&YEAR!==2026&&!!WEEKS[P.week]&&winterWeek());return YEAR!==2026&&!!WEEKS[P.week]&&winterWeek()}
+function palette(t){const base=paletteBase(t);
+  if(snowScene())Object.assign(base,base.night?{field:"#6888fc",field2:"#4428bc",ground:"#6888fc",far:"#4428bc",sea:"#6888fc",wave:"#bcbcbc",curb:"#bcbcbc"}
+    :{field:"#fcfcfc",field2:"#bcbcbc",ground:"#fcfcfc",far:"#bcbcbc",far2:"#a4e4fc",sea:"#a4e4fc",wave:"#fcfcfc",curb:"#fcfcfc",bld:"#bcbcbc"},{snowfall:true});if(R&&R.course&&R.course.pbp&&["ride","pc","pre"].includes(G.mode)&&!base.night)Object.assign(base,{field:"#f8b800",field2:"#d88800",far:"#7c7c3c",bld:"#f0d0b0"});return base}
 function paletteBase(t){
   const d=tod(t),C=R?R.course:{sunrise:4*60+40,sunset:18*60+30};
   const wet=R&&["ride","pc","pre"].includes(G.mode)&&raining();
@@ -2946,7 +2969,8 @@ function drawSky(p,t){
   const b=[0,26,52,74,HOR];for(let i=0;i<4;i++)rect(0,b[i],W,b[i+1]-b[i],p.sky[i]);
   if(p.night){for(let i=0;i<40;i++){const x=hash(i)*W,y=hash(i+99)*70;if(hash(i+7+Math.floor(performance.now()/700))>0.15)rect(x,y,1,1,"#fcfcfc")}
     rect(210,14,8,8,"#f8d878");rect(212,14,6,6,p.sky[0]);}
-  else if(!p.wet){const d=tod(t)/60,sx=20+((d-5)/14)*216;rect(sx,40-Math.sin(Math.PI*(d-5)/14)*28,8,8,"#f8d878");
+  if(p.snowfall)for(let i=0;i<30;i++){const x=((hash(i)*W+performance.now()/90*(0.5+hash(i+3)))%W),y=((hash(i+50)*HOR+performance.now()/40*(0.6+hash(i+9)))%HOR);rect(x,y,1,1,"#fcfcfc")}
+  if(!p.night&&!p.wet){const d=tod(t)/60,sx=20+((d-5)/14)*216;rect(sx,40-Math.sin(Math.PI*(d-5)/14)*28,8,8,"#f8d878");
     for(let i=0;i<3;i++){const cx=((i*97-G.scroll*0.05)%300+300)%300-30,cy=14+i*11;rect(cx,cy,26,5,"#fcfcfc");rect(cx+5,cy-3,14,4,"#fcfcfc")}}
 }
 function mountains(off,base,amp,c,step=2,snow=null){
