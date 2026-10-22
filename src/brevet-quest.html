@@ -977,10 +977,13 @@ const WEEKS=[];
 const Y2027={tsugaru200:"2027-05-08",gonou300:"2027-05-29",oirase400:"2027-07-03"};
 let YEAR=2026;
 function applyYear(y){YEAR=y;
-  for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.ymd;if(!c.y26||c.pbp)continue;
-    if(y===2026){c.ymd=c.y26;c.tent=false}else{const d=ymdDate(c.y26);d.setDate(d.getDate()+364);c.ymd=Y2027[c.id]||ymdOf(d);c.tent=!Y2027[c.id]}
-    if(c.kind==="brm")c.date=jpDate(c.ymd)}
-  WEEKS.length=0;const a=y===2026?new Date(2026,2,31):new Date(2027,2,30),z=y===2026?new Date(2026,9,27):new Date(2027,7,17);
+  for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.y23?null:c.ymd;if(c.pbp)continue;
+    if(y===2023){c.ymd=c.y23||null;c.tent=false}
+    else if(!c.y26)c.ymd=null;
+    else if(y===2026){c.ymd=c.y26;c.tent=false}else{const d=ymdDate(c.y26);d.setDate(d.getDate()+364);c.ymd=Y2027[c.id]||ymdOf(d);c.tent=!Y2027[c.id]}
+    if(c.kind==="brm"&&c.ymd)c.date=jpDate(c.ymd)}
+  // 2023: the first weekend of April to the PBP week
+  WEEKS.length=0;const a=y===2023?new Date(2023,2,28):y===2026?new Date(2026,2,31):new Date(2027,2,30),z=y===2023?new Date(2023,7,15):y===2026?new Date(2026,9,27):new Date(2027,7,17);
   for(let d=a;d<=z;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7))WEEKS.push(d)}
 
 // The author's own PBP 2023 (PikaCycling「Road to PBP2023」), placed at the matching spots of the 2027 route.
@@ -1063,17 +1066,274 @@ const PBP_BLOG=[
   lodges:[{km:435,name:"ルデアックの仮眠所",price:1800},{km:514,name:"カレの仮眠所",price:1800},{km:604,name:"ブレストの仮眠所",price:1800},{km:928,name:"フジェールの仮眠所",price:1800}],
   profile:B27.profile.map(([k,h])=>[map(k),h]),scenery:B27.scenery.map(([k,t])=>[map(k),t]),heading:B27.heading.map(([k,h])=>[map(k),h]),events:ev,
   goalFood:"ゴールゲートをくぐると、急な雨で観客はもう帰り支度。少しさみしい。でも受付でブルベカードにハンコをもらい、その場でメダル。ミールチケットで最後の食事と「ラストビール」。\n「よく頑張ったよ、オレ。自分で自分をほめてあげたい」\n（作者の記録：88時間1分）"})}
-// The trial rider: the author's 2023 — a chromoly road bike with DH bar, after a season of Hokkaido brevets.
+// ===== 体験版：2023年シーズン. Dates from the AJ北海道 2023 results page and the R札幌 2023 event pages;
+// the rides the author did (函館200, トトロ300, 様似400, 宗谷岬600, きのこの山300, 函館300, トカプチ朝駆400) follow his blog.
+const AJ23=AJ_URL+"pg180.html",RS23="https://randonneurssapporo.net/",PB23="https://pikacycling.hateblo.jp/entry/2023/";
+const QUAL_BY={2023:"2023-07-02",2027:"2027-06-30"};
+// a course ridden the other way round
+function revCourse(B){const L=B.dist,f=k=>Math.round((L-k)*10)/10;
+  const seg=(arr,g=v=>v)=>arr.map((x,i)=>[f(arr[i+1]?arr[i+1][0]:L),g(x[1])]).reverse();
+  return {profile:B.profile.map(([k,h])=>[f(k),h]).reverse(),scenery:seg(B.scenery),heading:seg(B.heading,h=>(h+180)%360),
+    rough:(B.rough||[]).map(([a,b,...r])=>[f(b),f(a),...r]),deer:(B.deer||[]).map(([a,b])=>[f(b),f(a)])}}
+function c23(o){const m=MONTH_ENV[+o.ymd.slice(5,7)],B=o.from&&COURSES.find(c=>c.id===o.from);
+  const C=B?Object.assign(JSON.parse(JSON.stringify(B)),{sunrise:m.sr,sunset:m.ss,tDay:m.day,tNight:m.night,rain:undefined,blog:undefined,estimated:true},o):brm(o);
+  if(o.more)C.events=[...C.events,...o.more].sort((a,b)=>a.km-b.km);
+  Object.assign(C,{y23:o.ymd,kind:"brm",date:jpDate(o.ymd)});delete C.from;delete C.more;COURSES.push(C);return C}
+c23({id:"rs23_423",cls:200,ymd:"2023-04-23",org:RS,region:"道央",url:RS23+"2023brm423%e6%97%a5%e9%ab%98%e9%96%80%e5%88%a5200/",name:"BRM423 日高門別200",dist:200,startName:"札幌市清田区 平岡公園",
+  desc:"R札幌の2023年初戦。清田の平岡公園から千歳、苫小牧を抜けて、競走馬のふるさと日高門別へ。4月の北海道はまだ寒い。（コースは推定）",goalFood:"シーズン最初の200km。SRへの第一歩。",
+  profile:[[0,80],[15,60],[33,20],[50,20],[65,10],[85,10],[103,10],[125,20],[145,40],[160,30],[175,20],[190,60],[200,80]],
+  scenery:[[0,"town"],[10,"field"],[55,"town"],[62,"sea"],[110,"field"],[185,"town"]],heading:[[0,170],[33,190],[65,120],[103,300],[145,330],[175,0]],deer:[[90,140]],
+  events:[{km:33,type:"pc",name:"PC1 千歳",chain:"lawson"},{km:60,type:"note",text:"苫小牧の工業地帯を抜けて、太平洋沿いを東へ。"},
+   {km:85,type:"pc",name:"PC2 鵡川",chain:"seicomart"},{km:103,type:"check",name:"通過チェック 日高門別",photo:"競走馬の牧場で、仔馬が跳ねていた。"},
+   {km:104,type:"note",text:"門別は競走馬のふるさと。牧場の柵の向こうで、母馬と仔馬が草を食んでいる。",spirit:12},
+   {km:145,type:"pc",name:"PC3 厚真",chain:"seicomart"},{km:175,type:"pc",name:"PC4 長沼",chain:"seven"},{km:200,type:"goal",name:"ゴール 平岡公園"}]});
+c23({from:"shintotsukawa200",id:"aj23_429",ymd:"2023-04-29",url:AJ23,name:"BRM429 北海道200km 新十津川",rainChance:0.5,
+  desc:"AJ北海道の2023年初戦。春の日本海側はまだ寒く、風雨に苦しむことが多い。（コースは推定）",goalFood:"AJ北海道の初戦、完走。"});
+c23({from:"hako200",id:"aj23_504",ymd:"2023-05-04",cls:200,org:AJ,region:"道南",url:AJ23,blog:PB23+"05/09/180000",estimated:false,name:"BRM504 北海道200km 函館",rainChance:0.1,
+  desc:"作者の地元・函館の200km。元町から恵山、南茅部、森、大沼、トラピスト修道院を回って元町へ。ゴールデンウィークの国道5号は大渋滞。",
+  goalFood:"スタッフ「16時50分ゴールデスネ」。元町公園は山からの風でめちゃくちゃ寒い。\n夜は仲間と函館の会席料理で打ち上げ。2時間しゃべり倒した。",
+  more:[{km:8,type:"note",text:"強い追い風。気づけば時速40km。",spirit:8},
+   {km:70,type:"sight",name:"南茅部のセイコーマート",text:"上着を脱いで、梅ひじきおにぎり。",min:8,price:200,fx:{hunger:15,temp:-5}},
+   {km:100,type:"note",text:"海沿いは横風と向かい風。結局、4分の3は向かい風だった。",spirit:-3},
+   {km:117,type:"sight",name:"森町の東光亭",text:"ラードが浮いた濃厚な味噌ラーメン。チャーシューはパサパサだけど、スープは最高。",min:30,price:1000,fx:{hunger:50,temp:8,spirit:15}},
+   {km:150,type:"note",text:"国道5号は大渋滞。ラッキーピエロの前に行列ができている。",spirit:-3},
+   {km:160,type:"note",text:"DHバーで低い姿勢を続けたら、首と肩がバキバキ。",fx:{stamina:-3}}]});
+c23({from:"tokachi200",id:"aj23_506",ymd:"2023-05-06",cls:200,org:AJ,region:"道東",url:AJ23,name:"BRM506 北海道200km 十勝",tDay:13,tNight:2,
+  desc:"帯広近郊、春の十勝の200km。日高山脈と峠にはまだ雪が残る。（2023年のコースは推定。北トカプチのコースで代用）",goalFood:"春の十勝、完走。"});
+c23({id:"aj23_513",cls:300,ymd:"2023-05-13",org:AJ,region:"道央",url:AJ23,blog:PB23+"05/17/180000",estimated:false,name:"BRM513 北海道300km トトロ",dist:300,startName:"丘珠ふれあいセンター",
+  desc:"札幌から当別ダムを越えて北へ。沼田、明日萌駅、深川、旭川の先の山道を芦別へ下り、滝川、美唄から札幌へ戻る。猫バスのバス停とクイズの通過チェックあり。",
+  goalFood:"目標の15時間を切った！ 赤いコーラで祝杯。感想戦でポテチが止まらない。\n夜はラーメンてつやのニンニク香味油と餃子。",
+  profile:[[0,10],[25,20],[35,150],[45,60],[60,40],[100,60],[108,120],[125,60],[150,110],[170,350],[185,450],[195,250],[205,100],[220,40],[240,30],[255,50],[280,20],[300,10]],
+  scenery:[[0,"town"],[15,"field"],[35,"forest"],[60,"field"],[145,"town"],[160,"mountain"],[205,"town"],[212,"field"],[290,"town"]],
+  heading:[[0,0],[35,20],[100,60],[125,90],[150,200],[205,210],[240,200],[255,220]],deer:[[160,205]],
+  events:[{km:0.5,type:"note",text:"車から自転車を降ろす1分の間に、L字のLightningケーブルが消えた。長い予備ケーブルをぶら下げて走る。",spirit:-3},
+   {km:20,type:"note",text:"南風の追い風。平地がめちゃくちゃ速い。",spirit:8},{km:35,type:"note",text:"当別ダムの入口から登り。その先はアップダウンが続く。"},
+   {km:55,type:"check",name:"通過チェックA（クイズ）",photo:"クイズの答えを写真に撮った。毎年問題が変わるらしい。"},
+   {km:70,type:"note",text:"リカンベントが平地を猛スピードで抜いていった。"},
+   {km:85,type:"note",text:"ナビの調子が悪い参加者に「ついて行っていいですか？」と頼まれた。自分のペースで走ったら、いつの間にか離れていた。ちょっと罪悪感。",spirit:-2},
+   {km:100,type:"pc",name:"PC1 沼田",chain:"seicomart"},
+   {km:101,type:"sight",name:"完全栄養グミ",text:"いつものスポーツようかんの代わりにCOMPのグミ。噛んでいると気がまぎれる。",min:3,price:300,fx:{hunger:12,spirit:5}},
+   {km:108,type:"check",name:"通過チェックB 明日萌駅",photo:"観光の人に「札幌から300km？ すごいね！」と言われた。"},
+   {km:125,type:"sight",name:"ライスランドふかがわ",text:"八雲産タラコのおにぎりと、新名物の深川ザンギ。「いやめちゃくちゃ美味いね」",min:25,price:900,fx:{hunger:45,spirit:15}},
+   {km:128,type:"note",text:"深川からはずっと向かい風。「向かい風ヤバいっすねー」",spirit:-5},
+   {km:180,type:"check",name:"通過チェックC 猫バスのバス停",photo:"写真を撮ってくれた人が、足をつっていた。"},
+   {km:188,type:"note",text:"昼の暑さは登りの途中がピーク。冬装備で来たのを後悔。",fx:{temp:8}},
+   {km:200,type:"note",text:"骨伝導イヤホンが鳴らなくなった。電池切れ。",spirit:-3},
+   {km:205,type:"check",name:"通過チェックD スターライトホテルの看板（クイズ）",photo:"看板が見つけにくい。問題も迷う。"},
+   {km:215,type:"note",text:"滝川の手前でミスコース。往復4kmのおまけ。",fx:{stamina:-3}},
+   {km:222,type:"pc",name:"PC2 滝川",chain:"seicomart"},{km:240,type:"pc",name:"PC3 美唄",chain:"seven"},
+   {km:250,type:"note",text:"日が沈んだとたんに気温が急降下。「たぶん2月の神奈川より寒い」",fx:{temp:-10}},
+   {km:258,type:"note",text:"三笠で右折を見落として、岩見沢方面へ直進しかけた。Uターン。"},
+   {km:275,type:"sight",name:"ホットのペットボトル",text:"コーヒーを飲んで、ホットのペットボトルをお腹に抱えて走る。",min:5,price:200,fx:{temp:10,sleepy:-10}},
+   {km:300,type:"goal",name:"ゴール 札幌北丘珠"}]});
+c23({id:"rs23_520",cls:200,ymd:"2023-05-20",org:RS,region:"青森",url:RS23+"2023brm520towadaclassic200/",name:"BRM520 十和田クラシック200",dist:200,startName:"八戸",tDay:16,tNight:4,
+  desc:"「日本三大絶景ブルベ」。苫小牧21:15発のフェリーで朝4:45に八戸へ。十和田湖、奥入瀬渓流、八甲田の雪の回廊、酸ケ湯。本州らしいメリハリの効いた登りと下り。絶景とグルメを楽しみすぎるとタイムアウトの危険。（コースは推定）",
+  goalFood:"絶景ブルベ、完走。八戸の横丁でセルフ後夜祭。",
+  profile:[[0,20],[20,60],[40,80],[60,200],[80,400],[95,450],[110,900],[118,1040],[125,900],[140,600],[155,400],[170,150],[185,60],[200,20]],
+  scenery:[[0,"town"],[10,"field"],[55,"forest"],[78,"lake"],[100,"mountain"],[150,"forest"],[170,"field"],[192,"town"]],
+  heading:[[0,250],[40,260],[80,300],[125,20],[140,90],[170,120]],deer:[[60,160]],
+  events:[{km:1,type:"note",text:"フェリーで目覚めたら八戸。ターミナルから9km自走してスタートへ。"},
+   {km:40,type:"pc",name:"PC1 十和田市",chain:"lawson"},
+   {km:42,type:"sight",name:"十和田バラ焼き",text:"B-1グランプリ王者のB級グルメ。甘辛いタレの牛バラと玉ねぎ。",min:30,price:1200,fx:{hunger:55,spirit:18}},
+   {km:65,type:"note",text:"奥入瀬渓流。雪解け水の渓流と、一斉に芽吹いたブナの新緑。",spirit:20},
+   {km:82,type:"check",name:"通過チェック 十和田湖 子ノ口",photo:"神秘の湖、十和田湖。"},
+   {km:100,type:"note",text:"本州の峠は登りも下りもメリハリが効いている。"},
+   {km:112,type:"sight",name:"八甲田の雪の回廊",text:"道の両側に残雪の壁。",min:6,price:0,fx:{spirit:20,temp:-5}},
+   {km:116,type:"sight",name:"後藤伍長銅像",text:"八甲田山雪中行軍遭難事件の。",min:5,price:0,fx:{spirit:8}},
+   {km:124,type:"sight",name:"酸ケ湯温泉の千人風呂",text:"浸かっていく？ 気持ちいいけど、タイムアウトが……。",min:40,price:1000,fx:{spirit:20,temp:15,stamina:8,sleepy:5}},
+   {km:160,type:"pc",name:"PC2 七戸",chain:"lawson"},{km:200,type:"goal",name:"ゴール 八戸"}]});
+c23({id:"aj23_527",cls:400,ymd:"2023-05-27",org:AJ,region:"道央",url:AJ23,blog:PB23+"05/30/190000",estimated:false,name:"BRM527 北海道400km 様似",dist:402.3,startName:"丘珠ふれあいセンター",tDay:24,tNight:5,rainChance:0.1,
+  desc:"札幌から約200km南下して様似へ。えりも岬には行かずに引き返す、ほぼ行って来いの平坦コース。昼は30℃を超え、夜は5℃を下回ることも。",
+  goalFood:"3時7分ゴール。3時前の目標には少し届かなかった。\n銭湯が開くまで車で仮眠して、昼は北海道サイクルフェスティバルへ。",
+  profile:[[0,10],[30,10],[60,30],[64,60],[80,20],[100,10],[140,20],[170,20],[204,20],[240,20],[300,10],[320,20],[356,20],[380,20],[402.3,10]],
+  scenery:[[0,"town"],[12,"field"],[95,"sea"],[205,"sea"],[300,"field"],[390,"town"]],
+  heading:[[0,130],[33,180],[100,120],[204,300],[300,330],[356,350]],deer:[[310,360]],
+  events:[{km:10,type:"note",text:"序盤から向かい風。DHバーが効く。でも、いつものペースで踏むと脚を削られる。"},
+   {km:32.8,type:"pc",name:"PC1 セブン-イレブン 長沼町店",chain:"seven"},
+   {km:33.5,type:"note",text:"十数台の大集団に追いついた。トレインに乗ってリスタート。",spirit:8},
+   {km:62,type:"note",text:"通過チェックの神社の鳥居を見落として通り過ぎた。往復5kmのミスコース……。",fx:{stamina:-4}},
+   {km:64.2,type:"check",name:"通過チェック 支安平神社の鳥居"},
+   {km:99.3,type:"pc",name:"PC2 セイコーマート 鵡川宮戸店",chain:"seicomart"},
+   {km:99.5,type:"sight",name:"コンビニの氷",text:"暑さ対策に氷を買ってボトルへ。",min:3,price:200,fx:{temp:-10}},
+   {km:140,type:"sight",name:"回転寿司ちょいす（新ひだか）",text:"新冠の喜一郎は臨時休業。こっちで約20貫。大助の中落軍艦が絶品。酢飯と刺身で体が生き返る。",min:40,price:2800,fx:{hunger:65,spirit:20,stamina:10}},
+   {km:150,type:"note",text:"予報は雨だったのに、ほぼ快晴。冬用の裏起毛を着てきたことを後悔。",fx:{temp:8}},
+   {km:203.8,type:"pc",name:"PC3 セイコーマート 様似店（折り返し）",chain:"seicomart"},
+   {km:205,type:"note",text:"様似で鉄夫さんに追いついた。日が傾いてきたので、モンベルのジャケットを羽織る。"},
+   {km:230,type:"note",text:"最後尾の参加者とすれ違う。"},
+   {km:260,type:"note",text:"風が北に変わった。帰りも向かい風。「300kmくらい向かい風」",spirit:-8},
+   {km:308.8,type:"pc",name:"PC4 セブン-イレブン 鵡川",chain:"seven"},
+   {km:309.5,type:"note",text:"楽しみにしていた山岡家はやめて、ブリトーで済ます。コーヒーマシンは清掃中……。カフェインが切れて眠い。",fx:{sleepy:10}},
+   {km:330,type:"note",text:"新千歳空港の裏の真っ暗な細い道。対向車のハイビームがまぶしい。草むらで鹿がガサガサ。"},
+   {km:356.1,type:"pc",name:"PC5 ローソン 千歳清流二丁目店",chain:"lawson"},
+   {km:356.3,type:"sight",name:"ダブルエスプレッソラテ",text:"カフェインで生き返る。",min:5,price:300,fx:{sleepy:-20,spirit:5}},
+   {km:380,type:"note",text:"eTrexの電池が切れた。替えるのを忘れていた。スマホのRWGPSと音声ナビで走る。",spirit:-5},
+   {km:402.3,type:"goal",name:"ゴール ローソン 札幌北37条東店"}]});
+c23({id:"aj23_603",cls:600,ymd:"2023-06-03",org:AJ,region:"道央",url:AJ23,blog:PB23+"06/07/180000",estimated:false,name:"BRM603 北海道600km 宗谷岬",dist:600,startName:"滝川",tDay:12,tNight:4,
+  desc:"滝川から日本海側を北上し、ノシャップ岬と宗谷岬を回って内陸を戻る600km。予報は強い向かい風と、毎日半分くらい大雨。作者は豊富でDNFした因縁のコース。（復路は推定）",
+  goalFood:"滝川に戻ってきた。夜は松尾ジンギスカンで打ち上げ。\n（作者はこの600を、雨と寒さを甘く見て豊富でDNF……）",
+  rain:[[0,95],[150,230],[340,420]],gust:[[100,300,3]],
+  profile:[[0,30],[30,40],[70,10],[100,10],[150,10],[190,10],[230,10],[262,10],[300,20],[330,10],[365,20],[400,30],[440,40],[490,90],[515,140],[540,200],[560,120],[580,60],[600,30]],
+  scenery:[[0,"town"],[10,"field"],[65,"sea"],[262,"town"],[275,"sea"],[335,"field"],[400,"forest"],[480,"field"],[555,"town"],[565,"field"],[595,"town"]],
+  heading:[[0,300],[65,0],[262,40],[300,200],[330,180],[400,160],[490,180],[560,230]],deer:[[300,600]],
+  lodges:[{km:330,name:"稚内のホテル奥田屋",price:8000}],
+  events:[{km:0.2,type:"note",text:"REC-MOUNTSのベルが車検の前に取れて消えた。スペースパンダ虫さんが車から予備のベルを貸してくれた。",spirit:3},
+   {km:20,type:"note",text:"滝川の市街は信号だらけ。先頭集団に入る。"},
+   {km:60,type:"note",text:"雨。レインパンツを省略したら、タイツを伝った水がシューズに溜まる。冬用シューズは水を入れないけど、入ったら出ていかない。",fx:{temp:-5},spirit:-5},
+   {km:100,type:"pc",name:"PC1 セイコーマート 鬼鹿店",chain:"seicomart"},
+   {km:101,type:"sight",name:"セイコーマートのメロン大福",text:"3個くらい食べた。",min:5,price:450,fx:{hunger:25,spirit:8}},
+   {km:150,type:"note",text:"鉄夫さんが止まった。ここからひとりで向かい風。",spirit:-5},
+   {km:190,type:"pc",name:"PC2 セイコーマート 天塩川口店",chain:"seicomart"},
+   {km:191,type:"sight",name:"天塩のDCM",text:"レインパンツとタオルと靴下を買い足す？",min:15,price:5000,fx:{temp:10,spirit:10}},
+   {km:200,type:"note",text:"天塩川を渡ってオロロンライン。海の向こうに利尻富士。",spirit:15},
+   {km:230,type:"note",text:"のどが痛い。体が熱っぽい。風邪のひきはじめかも……。",fx:{stamina:-5},spirit:-5},
+   {km:240,type:"note",text:"新聞紙をジャージの下に入れて、ホットのペットボトルを抱えて走る。",fx:{temp:6}},
+   {km:262,type:"check",name:"通過チェック ノシャップ寒流水族館",photo:"灯台カードをもらった。"},
+   {km:285,type:"sight",name:"山岡家",text:"1kmの寄り道。特製味噌ラーメン。でも食欲がなくて、餃子は少しだけ。",min:30,price:1200,fx:{hunger:55,temp:12,spirit:10}},
+   {km:300,type:"check",name:"通過チェック 宗谷岬",photo:"日本最北端に夕暮れ時に着いた。"},
+   {km:345,type:"note",text:"稚内の南には店がない。朝ごはんはメロン大福とチーカマとスポーツようかん。手袋も靴も冷たい。",fx:{temp:-5},spirit:-5},
+   {km:355,type:"note",text:"開源PAのトイレがやけに暖かく感じる。低体温症のはじまりかもしれない。",fx:{temp:-8}},
+   {km:364,type:"note",text:"豊富駅で、寒い夜を開源PAで過ごしてリタイアを決めた参加者に会った。始発で帰るらしい。",spirit:-8},
+   {km:365,type:"pc",name:"PC3 セイコーマート 豊富店",chain:"seicomart"},
+   {km:400,type:"note",text:"サロベツから内陸へ。天塩川沿いを南下する。"},
+   {km:440,type:"pc",name:"PC4 音威子府",chain:"seicomart"},
+   {km:441,type:"sight",name:"音威子府そば",text:"真っ黒なそば。",min:20,price:800,fx:{hunger:35,spirit:15}},
+   {km:490,type:"pc",name:"PC5 名寄",chain:"seicomart"},{km:560,type:"pc",name:"PC6 旭川",chain:"seven"},{km:600,type:"goal",name:"ゴール 滝川"}]});
+c23({id:"rs23_610",cls:300,ymd:"2023-06-10",org:RS,region:"道央",url:RS23+"2023brm610%e3%81%8d%e3%81%ae%e3%81%93%e3%81%ae%e5%b1%b1300/",blog:PB23+"06/13/180000",estimated:false,name:"BRM610 きのこの山300",dist:300,start:6*60,startName:"札幌市 屯田公園",
+  desc:"6時スタート。小林峠、恵庭峠、支笏湖を経てきのこ王国へ。オロフレ峠を越えて登別へ下り、白老、安平、長沼から札幌へ。ゴールではきのこの山が食べ放題。",
+  goalFood:"16時間切り。目標より1時間遅れ。DNFがたくさん出たらしい。\nゴールではきのこの山食べ放題と、温かいきのこ茶！",
+  rain:[[0,12]],rough:[[146,172,1.5]],
+  profile:[[0,20],[10,60],[20,200],[25,330],[35,200],[50,620],[60,400],[75,250],[95,300],[110,320],[130,600],[144,930],[160,300],[175,20],[190,10],[220,20],[240,10],[260,20],[280,30],[300,30]],
+  scenery:[[0,"town"],[15,"forest"],[22,"mountain"],[70,"lake"],[90,"forest"],[120,"mountain"],[170,"sea"],[215,"field"],[290,"town"]],
+  heading:[[0,200],[25,240],[75,200],[110,240],[144,180],[175,90],[220,30],[260,350]],deer:[[100,170]],
+  events:[{km:0.5,type:"note",text:"8mmのトルクレンチを借りたいという人に、コンパクトレンチを貸した。無事に走れるようになった。",spirit:8},
+   {km:3,type:"note",text:"雨がぱらつく。上はレインウェア、足は防水ソックス。"},
+   {km:15,type:"note",text:"雲が切れて、気温が一気に上がった。脱いで調整。",fx:{temp:6}},
+   {km:25,type:"note",text:"小林峠。鉄夫さんがひざを痛めてDNF……。",spirit:-5},
+   {km:45,type:"note",text:"Nくんの集団が、恵庭峠を気持ちいいペースで引いてくれる。",fx:{stamina:4}},
+   {km:55,type:"note",text:"濡れた下り。リムブレーキでは速い人についていけない。"},
+   {km:75,type:"sight",name:"支笏湖のソフトクリーム",text:"めちゃくちゃ美味い。",min:10,price:400,fx:{hunger:8,spirit:20}},
+   {km:110,type:"check",name:"PC1 きのこ王国 大滝本店",photo:"ブルベカードにサインをもらった。"},
+   {km:110.2,type:"sight",name:"きのこ王国の天ざる",text:"そばつゆもほとんど飲み干した。",min:25,price:1100,fx:{hunger:45,spirit:12}},
+   {km:110.3,type:"sight",name:"しいたけソフト",text:"支笏湖でソフトを食べたばかり……。でも、食べないと後悔するかも。",min:8,price:400,fx:{spirit:15,hunger:5}},
+   {km:125,type:"note",text:"オロフレ峠への長いゆるい登り。駐車場から洞爺湖を見下ろす。",spirit:12},
+   {km:144,type:"check",name:"クイズチェック オロフレ峠",photo:"思ったより難しいクイズ。"},
+   {km:146,type:"note",text:"トンネルを抜けると雲の中。湿度100%。バイザーもメガネも曇る。",fx:{temp:-6}},
+   {km:155,type:"note",text:"ひび割れた濡れた路面でパンクが続出。クマの看板には「令和5年6月6日」。熊鈴を鳴らして登別へ急ぐ。",spirit:-5},
+   {km:185,type:"sight",name:"はしもと珈琲館の煮込みハンバーグバーガー",text:"16時閉店に間に合った。めちゃくちゃ美味い。",min:25,price:1300,fx:{hunger:50,spirit:15}},
+   {km:220,type:"pc",name:"PC2 ローソン 安平町遠浅店",chain:"lawson"},
+   {km:225,type:"note",text:"平坦で追い風。時速30kmで巡航。",spirit:10},
+   {km:255,type:"note",text:"Nくんの集団に追いついた。パンク2回で、修理に時間がかかっている。"},
+   {km:260,type:"pc",name:"PC3 セブン-イレブン 長沼町南店",chain:"seven"},
+   {km:270,type:"note",text:"ダウンロードしたラジオを聞きながら、夜の農道を走る。",fx:{sleepy:-8}},
+   {km:300,type:"goal",name:"ゴール セブン-イレブン 季実の里店"}]});
+c23({id:"aj23_617",cls:600,ymd:"2023-06-17",org:AJ,region:"道北",url:AJ23,name:"BRM617 北海道600km 紋別",dist:600,startName:"旭川（推定）",tDay:18,tNight:7,
+  desc:"道東・オホーツク方面の600km。層雲峡から石北峠を越えて北見、サロマ湖、紋別。名寄から朱鞠内湖、幌加内を回って戻る。SRの期限前、最後の600。（コースは推定）",goalFood:"オホーツクの600、完走。",
+  profile:[[0,120],[30,200],[65,650],[85,1050],[110,500],[140,300],[170,90],[200,30],[230,10],[270,10],[300,10],[330,20],[360,250],[390,150],[420,100],[450,250],[470,290],[510,250],[540,150],[565,60],[580,100],[600,120]],
+  scenery:[[0,"town"],[10,"field"],[50,"mountain"],[120,"forest"],[160,"town"],[175,"field"],[220,"lake"],[250,"sea"],[340,"forest"],[410,"town"],[420,"field"],[460,"lake"],[480,"forest"],[540,"field"],[595,"town"]],
+  heading:[[0,60],[85,90],[170,30],[230,330],[300,300],[340,250],[420,300],[470,200],[510,180],[565,90]],deer:[[40,600]],gust:[[220,340,2]],
+  lodges:[{km:300,name:"紋別のビジネスホテル",price:7500}],
+  events:[{km:65,type:"pc",name:"PC1 層雲峡",chain:"seicomart"},{km:85,type:"check",name:"通過チェック 石北峠",photo:"1,050m。下りは寒い。"},
+   {km:170,type:"pc",name:"PC2 北見",chain:"seven"},{km:230,type:"note",text:"サロマ湖。湖とオホーツク海のあいだを走る。",spirit:12},
+   {km:300,type:"pc",name:"PC3 紋別",chain:"seicomart"},{km:302,type:"sight",name:"紋別のカニ",text:"ゆでたての毛ガニ。",min:30,price:3000,fx:{hunger:45,spirit:25}},
+   {km:330,type:"pc",name:"PC4 興部",chain:"seicomart"},{km:420,type:"pc",name:"PC5 名寄",chain:"seicomart"},
+   {km:470,type:"note",text:"朱鞠内湖。日本一の人造湖。夜の森は真っ暗。",fx:{temp:-5}},
+   {km:510,type:"pc",name:"PC6 幌加内",chain:"seicomart"},{km:511,type:"sight",name:"幌加内そば",text:"そばの作付面積日本一の町。",min:20,price:900,fx:{hunger:35,spirit:15}},
+   {km:565,type:"pc",name:"PC7 深川",chain:"seicomart"},{km:600,type:"goal",name:"ゴール 旭川"}]});
+{const B=COURSES.find(c=>c.id==="hako300");
+ c23({...revCourse(B),id:"aj23_701",cls:300,ymd:"2023-07-01",org:AJ,region:"道南",url:AJ23,blog:PB23+"07/04/180000",estimated:false,name:"BRM701 北海道300km 函館",dist:B.dist,startName:"元町公園前",rainChance:0.05,tDay:25,tNight:13,
+  desc:"恵山、鹿部、大沼、八雲、乙部、木古内と、道南をぐるりと回る300km。日本中が大雨の日、道南だけは晴れて暑い。PBP前の地元の練習を兼ねて。参加は19人くらい。",
+  goalFood:"目標の15時間を切ってゴール。締めはラーメンバーALTの黒醤油ラーメン。\n「8月に向けた練習のつもりだったけど、ちょっと急ぎすぎたかな」",
+  events:[{km:3,type:"note",text:"スタッフへのお土産に函館限定のガラナ。暗くて誰も函館限定だと気づかない。"},
+   {km:41,type:"pc",name:"PC1 セブン-イレブン 渡島恵山店",chain:"seven"},
+   {km:41.5,type:"sight",name:"冷凍フルーツゼリー",text:"開店8時7分の直前に着いた。衝動買い。",min:4,price:300,fx:{hunger:10,temp:-6}},
+   {km:91.3,type:"pc",name:"PC2 ローソン 鹿部町店",chain:"lawson"},
+   {km:112,type:"sight",name:"山川牧場ミルクプラント",text:"夕張メロンシェイクと、交雑牛の「黒ジャーカレー」。",min:30,price:1500,fx:{hunger:50,spirit:20,temp:-5}},
+   {km:115,type:"pc",name:"PC3 セブン-イレブン 七飯大沼店",chain:"seven"},
+   {km:125,type:"note",text:"日本中が大雨なのに、道南だけ晴れ。暑い。",fx:{temp:8}},
+   {km:135.1,type:"pc",name:"PC4 セイコーマート 八雲落部店",chain:"seicomart"},
+   {km:135.3,type:"sight",name:"凍ったアクエリアス",text:"ボトルケージに冷凍ペットボトル。",min:2,price:200,fx:{temp:-10}},
+   {km:185,type:"note",text:"トンネル崩壊の迂回路。登り返しがキツい……。"},
+   {km:194.5,type:"pc",name:"PC5 セイコーマート 乙部店",chain:"seicomart"},
+   {km:195,type:"sight",name:"セコマのたらこパスタ",text:"江差のラッキーピエロは口コミがいまいちなのでパス。",min:15,price:600,fx:{hunger:40}},
+   {km:201.7,type:"sight",name:"北緯42度の地点",text:"乙部の北緯42度のモニュメント。",min:4,price:0,fx:{spirit:10}},
+   {km:225,type:"sight",name:"上ノ国のラーメン麺蔵",text:"地元のフルーツポークのラーメン。寄っていく？（作者は寄らずに後悔した）",min:30,price:1000,fx:{hunger:50,spirit:20,temp:8}},
+   {km:240,type:"note",text:"日が落ちたとたん、かなり寒くなった。",fx:{temp:-8}},
+   {km:250,type:"note",text:"木古内の手前でパンク。TPUチューブにしたばかりなのに。",fx:{stamina:-2},spirit:-4},
+   {km:261.1,type:"pc",name:"PC6 セブン-イレブン 木古内町店",chain:"seven"},
+   {km:285,type:"note",text:"北斗市でまたパンク。TPUチューブの耐久性に不安……。",spirit:-5},
+   {km:301.7,type:"goal",name:"ゴール 元町公園前"}]})}
+c23({from:"mashu1000",id:"aj23_714",ymd:"2023-07-14",url:AJ23,name:"BRM714 北海道1000km 摩周湖",
+  desc:"摩周湖を回る1000km。SRの期限（7月2日）のあとなのでPBPの資格にはならないが、PBP前の総仕上げに。（2023年のコースは2026年のもので代用）"});
+c23({id:"aj23_722",cls:400,ymd:"2023-07-22",org:AJ,region:"道東",url:AJ23,blog:PB23+"08/01/180000",estimated:false,name:"BRM722 北海道400km トカプチ朝駆",dist:400,start:3*60,startName:"道の駅おとふけ",tDay:25,tNight:14,
+  desc:"BRM100周年記念の400。午前3時スタートで然別湖、三国峠、タウシュベツ川橋梁。後半は浦幌、ナウマン国道、大樹を回る。日中は南風、夜は北風で、一日中向かい風。",
+  goalFood:"深夜2時前にゴール。BRM100周年の記念メダルをもらった。\n山岡家の特製味噌ラーメンが、このライドでいちばん美味かった。",
+  profile:[[0,80],[25,150],[40,300],[55,700],[70,560],[85,750],[100,1139],[115,700],[125,540],[140,450],[160,300],[180,150],[200,80],[230,50],[255,40],[270,10],[285,10],[300,60],[318,60],[340,150],[360,170],[380,120],[400,80]],
+  scenery:[[0,"field"],[40,"mountain"],[52,"lake"],[60,"forest"],[90,"mountain"],[120,"lake"],[135,"forest"],[150,"field"],[270,"sea"],[295,"forest"],[315,"field"],[395,"town"]],
+  heading:[[0,330],[55,20],[100,200],[160,200],[200,90],[270,180],[300,240],[318,330],[360,0]],deer:[[40,140],[330,400]],
+  events:[{km:1,type:"note",text:"午前3時スタート。暗い中、4人の逃げ集団で走る。"},
+   {km:26,type:"sight",name:"最後のコンビニ",text:"この先160km、コンビニなし。補給を買い足す？",min:6,price:600,fx:{hunger:20,spirit:3}},
+   {km:45,type:"note",text:"然別湖への登りで集団から遅れる。その後も抜かれ続ける。",spirit:-4},
+   {km:50,type:"note",text:"日の出を見ながら走る。「午前3時スタートは、思ってたよりすごくいい」",spirit:12},
+   {km:85,type:"note",text:"三国峠はゆるい。平均4%くらいで、ひたすら続くダルい登り。"},
+   {km:100,type:"check",name:"通過チェック 三国峠",photo:"「登りが終わった」と言うと、スタッフ「もう登らない、とは言いませんよ」"},
+   {km:108,type:"note",text:"下りでレックマウントのアダプターが脱落！ ライトは無事。路面は5〜10mおきにヒビ。",spirit:-3},
+   {km:125,type:"sight",name:"タウシュベツ川橋梁",text:"水が引いて、湖底が草原になっている。",min:10,price:0,fx:{spirit:20}},
+   {km:160,type:"sight",name:"上士幌のセブン-イレブン",text:"「ゴミ箱ありません」の張り紙。",min:10,price:500,fx:{hunger:25}},
+   {km:180,type:"note",text:"地元の町からオリジナルタオルと、きなこねじりの差し入れ。",fx:{hunger:8},spirit:10},
+   {km:200,type:"check",name:"PC1 道の駅おとふけ",photo:"「食べられるときに食べておく」"},
+   {km:200.2,type:"sight",name:"納豆ぶっかけそば",text:"冷たい水と、冷たいそば。",min:20,price:800,fx:{hunger:40,temp:-5,spirit:8}},
+   {km:210,type:"note",text:"日中は南風、夜からは北風。一日中向かい風。",spirit:-5},
+   {km:240,type:"note",text:"暑さのピーク。氷と凍らせたボトルでしのぐ。",fx:{temp:10}},
+   {km:255,type:"sight",name:"浦幌のラーメン寳龍",text:"予定していたラーメン。寄っていく？（作者は疲れて判断を誤り、パスして後悔した）",min:30,price:1000,fx:{hunger:55,spirit:15}},
+   {km:262,type:"check",name:"通過チェックD"},
+   {km:275,type:"note",text:"ナウマン国道のアップダウン。60代のベテランに登りで抜かれる。熊鈴の音が追いかけてくる。"},
+   {km:285,type:"note",text:"海が見えた。",spirit:10},
+   {km:305,type:"note",text:"後ブレーキが擦っていた。その場で直す。大樹のバス停でコーラ休憩。"},
+   {km:318,type:"pc",name:"PC2 大樹",chain:"seicomart"},
+   {km:318.2,type:"sight",name:"ホットコーヒーとブリトーと肉まん",text:"浦幌のラーメンを飛ばしたので、ここで夕食。",min:10,price:700,fx:{hunger:35,temp:8}},
+   {km:330,type:"note",text:"日が暮れて寒くなった。レッグウォーマーと長袖。",fx:{temp:-8}},
+   {km:345,type:"note",text:"モバイルバッテリーからiPhoneに充電できない。残り30%。音楽なしで無言で走る。",spirit:-6},
+   {km:360,type:"check",name:"通過チェック 道の駅なかさつない",photo:"どの看板が答えかわからず、引き返して時間をロスした。"},
+   {km:400,type:"goal",name:"ゴール 道の駅おとふけ"}]});
+c23({id:"rs23_722",cls:400,ymd:"2023-07-22",org:RS,region:"道北",url:RS23+"2023brm722%e6%97%ad%e5%b7%9d400/",fee:2200,name:"BRM722 旭川400",dist:400,start:11*60,startName:"旭川市 神楽岡公園",tDay:25,tNight:13,
+  desc:"「やさしい北の国から400」。11時スタート。道内の国道で最も標高の高い三国峠を越えて十勝へ。夜を走って、朝の富良野と美瑛を回る。夜明けの十勝岳アタックはなし。（コースは推定）",goalFood:"朝の美瑛の丘を抜けて、旭川に戻ってきた。",
+  profile:[[0,120],[30,250],[60,650],[90,800],[110,1139],[130,600],[150,450],[170,300],[205,60],[230,150],[255,300],[270,644],[290,400],[320,180],[340,200],[360,300],[380,200],[400,120]],
+  scenery:[[0,"town"],[10,"field"],[45,"mountain"],[130,"forest"],[160,"field"],[200,"town"],[210,"field"],[255,"mountain"],[290,"forest"],[310,"field"],[395,"town"]],
+  heading:[[0,90],[60,120],[110,180],[205,270],[270,300],[320,0],[360,10]],deer:[[40,320]],
+  events:[{km:50,type:"pc",name:"PC1 上川",chain:"seicomart"},{km:60,type:"note",text:"層雲峡。柱状節理の断崖。",spirit:10},
+   {km:110,type:"check",name:"通過チェック 三国峠",photo:"道内の国道で最も高い1,139m。"},
+   {km:170,type:"pc",name:"PC2 上士幌",chain:"seven"},{km:205,type:"pc",name:"PC3 帯広",chain:"lawson"},
+   {km:206,type:"sight",name:"帯広の豚丼",text:"甘辛いタレの豚丼。",min:25,price:1200,fx:{hunger:55,spirit:20}},
+   {km:245,type:"pc",name:"PC4 新得",chain:"seicomart"},{km:270,type:"check",name:"通過チェック 狩勝峠",photo:"夜の峠。十勝平野の明かりが遠い。"},
+   {km:320,type:"pc",name:"PC5 富良野",chain:"seicomart"},
+   {km:330,type:"sight",name:"朝のラベンダー畑",text:"7月の富良野。朝日を浴びた紫の畑。",min:8,price:0,fx:{spirit:25,sleepy:-10}},
+   {km:365,type:"sight",name:"美瑛の丘",text:"パッチワークの丘。",min:6,price:0,fx:{spirit:15}},{km:400,type:"goal",name:"ゴール 旭川 神楽岡公園"}]});
+c23({id:"rs23_805",cls:200,ymd:"2023-08-05",org:RS,region:"道央",url:RS23+"2023brm805maeda200/",name:"BRM805 前田サマーナイト200",dist:200,start:21*60,startName:"札幌（推定）",tDay:24,tNight:15,
+  desc:"伝説の前田200が夜21時スタートで復活。前半は薄野200と同じく定山渓へ、それから中山峠を淡々と登る。獲得標高は3,000mほど。北海道の涼しい夏の夜を、お祭り気分で。PBPの夜スタートの予行演習に。（コースは推定）",goalFood:"夜通し走って、昼前にゴール。PBPの夜スタートの予行演習になった。",
+  profile:[[0,20],[30,250],[45,500],[55,835],[75,300],[100,400],[115,600],[125,700],[140,250],[165,50],[185,30],[200,20]],
+  scenery:[[0,"town"],[15,"forest"],[40,"mountain"],[70,"field"],[95,"forest"],[115,"mountain"],[135,"lake"],[150,"forest"],[165,"field"],[190,"town"]],
+  heading:[[0,230],[30,200],[55,240],[75,180],[100,90],[140,60],[165,350]],deer:[[30,165]],
+  events:[{km:30,type:"note",text:"夜の定山渓。温泉街の明かり。"},{km:55,type:"check",name:"通過チェック 中山峠",photo:"夜の峠。あげいもの店は閉まっている。"},
+   {km:75,type:"pc",name:"PC1 喜茂別",chain:"seicomart"},{km:100,type:"pc",name:"PC2 大滝",chain:"seicomart"},
+   {km:125,type:"note",text:"美笛峠で夜明け。",spirit:12,fx:{sleepy:-15}},{km:140,type:"note",text:"朝の支笏湖。湖面が光っている。",spirit:15},
+   {km:165,type:"pc",name:"PC3 千歳",chain:"lawson"},{km:200,type:"goal",name:"ゴール 札幌"}]});
+// 体験版: the author's 2023 — a chromoly road bike with DH bar, living in Hakodate. Collect the SR by 7/2, then PBP 2023.
+function trialLoad(){try{const s=localStorage.getItem(SAVE_KEY+"-trial"),t=s&&migrate(JSON.parse(s));return t&&t.year?t:null}catch(e){return null}}
 function startTrial(){
-  const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,week:0,money:Math.max(s?s.money:0,150000)});
+  const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,year:2023,week:0,season:1,seasonDone:{},qual:{},pbpReg:true,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:4,lastTrain:0,home:"hakodate",money:150000});
   Object.assign(P.gear,STARTER,{navi:"mid",light_hi:true,jersey:"mid",bib:"mid"});P.bikes=[...new Set([...(P.bikes||[]),"cromo"])];P.bike="cromo";P.parts={...P.parts,dh:"dh",comp:P.parts&&P.parts.comp!=="stock"?P.parts.comp:"ultegra"};
-  P.leg=Math.max(P.leg||22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;P.pbpSnap=null;
-  Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,link:1});
-  say("PBP 2023 体験版",`2023年8月、フランス。\n北海道のブルベで資格をそろえて、4年に一度のパリ〜ブレスト〜パリへ。\n自転車はDHバー付きのクロモリロード。1,222kmを3つのステージに分けて走る。\n${s?"能力はいまのセーブデータから（足りないところは2023年の作者に合わせた）。":"能力は2023年の作者に合わせた。"}本編のセーブには影響しない。`,
-    ()=>enter(pbpStage(0,COURSES.find(c=>c.id==="pbp2023").start,"pbp2023"),0))}
-function trialEnd(){
-  const done=P.pbpDone;
-  say(done?"★ PBP 2023 完走 ★":"PBP 2023 体験版",done?"体験版はここまで。\n2027年のPBPは、本編の続きとして原作開発中。\n来年はPBPだ！":"完走はならなかった。でも、ランブイエのスタートラインに立った。\nもう一度挑戦するなら、タイトルから。",title)}
+  P.leg=Math.max(P.leg||22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;
+  Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,link:1});applyYear(2023);save();
+  say("体験版：2023年シーズン",`2023年4月、函館。\n2月にPBP 2023のプレレジを済ませた。スタートは8月20日21時の最終組。参加費も払ってある。\nあとは7月2日までにSR（200・300・400・600）をそろえて、旅費 ${yen(PBP_TRIP)} を貯めるだけ。\n\n自転車はDHバー付きのクロモリロード。日程は実際の2023年のAJ北海道とランドヌール札幌。\n${s?"能力はいまのセーブデータから（足りないところは2023年の作者に合わせた）。":"能力は2023年の作者に合わせた。"}本編のセーブには影響しない。\nSRが取れなかったり、PBPで完走できなかったりしたら、2027年からやり直せる。`,hub)}
+function to2027(){Object.assign(P,{year:2027,week:0,season:(P.season||1)+1,seasonDone:{},qual:{},pbpReg:false,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:4,lastTrain:0,fatigue:0});applyYear(2027);save();
+  say("2027年4月",`次のPBPは2027年8月。\n6月30日までにSRをそろえて、5月末から始まる本登録をして、旅費 ${yen(PBP_TRIP)} を貯める。\n（2027年の日程は2026年と同じ週末の仮）\nもう一度、ランブイエへ。`,hub)}
+function trialEnd(why){
+  G.mode="hub";showRideUI(false);G.bg={scen:"village",tod:20*60+40,speed:0};
+  const again={label:"2023年をもう一度",desc:"4月の函館から。",fn:startTrial},retry={label:"2027年からやり直す",desc:"いまの自転車と脚のまま、2027年4月からSRを取り直して、次のPBPへ。",fn:to2027};
+  if(P.pbpDone){SFX.win();return menu({title:"★ PBP 2023 完走 ★",text:`パリ〜ブレスト〜パリ 1,222km、完走。\nあなたはもう「アンシエンヌ」——PBPの完走者だ。\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\n\n体験版はここまで。2027年のPBPは、本編の続きとして原作開発中。\n来年はPBPだ！`,items:[{...retry,label:"2027年のPBPも目指す"},again,{label:"タイトルへ",fn:title}]})}
+  const q=pbpQual();
+  menu({title:"PBP 2023 体験版",text:why==="sr"?`7月2日が過ぎた。SRがそろわなかった。\n資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}\nPBP 2023のスタートラインには立てない……。\n次のPBPは2027年。`
+    :P.pbpTried?"PBP 2023は完走できなかった。\nでも、ランブイエのスタートラインに立った。\n次のPBPは2027年。":"PBP 2023には出なかった。\n次のPBPは2027年。",items:[retry,again,{label:"タイトルへ",fn:title}]})}
 const PBP_TIPS=["PBPの「3つのD」：Di2、DHバー、ド根性。","コントロールのレストランで座って食べると、疲れも取れて栄養バランスもいい。いざとなればそのまま席で寝られる。","夜明け前は寒い。コントロールの中で日の出を待つのもあり。","水道水はカルキ臭がきつい。ミネラルウォーターを。","仮眠所の起床は遅れることがある。予備のアラームを。","最終組は前の組を追い越していけば制限を気にしなくていい。","コントロールの飲み物はコーラ、オランジーナ、レッドブルくらい。冷えているとは限らない。","往路600kmを40時間以内に走れれば、完走率がぐんと上がる。"];
 const PBP_STAGES=[[0,450,"ランブイエ → ポンティヴィ"],[450,825,"ポンティヴィ → ブレスト → タンテニアック"],[825,1220,"タンテニアック → ランブイエ"]];
 function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id),ST=B.stages||PBP_STAGES,[a,b,nm]=ST[i],close=B.start+B.limit,sh=k=>Math.round((k-a)*10)/10;
@@ -1095,8 +1355,9 @@ applyYear(2026);
 function weekItems(i){const a=WEEKS[i],b=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6),A=ymdOf(a),B=ymdOf(b);
   return [...COURSES.filter(c=>c.ymd&&!c.memory&&c.ymd>=A&&c.ymd<=B),...EVENTS.filter(e=>e.ymd>=A&&e.ymd<=B)].sort((x,y)=>x.ymd<y.ymd?-1:1)}
 function weekLabel(i){const a=WEEKS[i],s=new Date(a.getFullYear(),a.getMonth(),a.getDate()+4),u=new Date(a.getFullYear(),a.getMonth(),a.getDate()+5);
-  const hol=weekItems(i).some(e=>ymdDate(e.ymd).getDay()===1)?`・${new Date(a.getFullYear(),a.getMonth(),a.getDate()+6).getDate()}(月祝)`:"";
-  return `${s.getMonth()+1}/${s.getDate()}(土)・${u.getMonth()+1}/${u.getDate()}(日)${hol}`}
+  // weekday events (GW 5/4, Monday holidays) show their own day
+  const wd=[...new Set(weekItems(i).map(e=>e.ymd))].map(ymdDate).filter(d=>d.getDay()%6!==0).sort((x,y)=>x-y),f=d=>`${d.getMonth()+1}/${d.getDate()}(${WEEKDAY[d.getDay()]}祝)`;
+  return `${wd.filter(d=>d<s).map(f).map(x=>x+"・").join("")}${s.getMonth()+1}/${s.getDate()}(土)・${u.getMonth()+1}/${u.getDate()}(日)${wd.filter(d=>d>u).map(f).map(x=>"・"+x).join("")}`}
 function weekMonth(i){const a=WEEKS[i];return new Date(a.getFullYear(),a.getMonth(),a.getDate()+4).getMonth()+1}
 
 
@@ -2286,7 +2547,7 @@ function goal(ev){
   if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
   const r=recOf(C.id);r.done++;if(r.best==null||el<r.best)r.best=el;
   P.seasonDone[C.cls]=(P.seasonDone[C.cls]||0)+1;
-  if(YEAR===2027&&!C.pbp&&C.ymd<="2027-06-30"){P.qual=P.qual||{};P.qual[C.cls]=true}
+  if(QUAL_BY[YEAR]&&!C.pbp&&C.ymd<=QUAL_BY[YEAR]){P.qual=P.qual||{};P.qual[C.cls]=true}
   if(C.pbp)P.pbpDone=true;
   SFX.win();G.mode="goal";
   endRun(`完走！ ${dur(el)}`,`${ev.name} ${fmt(tod(R.t))} 着。\n${C.goalFood}\n認定おめでとう！`,{fatigue:Math.round(C.dist/8),grow:C.dist});
@@ -2351,7 +2612,8 @@ function title(){
   menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道・ランドヌール札幌・AJたまがわ（青森）のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
     {label:"はじめから",fn:()=>{if(s)menu({title:"セーブデータを消して最初から？",items:[{label:"消して始める",fn:()=>{wipe();startNew()}},{label:"やめる",fn:title}],cancel:title});else startNew()}},
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
-    {label:"PBP 2023 体験版（3ステージ）",desc:"作者が実際に走った2023年のパリ〜ブレスト〜パリ 1,222km。本編のセーブには影響しない。",fn:startTrial},
+    {label:"体験版：2023年シーズン → PBP 2023",desc:"作者の2023年。4月から実際の日程の北海道のブルベでSRをそろえて、8月のパリ〜ブレスト〜パリ 1,222kmへ。本編のセーブには影響しない。",fn:()=>{const t=trialLoad();if(!t)return startTrial();
+      menu({title:"体験版：2023年シーズン",items:[{label:"つづきから",note:`${t.year}年 第${t.week+1}週`,fn:()=>{P=t;hub()}},{label:"はじめから",fn:startTrial},{label:"もどる",fn:title}],cancel:title})}},
     {label:"音の設定",fn:()=>menu({title:"音の設定",items:[...soundItems(title),{label:"もどる",fn:title}],cancel:title})},
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
@@ -2430,16 +2692,17 @@ function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
 function hub(){
   if(P.test)return testMenu();
   if(YEAR!==(P.year||2026))applyYear(P.year||2026);
+  if(YEAR===2023){if(P.pbpTried||P.week>=WEEKS.length)return trialEnd();if(ymdOf(WEEKS[P.week])>QUAL_BY[2023]&&!Object.values(pbpQual()).every(Boolean))return trialEnd("sr")}
   if(P.week>=WEEKS.length||(P.pbpTried&&YEAR===2027))return seasonEnd();
   {const m=wishCheck();if(m){save();SFX.win();return say("ほしい物リスト",m,hub)}}
   G.mode="hub";showRideUI(false);G.bg={scen:homeOf().scen,tod:12*60,speed:0};save();
   const wk=P.week,items=[],ev=weekItems(wk),fat=Math.round(P.fatigue||0);
   for(const it of ev){const c=costOf(it),done=it.kind==="brm"&&P.rec[it.id]&&P.rec[it.id].done;
     if(it.pbp){const q=pbpQual(),full=Object.values(q).every(Boolean),why=!P.pbpReg?"本登録していない。":!full?"資格のブルベ（200・300・400・600）がそろっていない。":P.money<c?`旅費が足りない（${yen(c)}）。`:"";
-      items.push({label:"【最終ステージ】PBP 2027 パリ〜ブレスト〜パリ",note:"8/22(日)",disabled:!!why,desc:`${it.desc}\n旅費（航空券・輪行・ランブイエの宿）${yen(c)}${why?"\n出られない："+why:"\nいよいよフランスへ！"}`,fn:()=>enter(it,c)});continue}
+      items.push({label:`【最終ステージ】PBP ${YEAR} パリ〜ブレスト〜パリ`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:!!why,desc:`${it.desc}\n旅費（航空券・輪行・ランブイエの宿）${yen(c)}${why?"\n出られない："+why:"\nいよいよフランスへ！"}`,fn:()=>{P.pbpSnap=null;enter(pbpStage(0,it.start,it.id),c)}});continue}
     // 連戦可: a later brevet this week starts after this one's time limit, so you can ride straight on from the finish.
     const next=it.kind==="brm"?ev.filter(n=>n.kind==="brm"&&(ymdDate(n.ymd)-ymdDate(it.ymd))/864e5>Math.floor(((it.start||420)+it.limit)/1440)):[];
-    items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}${it.tent?"（仮）":""}${next.length?"【連戦可】":""}${YEAR===2027&&it.kind==="brm"&&it.ymd<="2027-06-30"?"【PBP資格】":""}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
+    items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}${it.tent?"（仮）":""}${next.length?"【連戦可】":""}${QUAL_BY[YEAR]&&it.kind==="brm"&&it.ymd<=QUAL_BY[YEAR]?"【PBP資格】":""}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
       desc:eventDesc(it,c)+(done?"　（認定済み）":"")+(next.length?`\n連戦可：完走後、そのまま「${next.map(n=>n.name.replace(/^BRM\d+ /,"")).join("」「")}」に出られる。`:""),fn:()=>enter(it,c)})}
   if(!ev.length)items.push({label:"今週はイベントなし",disabled:true});
   if(YEAR===2027&&!P.pbpReg){const a=WEEKS[wk],e=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6);if(ymdOf(e)>="2027-05-29"&&ymdOf(a)<="2027-07-04"){const n=pbpQualCount();
@@ -2457,11 +2720,11 @@ function hub(){
   items.push({label:"ステータス",fn:status});
   items.push({label:"仲間",fn:friendsView});
   items.push({label:"タイトルへ",fn:title});
-  menu({title:`${P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
+  menu({title:`${YEAR!==2026?YEAR+"年 ":P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
     text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
 }
 function pbpLine(){if(YEAR===2026)return `来年2027年はPBP（パリ〜ブレスト〜パリ）の年。旅費の目安 ${yen(PBP_TRIP)}。\n`;
-  const q=pbpQual();return `PBPへの道：資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}（6/30まで）　登録 ${P.pbpReg?"済":"まだ"}　旅費 ${yen(Math.min(P.money,PBP_TRIP))}/${yen(PBP_TRIP)}\n`}
+  const q=pbpQual(),d=QUAL_BY[YEAR];return `PBPへの道：資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}（${+d.slice(5,7)}/${+d.slice(8)}まで）　登録 ${P.pbpReg?"済":"まだ"}　旅費 ${yen(Math.min(P.money,PBP_TRIP))}/${yen(PBP_TRIP)}\n`}
 function seasonSummary(){const d=P.seasonDone||{};const s=[200,300,400,600,1000].filter(k=>d[k]).map(k=>`${k}×${d[k]}`).join(" ");return s||"まだなし"}
 
 // Practice value of non-brevet rides. Derived from distance and climbing, then flavoured per event.
@@ -2525,16 +2788,15 @@ function startTest(){
 }
 function testMenu(){
   G.mode="hub";showRideUI(false);G.bg={scen:homeOf().scen,tod:12*60,speed:0};P.fatigue=0;if(P.money<500000)P.money=9999999;
-  const all=[...COURSES,...EVENTS].sort((a,b)=>a.ymd<b.ymd?-1:1);
+  const all=[...COURSES,...EVENTS].filter(it=>it.ymd||it.y23).sort((a,b)=>(a.ymd||a.y23)<(b.ymd||b.y23)?-1:1);
   menu({title:"テストモード",text:`好きなブルベ・イベントを選べる（週は進まない、疲労なし）。\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　愛車 ${bikeOf().name}`,items:[
-    ...all.filter(it=>!it.pbp).map(it=>({label:`${it.kind==="brm"?it.cls+"km ":`【${KIND_LABEL[it.kind]}】`}${it.name.replace(/^BRM\d+ /,"")}`,note:jpDate(it.ymd).replace(/\(.\)$/,""),desc:eventDesc(it,costOf(it)),fn:()=>enter(it,0)})),
+    ...all.filter(it=>!it.pbp).map(it=>({label:`${it.kind==="brm"?it.cls+"km ":`【${KIND_LABEL[it.kind]}】`}${it.name.replace(/^BRM\d+ /,"")}`,note:(it.ymd?"":"2023 ")+jpDate(it.ymd||it.y23).replace(/\(.\)$/,""),desc:eventDesc(it,costOf(it)),fn:()=>enter(it,0)})),
     {label:"【最終ステージ】PBP 2027（3ステージ・開発中）",desc:"1,220kmを約400kmずつ3ステージで。ステータスは次のステージに引き継ぐ。",fn:()=>{P.pbpSnap=null;enter(pbpStage(0,COURSES.find(c=>c.id==="pbp2027").start),0)}},
     {label:"サイクルショップ",fn:shopMenu},
     {label:"能力を変える",desc:"巡航速度を選ぶたびに+2km/h（32で22に戻る）。",fn:()=>{P.leg=P.leg>=31?22:P.leg+2;save();testMenu()}},
     {label:"タイトルへ",fn:title}],keep:true,cancel:title});
 }
 function nextWeek(){
-  if(P.trial)return trialEnd();
   if(P.test){save();return testMenu()}
   P.week++;P.fatigue=clamp((P.fatigue||0)-12,0,100);
   const msgs=[];
