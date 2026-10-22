@@ -2036,6 +2036,11 @@ function speed(){
   v*=legFatigue()*(R.limp||1);
   v*=1+0.06*R.train.length;
   if(R.course.pbp)v*=1.05; // thousands of riders: there is always a wheel to follow
+  // a broken number (old saves, old snapshots) must never stop the ride: repair once, then fall back
+  if(!Number.isFinite(v)){if(!R.f.nanFix){R.f.nanFix=true;migrate(P);
+      for(const [k,d] of R_DEFAULT)if(R[k]!==undefined&&R[k]!==null&&!Number.isFinite(R[k]))R[k]=d;
+      return speed()}
+    return 15}
   return Math.max(3,v);
 }
 
@@ -2068,7 +2073,9 @@ function simStep(dm){
   if(randomTrouble(dk,night))return;
   checkStates(night);
 }
+const R_DEFAULT=[["temp",50],["stamina",50],["staMax",100],["hunger",50],["spirit",50],["spiMax",100],["sleepy",0],["load",0],["legKm",0],["limp",1],["stuffed",0],["light",0],["phone",50]];
 function drain(dm,g,night){
+  for(const [k,d] of R_DEFAULT)if(R[k]!==undefined&&R[k]!==null&&!Number.isFinite(R[k]))R[k]=d; // never let a broken number stall the ride
   if(R.stuffed>0){R.stuffed=Math.max(0,R.stuffed-dm);if(!R.stuffed)log("お腹が落ち着いてきた。")}
   const h=dm/60,B=bikeOf();
   const tr=R.train.length?1:0;
