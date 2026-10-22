@@ -53,6 +53,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--pixel);font-size:15p
 .opt.sel{background:#1c1c3c}
 .opt:focus-visible{outline:2px solid var(--gold)}
 .opt[disabled]{color:var(--mute);cursor:default}
+.w-slider{align-items:center;cursor:default;padding-block:6px}
+.w-slider .lbl{white-space:nowrap}
+.w-slider input{flex:1;min-width:0;height:28px;margin:0;accent-color:var(--gold);cursor:pointer;touch-action:pan-x}
+.w-slider .note{min-width:2.5em;text-align:right}
 .opt small{font-size:12px;color:var(--green)}
 .opt[disabled] small{color:var(--mute)}
 .w-sec{font-size:12px;color:var(--gold);letter-spacing:0.05em;padding:6px 4px 0;border-bottom:1px dashed var(--mute)}
@@ -1779,11 +1783,15 @@ function bgmFor(){
   if(m==="ride"&&R)return R.course.pbp?"pbp":R.effort?"race":raining()?"rain":isNight(R.t)?"night":"day";
   return {title:"title",hub:"hub",pre:"hub",pc:"pc",goal:"goal",dnf:"dnf"}[m]||null;
 }
-// 音の設定（メニューの項目）
-function soundItems(back){
-  const o=BQA.get();
-  return [{label:o.bgmOn?"音楽を消す":"音楽を鳴らす",fn:()=>{BQA.set({bgmOn:!o.bgmOn});back()}},
-          {label:o.sfxOn?"効果音を消す":"効果音を鳴らす",fn:()=>{BQA.set({sfxOn:!o.sfxOn});back()}}];
+// 音の設定の画面（タイトルとひと休みのメニューから）。音楽・効果音のオン・オフと音量（0〜100）。保存は localStorage（SAVE_KEY+"-sound"）
+function soundMenu(back){
+  const o=BQA.get(),again=()=>soundMenu(back);
+  menu({title:"音の設定",items:[
+    {label:o.bgmOn?"音楽を消す":"音楽を鳴らす",fn:()=>{BQA.set({bgmOn:!o.bgmOn});again()}},
+    {label:"音楽の音量",slider:true,value:()=>BQA.get().bgmVol,set:v=>BQA.set({bgmVol:v})},
+    {label:o.sfxOn?"効果音を消す":"効果音を鳴らす",fn:()=>{BQA.set({sfxOn:!o.sfxOn});again()}},
+    {label:"効果音の音量",slider:true,value:()=>BQA.get().sfxVol,set:v=>BQA.set({sfxVol:v}),done:()=>BQA.sfx("ok")},
+    {label:"もどる",fn:back}],cancel:back});
 }
 
 /* ================= UI (message window) ================= */
@@ -1803,7 +1811,9 @@ function renderWin(){
   if(UI.text)h+=`<div class="w-text">${UI.text}</div>`;
   if(UI.live)h+=`<div class="w-live" id="w-live">${UI.live()}</div>`;
   h+=`<div class="w-list">`;
-  UI.items.forEach((it,i)=>{if(it.header){h+=`<div class="w-sec">${it.label}</div>`;return}h+=`<button class="opt${i===UI.idx?" sel":""}" data-i="${i}"${it.disabled?" disabled":""}><span class="lbl">${it.label}</span>${it.note?`<span class="note">${it.note}</span>`:""}</button>`});
+  UI.items.forEach((it,i)=>{if(it.header){h+=`<div class="w-sec">${it.label}</div>`;return}
+    if(it.slider){const v=it.value();h+=`<div class="opt w-slider${i===UI.idx?" sel":""}" data-i="${i}"><span class="lbl">${it.label}</span><input type="range" min="0" max="100" step="5" value="${v}" data-s="${i}" aria-label="${it.label}"><span class="note">${v}</span></div>`;return}
+    h+=`<button class="opt${i===UI.idx?" sel":""}" data-i="${i}"${it.disabled?" disabled":""}><span class="lbl">${it.label}</span>${it.note?`<span class="note">${it.note}</span>`:""}</button>`});
   h+=`</div>`;
   if(UI.items.some(i=>i.desc))h+=`<div class="w-desc">${(UI.items[UI.idx]&&UI.items[UI.idx].desc)||""}</div>`;
   w.innerHTML=h;
@@ -1814,7 +1824,7 @@ function renderIdle(){
   else w.innerHTML="";
 }
 function choose(i){
-  const it=UI.items[i];if(!it||it.disabled)return;
+  const it=UI.items[i];if(!it||it.disabled||it.slider)return;
   SFX.sel();UI.open=false;
   if(it.fn)it.fn();
   if(!UI.open)renderIdle();
@@ -1826,11 +1836,16 @@ function moveSel(d){
   UI.idx=i;renderWin();BQA.sfx("sel");
 }
 $("#win").addEventListener("click",e=>{const b=e.target.closest(".opt");if(b)choose(+b.dataset.i)});
+// スライダー：動かしている間は値だけ書き換える（窓は作り直さない）
+function slideTo(i,v){const it=UI.items[i];if(!it||!it.slider)return;v=clamp(Math.round(v/5)*5,0,100);it.set(v);const s=$("#win").querySelector(`input[data-s="${i}"]`);if(s){s.value=v;s.nextElementSibling.textContent=v}}
+$("#win").addEventListener("input",e=>{const s=e.target.closest("input[data-s]");if(s)slideTo(+s.dataset.s,+s.value)});
+$("#win").addEventListener("change",e=>{const s=e.target.closest("input[data-s]");if(s){const it=UI.items[+s.dataset.s];if(it&&it.done)it.done()}});
 $("#win").addEventListener("mouseover",e=>{const b=e.target.closest(".opt");if(b&&!b.disabled&&+b.dataset.i!==UI.idx){UI.idx=+b.dataset.i;renderWin()}});
 addEventListener("keydown",e=>{
   if(UI.open){
     if(e.key==="ArrowDown"){moveSel(1);e.preventDefault()}
     else if(e.key==="ArrowUp"){moveSel(-1);e.preventDefault()}
+    else if((e.key==="ArrowLeft"||e.key==="ArrowRight")&&UI.items[UI.idx]&&UI.items[UI.idx].slider){const it=UI.items[UI.idx];slideTo(UI.idx,it.value()+(e.key==="ArrowRight"?5:-5));if(it.done)it.done();e.preventDefault()}
     else if(["Enter"," ","z","Z"].includes(e.key)){choose(UI.idx);e.preventDefault()}
     else if(["Escape","x","X"].includes(e.key)&&UI.cancel){SFX.sel();UI.open=false;UI.cancel();if(!UI.open)renderIdle()}
     return;
@@ -2442,7 +2457,7 @@ function pauseMenu(){
   items.push({label:"道端で仮眠する",note:"15分",desc:"眠気・気力・体力が回復するが、体が冷える。",fn:()=>nap(15,"15分だけ目を閉じた。少し楽になった。")});
   items.push({label:"しっかり仮眠する",note:"45分",desc:"バス停や道の駅のベンチで。",fn:()=>nap(45,"バス停のベンチで45分眠った。体が冷えた。")});
   items.push({label:"道の駅で眠る",note:"90分",desc:"寝袋代わりにエマージェンシーシートをかぶって。90分以上眠ると、たまった眠気と脚の疲れがかなり抜ける。",fn:()=>nap(90,"道の駅の軒下で90分眠った。頭がすっきりした。")});
-  items.push(...soundItems(()=>{}));
+  items.push({label:"音の設定",desc:"音楽と効果音のオン・オフと音量。",fn:()=>soundMenu(pauseMenu)});
   items.push({label:"リタイアする",fn:()=>menu({title:"本当にリタイアする？",items:[{label:"やめない",fn:()=>{}},{label:"リタイアする",fn:()=>dnf("自分の判断でリタイアした。")}],cancel:()=>{}})});
   menu({title:"ひと休み（時間は止まっている）",text:`${R.course.name}\n${R.train.length?"トレイン："+R.train.map(m=>FRIENDS[m.id].name).join("、"):"ソロで走行中"}`,items,cancel:()=>{}});
 }
@@ -2515,7 +2530,7 @@ function recOf(id){return P.rec[id]||(P.rec[id]={done:0,dnf:0,best:null})}
 function goal(ev){
   const C=R.course,close=C.start+C.limit,el=R.t-(C.baseId?COURSES.find(c=>c.id===C.baseId).start:C.start);
   if(C.pbp&&C.stage!=null&&C.stage<(C.stages||PBP_STAGES).length-1){if(R.t>close)return dnf(`${ev.name} ${fmt(tod(R.t))} 着。制限時間を過ぎてしまった……。`);const miss=controls().filter(c=>!R.receipts[c.km]&&c.type!=="goal");if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
-    SFX.win();G.mode="goal";const done=(C.stages||PBP_STAGES)[C.stage][1],place=ev.name.replace(/^第\dステージ ゴール：/,""),B=COURSES.find(c=>c.id===C.baseId);
+    G.mode="goal";const done=(C.stages||PBP_STAGES)[C.stage][1],place=ev.name.replace(/^第\dステージ ゴール：/,""),B=COURSES.find(c=>c.id===C.baseId);
     const show=(msg)=>menu({title:`第${C.stage+1}ステージ クリア！`,text:`${msg?msg+"\n\n":""}${place} ${fmt(tod(R.t))}。　ヒント：${PBP_TIPS[Math.floor(Math.random()*PBP_TIPS.length)]}\n\n${done}km / ${B.dist.toLocaleString("ja-JP")}km　スタートから ${dur(R.t-B.start)}\n制限まで あと ${dur(close-R.t)}\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,items:[
       {label:"コントロールの食堂で食べる　<small>満腹+50 体力+25</small>",note:"25分・¥1,500",disabled:P.money<1500,fn:()=>{R.t+=25;P.money-=1500;fx({hunger:50,stamina:25,spirit:10});R.lastMeal=R.t;show("パスタとチキン、デザートにライスプディング。")}},
       {label:"ドルトワールで1時間半眠る",note:"¥1,800",disabled:P.money<1800,fn:()=>{P.money-=1800;R.t+=90;rest(90);R.sleepy=clamp(R.sleepy-90*1.4,0,100);fx({spirit:30,stamina:30});show("体育館に並んだ簡易ベッドで眠った。ボランティアが時間どおりに起こしてくれた。")}},
@@ -2523,10 +2538,10 @@ function goal(ev){
       {label:`第${C.stage+2}ステージへ`,fn:()=>pbpNext(C.stage+1)}]});
     return show("")}
   if(C.race)return raceResult(el);
-  if(C.kind==="cafe"){SFX.win();G.mode="goal";P.fp[C.friend]=clamp(P.fp[C.friend]+12,0,100);
+  if(C.kind==="cafe"){G.mode="goal";P.fp[C.friend]=clamp(P.fp[C.friend]+12,0,100);
     const tr=applyTrain(trainFx({id:"cafe",kind:"cafe",dist:C.dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}));
     return endRun("楽しかった！",`${FRIENDS[C.friend].name}とのカフェライド。\n「次のブルベ、一緒に走りましょう」\n${FRIENDS[C.friend].name}との友情 +12\n練習効果：${tr}`,{fatigue:4})}
-  if(C.kind!=="brm"){SFX.win();G.mode="goal";(R.present||[]).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
+  if(C.kind!=="brm"){G.mode="goal";(R.present||[]).forEach(id=>{if(R.train.some(m=>m.id===id)||Math.random()<0.4)P.fp[id]=clamp(P.fp[id]+8,0,100)});
     const tr=applyTrain(trainFx(C.ev));
     return endRun(`完走！ ${dur(el)}`,`${C.name}を走りきった。\n練習効果：${tr}\nゴール会場で仲間たちとおしゃべり。友情が少し深まった。${C.ev&&C.ev.id==="assabu"?"\n石窯ピザと焼肉食べ放題、そして豪華すぎるおみやげ。":""}`,{fatigue:Math.round(C.dist/12),spirit:true})}
   if(R.t>close)return dnf(`${ev.name} ${fmt(R.t)} 着。制限時間 ${fmt(close)} を過ぎての時間外ゴール。認定はもらえなかった……。`);
@@ -2536,7 +2551,7 @@ function goal(ev){
   P.seasonDone[C.cls]=(P.seasonDone[C.cls]||0)+1;
   if(QUAL_BY[YEAR]&&!C.pbp&&C.ymd<=QUAL_BY[YEAR]){P.qual=P.qual||{};P.qual[C.cls]=true}
   if(C.pbp)P.pbpDone=true;
-  SFX.win();G.mode="goal";
+  G.mode="goal";
   endRun(`完走！ ${dur(el)}`,`${ev.name} ${fmt(tod(R.t))} 着。\n${C.goalFood}\n認定おめでとう！`,{fatigue:Math.round(C.dist/8),grow:C.dist});
 }
 // Rank against a field of typical amateurs, simulated on the same course and weather.
@@ -2554,7 +2569,7 @@ function raceResult(el){
   if(rank<=3){prize=`\n表彰台！ 副賞で地元の名産品と賞金 ${yen(10000)} をもらった。`;P.money+=10000}
   else if(rank<=n*0.1)prize="\n上位10%！ 仲間に自慢できる。";
   prize+="\n練習効果："+applyTrain(trainFx(C.ev));
-  SFX.win();G.mode="goal";
+  G.mode="goal";
   endRun(`${rank}位 / ${n}人`,`${C.name}　タイム ${Math.floor(el)}分${String(Math.round((el%1)*60)).padStart(2,"0")}秒\n（参考：真ん中くらいの参加者 ${Math.round(ref)}分）${prize}`,{fatigue:15,...bonus});
 }
 function dnf(reason){if(G.mode==="dnf"||G.mode==="goal")return;recOf(R.course.id).dnf++;SFX.bad();G.mode="dnf";
@@ -2601,7 +2616,7 @@ function title(){
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
     {label:"体験版：2027年シーズン（仮） → PBP",desc:"PBPを完走するまでのストーリー。作者がPBPを目指した2023年の日程（2027年の同じ週末に置いた仮）で北海道のブルベに出てSRをそろえ、8月のパリ〜ブレスト〜パリ 1,220kmへ。本編のセーブには影響しない。",fn:()=>{const t=trialLoad();if(!t)return startTrial();
       menu({title:"体験版：2027年シーズン（仮）",items:[{label:"つづきから",note:`${t.year}年 第${t.week+1}週`,fn:()=>{P=t;hub()}},{label:"はじめから",fn:startTrial},{label:"もどる",fn:title}],cancel:title})}},
-    {label:"音の設定",fn:()=>menu({title:"音の設定",items:[...soundItems(title),{label:"もどる",fn:title}],cancel:title})},
+    {label:"音の設定",fn:()=>soundMenu(title)},
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
 }
