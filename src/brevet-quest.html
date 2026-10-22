@@ -207,8 +207,8 @@ function wearName(id){const g=GEAR.find(x=>x.id===id),k=gearTier(id);return WEAR
 // worn during this ride and not broken
 function hasGear(id){return !!P.gear[id]&&!(R&&R.broken&&R.broken[id])}
 const PACK=[
-  {id:"kit",name:"修理キット(ポンプ・タイヤレバー)",w:0.22,max:1,desc:"パンクを自分で直すのに必要。チューブは別に持っていく。"},
-  {id:"tube",name:"予備チューブ",w:0.13,max:4,buy:1000,desc:"1本で1回パンクを直せる。仲間に渡すこともできる。使った分はなくなるので、前日の準備で買い足す。"},
+  {id:"kit",name:"修理キット(ポンプ・タイヤレバー・パッチ・プラグ)",w:0.24,max:1,desc:"パンクを自分で直すのに必要。チューブは別に持っていく。パッチで直すと、チューブは減らないけど時間が倍かかる。チューブレスならプラグで塞げる。"},
+  {id:"tube",name:"予備チューブ",w:0.13,max:4,buy:1000,desc:"1本で1回パンクを直せる。仲間に渡すこともできる。使った分はなくなるので、前日の準備で買い足す。チューブレスでも、もしものときに入れて走れる。"},
   {id:"link",name:"ミッシングリンク",w:0.03,max:1,desc:"チェーントラブルをその場で直せる。"},
   {id:"wind",name:"ウインドブレーカー",w:0.2,max:1,needs:"wind",desc:"寒くなったら着る。"},
   {id:"rain",name:"レインウェア上下",w:0.35,max:1,needs:"rain",desc:"雨が降ったら着る。"},
@@ -2233,19 +2233,26 @@ function helper(){
 }
 function troublePuncture(){
   SFX.bad();fx({spirit:-8});
-  if(partStat().sealant&&Math.random()<0.5){R.t+=2;log("プシュッ……シーラントが穴を塞いだ。チューブレス最高！");return}
+  const tl=!!partStat().sealant;
+  if(tl&&Math.random()<0.5){R.t+=2;log("プシュッ……シーラントが穴を塞いだ。チューブレス最高！");return}
   const h=helper(),items=[],can=R.kit&&R.tubes>0;
-  if(can){
+  // tubeless: a plug first; the spare tube is the last resort (sealant everywhere)
+  if(tl&&R.kit)items.push({label:"プラグを差し込む",note:"10分",desc:"穴にタイヤプラグを押し込んで空気を入れる。大きな穴だと止まらないことも。",fn:()=>{R.t+=10;
+    if(Math.random()<0.75){fx({spirit:5});log("プラグがきいた。チューブレスのまま走れる。")}else{say("止まらない……","穴が大きすぎて、プラグでも空気が漏れる。チューブを入れるしかない。",troublePuncture)}}});
+  if(can&&tl)items.push({label:"チューブを入れる",note:"20分",desc:"タイヤを外してチューブを入れる。手がシーラントでベトベトになる。",fn:()=>{useTube();R.t+=20;log("シーラントまみれになりながら、チューブを入れた。")}});
+  if(can&&!tl){
     items.push({label:"急いで直す",note:"8分",desc:"チューブだけ替えてすぐ出発。タイヤの異物を見落とすと、またパンクするかも。",fn:()=>{useTube();R.t+=8;
       if(Math.random()<0.35){R.cool=0;R.repunct=R.km+rnd(2,10);say("しまった……","急いだせいで、タイヤに刺さったガラス片を取り忘れたかもしれない。","")}else log("急いで直した。うまくいった！")}});
     items.push({label:"丁寧に直す",note:"18分",desc:"タイヤの内側を指でなぞって異物を探す。時間はかかるが確実。",fn:()=>{useTube();R.t+=18;fx({spirit:5});log("小さなガラス片を見つけて取り除いた。これで安心。")}});
   }
+  // the kit has patches: twice the time of a careful tube swap, but no tube used
+  if(R.kit&&!tl)items.push({label:"パッチで直す",note:"36分",desc:"修理キットのパッチで、パンクしたチューブの穴をふさぐ。チューブは減らないけど、時間は倍かかる。",fn:()=>{R.t+=36;fx({spirit:3});log("チューブの穴を探して、パッチを貼った。ついでにガラス片も取り除いた。")}});
   items.push({label:"誰かが来るのを待つ",note:"?分",desc:h?`${h.name}が近くにいるはず。`:"仲間か、通りかかる参加者を待つ。",fn:()=>{
     if(h&&Math.random()<0.8){R.t+=12;P.fp[h.id]=clamp(P.fp[h.id]+3,0,100);fx({spirit:5});return say("助かった！",`${h.name}が${h.how}。チューブとポンプを貸してくれて、一緒に直した。（12分）`)}
     if(Math.random()<0.5){const m=Math.round(rnd(15,25));R.t+=m;return say("通りかかった！",`後ろから来た参加者が止まってくれた。（${m}分）\n「お互いさまですよ」`)}
     R.t+=45;fx({spirit:-15});say("誰も来ない……","45分待って、ようやく通りかかった参加者がチューブとポンプを貸してくれた。")}});
   items.push({label:"リタイアする",fn:()=>dnf("パンクでリタイアした。")});
-  menu({title:"パンク！",text:can?"後輪から空気が抜けていく……。どう直す？":R.kit?"もうチューブがない！":"修理キットを持ってきていない！",items});
+  menu({title:"パンク！",text:tl?"シーラントでも塞がらない……。どう直す？":can?"後輪から空気が抜けていく……。どう直す？":R.kit?"もうチューブがない！ パッチで直すしかない。":"修理キットを持ってきていない！",items});
 }
 function troubleChain(){
   SFX.bad();const h=helper(),items=[];
