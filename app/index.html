@@ -155,9 +155,9 @@ const GEAR=[
   {id:"whistle",cat:"小物",name:"鹿避け笛",price:1500,desc:"効くかどうかは……。大声のほうが効く説あり。"},
   {id:"spike",cat:"冬",name:"スパイクタイヤ（前後）",price:30000,desc:"12〜3月も外を走れる。凍った路面でもよく効く。ただ、車のわだちで横にすべると転ぶことがある。"},
   {id:"spike_pro",cat:"冬",name:"高級スパイクタイヤ（前後）",price:60000,desc:"ピンの多い高級品（Ice Spiker Pro級）。横すべりで転ぶことが少し減る。"},
-  {id:"roller3",cat:"室内",name:"三本ローラー",price:25000,desc:"ローラー練ができる。バランスを取りながら回すので、ペダリングがきれいになる。効果はスマートトレーナーの8割くらい。"},
-  {id:"fitbike",cat:"室内",name:"フィットネスバイク",price:35000,desc:"ローラー練ができる。自転車を載せ替えなくていいので、テレビを見ながら気軽に漕げる。効果はスマートトレーナーの6割くらい。"},
-  {id:"trainer",cat:"室内",name:"スマートトレーナー",price:110000,desc:"ローラー練ができる。家でZwift。天気に関係なく、いちばん効果が高い。"},
+  {id:"roller3",cat:"室内",name:"三本ローラー",price:25000,desc:"ローラー練だけができる。バランスを取りながら回すので、ペダリングがきれいになる。効果はスマートトレーナーの8割くらい。"},
+  {id:"trainer",cat:"室内",name:"スマートトレーナー",price:100000,desc:"家でZwift。ローラー練に加えて、峠練もロング練も家でできる（冬でもスパイクタイヤなしで）。"},
+  {id:"fitbike",cat:"室内",name:"フィットネスバイク",price:200000,desc:"いちばん高い、据え置きのスマートバイク。自転車を載せ替えずにすぐ漕げて、ローラー練・峠練・ロング練が家でできる。"},
   {id:"rinko",cat:"輪行",name:"輪行袋",price:5000,desc:"前日の準備で持っていくと、リタイアしたときに自転車を袋に詰めて電車やバスで帰れる。ブルベにスタッフの回収車はない。"},
   {id:"hardcase",cat:"輪行",name:"飛行機輪行用ハードケース",price:40000,desc:"PBPの飛行機輪行で自転車を守る。カーボンフレームなら持っておきたい。"},
   {id:"rain",cat:"ウェア",name:"レインウェア上下",price:12000,desc:"前日の準備で持っていくと、雨のときに着られる。着ないと靴まで水没して体が冷える。"},
@@ -1381,7 +1381,7 @@ function winterPrep(){
     fn:()=>{P.money-=GEAR.find(g=>g.id===id).price;P.gear[id]=true;SFX.ok();save();say("買った！",t,hub)}});
   menu({title:"冬の準備",text:`冬の間、自転車に乗らないとなまってしまうな……。\n所持金 ${yen(P.money)}`,items:[
     buy("spike","これで冬も外を走れる。凍った道も怖くない。"),buy("spike_pro","ピンの多い高級品。わだちで横すべりしにくい。"),
-    buy("roller3","バランスを取りながら回す。落ちないように……。"),buy("fitbike","テレビを見ながら気軽に漕げる。"),buy("trainer","これで冬は家でZwift三昧だ。"),
+    buy("roller3","バランスを取りながら回す。落ちないように……。"),buy("trainer","これで冬は家でZwift三昧だ。"),buy("fitbike","いちばんいいやつを買ってしまった……。"),
     {label:"買わずに、市の体育館で運動する",note:"1回 ¥500",desc:"エアロバイクと筋トレ。スマートトレーナーより効果は低いけど、体重が増えるのは抑えられる。",fn:()=>say("市の体育館","冬は市の体育館のトレーニングルームに通おう。\nスパイクタイヤやローラーは、あとからショップでも買える。",hub)}],cancel:null})}
 function trialEnd(why){
   G.mode="hub";showRideUI(false);G.bg={scen:"village",tod:20*60+40,speed:0};
@@ -2072,7 +2072,10 @@ function drain(dm,g,night){
   const rz=zone(R.course.rough,R.km);if(rz&&!hasGear("bib"))sp+=rz[3]==="butt"?10:4;else if(rz&&tierOf("bib").t<0)sp+=2;
   R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1)*(R.course.pbp?0.8:1),0,R.spiMax||100);
   R.lo={sta:Math.min(R.lo?.sta??1,R.stamina/R.staMax),spi:Math.min(R.lo?.spi??1,R.spirit/(R.spiMax||100)),slp:Math.max(R.lo?.slp??0,R.sleepy/100)};
-  let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
+  // working hard warms you, climbing hard even more; a fast descent is wind chill
+  const work=R.effort?{slow:2,normal:4,hard:6}[R.pace]:{slow:-2,normal:0,hard:4}[R.pace];
+  const up=Math.max(0,g)*0.8*(R.pace==="hard"?1.4:R.pace==="slow"?0.7:1),down=g<-2?Math.min(12,speed()/4):0;
+  let eff=amb+up+work-down-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
   eff+=(hasGear("winter")?4+tierOf("winter").t*0.5:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
   if(R.course.snow&&hasGear("winter"))eff+=12; // full winter kit; without it, the cold wins
   // 50 is just right. Below 14°C felt it pulls you colder, above 20°C hotter; the body follows over ~40 minutes.
@@ -2908,7 +2911,8 @@ function pbpBike(it,c){
 function winterWeek(i=P.week){return YEAR!==2026&&[12,1,2,3].includes(weekMonth(i))}
 function spikeOn(){return !!(P.gear.spike||P.gear.spike_pro)}
 // Indoor training needs a device; climbing and long rides mean going outside (spikes in winter); dieting needs nothing.
-const INDOOR=[["trainer",1],["roller3",0.8],["fitbike",0.6]];
+const INDOOR=[["fitbike",1],["trainer",1],["roller3",0.8]];
+function smartDev(){return P.gear.fitbike?"fitbike":P.gear.trainer?"trainer":null} // climbs and long rides indoors too
 function indoorDev(){return INDOOR.find(([id])=>P.gear[id])}
 function outdoorRisk(){
   if(!winterWeek())return "";
@@ -2917,15 +2921,16 @@ function outdoorRisk(){
   if(Math.random()<(hasGear("winter")?0.05:0.35)){P.sickWeek=P.week+1;t+=`\n${hasGear("winter")?"汗が冷えた。":"防寒着なしで走ったら体が冷え切った。"}風邪をひいた。来週は自転車に乗れない。`}
   return t}
 function trainingMenu(){
-  const win=winterWeek(),dev=indoorDev(),outOK=!win||spikeOn(),pick=a=>a[Math.floor(Math.random()*a.length)];
+  const win=winterWeek(),dev=indoorDev(),sm=smartDev(),outOK=!win||spikeOn()||!!sm,pick=a=>a[Math.floor(Math.random()*a.length)];
+  const inside=()=>sm&&(win&&!spikeOn()||Math.random()<0.5),smName=sm&&GEAR.find(g=>g.id===sm).name;
   const go=(label,msg)=>weekAct(label,msg+"\n疲労+24",()=>{P.fatigue+=24;P.lastTrain=P.week});
   const legMsg=g=>g<0.01?`巡航 ${P.leg.toFixed(2)}km/h。もう伸びしろがない。ここからは機材と走り方で。`:`巡航 ${P.leg.toFixed(2)}km/h になった（+${g.toFixed(2)}）。`;
-  const devName=dev&&GEAR.find(g=>g.id===dev[0]).name,outDesc=win?(spikeOn()?"スパイクタイヤで雪の道へ。転んだり、冷えて風邪をひいたりすることも。":"12〜3月は、スパイクタイヤがないと外を走れない。"):"外に走りに行く。";
+  const devName=dev&&GEAR.find(g=>g.id===dev[0]).name,outDesc=win?(spikeOn()?"スパイクタイヤで雪の道へ。転んだり、冷えて風邪をひいたりすることも。":sm?`${smName}で、家の中で。`:"12〜3月は、スパイクタイヤかスマートトレーナー（またはフィットネスバイク）がないとできない。"):sm?`外に走りに行くか、${smName}で。`:"外に走りに行く。";
   const items=[
-    {label:"ローラー練",note:dev?devName:"機材なし",disabled:!dev,desc:dev?`${devName}で、平地の巡航速度がほんの少し上がる。上がるほど伸びにくい。上げた分は、トレーニングしない週が4週続くと落ちていく（ブルベに出ると先延ばし。元の巡航より下がることはない）。`:"三本ローラー・フィットネスバイク・スマートトレーナーのどれかが必要。ショップで買える。",
-      fn:()=>{const g=gainLeg(0.12*dev[1]);go("ローラー練",legMsg(g)+"\n"+(dev[0]==="trainer"?pick(["平日の朝6時から7時まで、Zwiftのグループライド。","Zwiftのレースで追い込んだ。","雨の日も雪の日も、部屋の中なら関係ない。"]):dev[0]==="roller3"?pick(["三本ローラーでバランスを取りながら回す。ペダリングがきれいになってきた気がする。","三本ローラーから落ちかけて、壁に手をついた。"]):pick(["フィットネスバイクを漕ぎながら、録画したドラマを1本見た。","フィットネスバイクで汗だく。サドルが合わなくてお尻が痛い。"])))}},
-    {label:"峠練",disabled:!outOK,desc:"登りで速度が落ちにくくなる。"+outDesc,fn:()=>{P.climb=Math.min(0.3,P.climb+0.04);go("峠練",`登坂力 ${Math.round(P.climb*100)}% になった。`+outdoorRisk())}},
-    {label:"ロング練",disabled:!outOK,desc:"体力の最大値が上がる。"+outDesc,fn:()=>{P.staMax=Math.min(160,P.staMax+10);go("ロング練",`持久力 ${P.staMax} になった。`+outdoorRisk())}},
+    {label:"ローラー練",note:dev?devName:"機材なし",disabled:!dev,desc:dev?`${devName}で、平地の巡航速度がほんの少し上がる。上がるほど伸びにくい。上げた分は、トレーニングしない週が4週続くと落ちていく（ブルベに出ると先延ばし。元の巡航より下がることはない）。`:"三本ローラー・スマートトレーナー・フィットネスバイクのどれかが必要。ショップで買える。",
+      fn:()=>{const g=gainLeg(0.12*dev[1]);go("ローラー練",legMsg(g)+"\n"+(dev[0]!=="roller3"?pick(["平日の朝6時から7時まで、Zwiftのグループライド。","Zwiftのレースで追い込んだ。","雨の日も雪の日も、部屋の中なら関係ない。"]):dev[0]==="roller3"?pick(["三本ローラーでバランスを取りながら回す。ペダリングがきれいになってきた気がする。","三本ローラーから落ちかけて、壁に手をついた。"]):pick(["三本ローラーで30分。集中しないと落ちる。"])))}},
+    {label:"峠練",disabled:!outOK,desc:"登りで速度が落ちにくくなる。"+outDesc,fn:()=>{P.climb=Math.min(0.3,P.climb+0.04);go("峠練",`登坂力 ${Math.round(P.climb*100)}% になった。`+(inside()?`\n${smName}で、Zwiftの峠のコースを登った。`:outdoorRisk()))}},
+    {label:"ロング練",disabled:!outOK,desc:"体力の最大値が上がる。"+outDesc,fn:()=>{P.staMax=Math.min(160,P.staMax+10);go("ロング練",`持久力 ${P.staMax} になった。`+(inside()?`\n${smName}で4時間。映画を2本見ながら漕いだ。`:outdoorRisk()))}},
     {label:"ダイエット",desc:"体重が減って登りが楽になる。機材はいらない。",fn:()=>go("ダイエット",P.body<=58?"これ以上は減らせない。":(P.body=Math.max(58,P.body-1.2),`体重 ${P.body.toFixed(1)}kg になった。`))}];
   if(win)items.push({label:"市の体育館で運動",note:"¥500",disabled:P.money<500,desc:"エアロバイクと筋トレ。巡航の伸びはスマートトレーナーの半分くらいだけど、体重が増えるのは抑えられる。",
     fn:()=>{P.money-=500;const g=gainLeg(0.06);go("市の体育館で運動",`市の体育館のトレーニングルームで、エアロバイクと筋トレ（${yen(500)}）。\n`+legMsg(g))}});
