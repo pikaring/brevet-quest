@@ -156,6 +156,7 @@ const GEAR=[
   {id:"spike",cat:"冬",name:"スパイクタイヤ（前後）",price:30000,desc:"12〜3月も外を走れる。凍った路面でもよく効く。ただ、車のわだちで横にすべると転ぶことがある。"},
   {id:"spike_pro",cat:"冬",name:"高級スパイクタイヤ（前後）",price:60000,desc:"ピンの多い高級品（Ice Spiker Pro級）。横すべりで転ぶことが少し減る。"},
   {id:"trainer",cat:"冬",name:"スマートトレーナー",price:110000,desc:"家でZwift。12〜3月も天気に関係なくトレーニングできる。外は走れない。"},
+  {id:"hardcase",cat:"輪行",name:"飛行機輪行用ハードケース",price:40000,desc:"PBPの飛行機輪行で自転車を守る。カーボンフレームなら持っておきたい。"},
   {id:"rain",cat:"ウェア",name:"レインウェア上下",price:12000,desc:"前日の準備で持っていくと、雨のときに着られる。着ないと靴まで水没して体が冷える。"},
 ];
 // Parts are slot-based: the first option of each slot is what every bike comes with.
@@ -1357,6 +1358,7 @@ function startTrial(){
 function trialEnd(why){
   G.mode="hub";showRideUI(false);G.bg={scen:"village",tod:20*60+40,speed:0};
   const again={label:"2027年をもう一度",desc:"2026年11月の函館から。",fn:startTrial};
+  if(P.bikeHome){P.bike=P.bikeHome;delete P.bikeHome}
   if(P.pbpDone){SFX.win();return menu({title:"★ PARIS-BREST-PARIS 完走 ★",text:`PBP 2027 完走。\n1,220km、ランブイエからブレストへ行って帰ってきた。\nあなたはもう「アンシエンヌ」——パリ〜ブレスト〜パリの完走者だ。\n\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\n北海道の仲間たちと、また次のブルベで会おう。\n\n〜 THE END 〜`,items:[again,{label:"タイトルへ",fn:title}]})}
   const q=pbpQual(),d=QUAL_BY[2027];
   menu({title:"2027年シーズン（仮） 終了",text:why==="sr"?`${+d.slice(5,7)}月${+d.slice(8)}日が過ぎた。SRがそろわなかった。\n資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}\nPBP 2027のスタートラインには立てない……。`
@@ -2125,10 +2127,12 @@ const WISH=[
   {kind:"part",id:"post",opt:"carbon",line:"カーボンのシートポスト、お尻への突き上げが全然ちがうよ"},
   {kind:"part",id:"wheel",opt:"carbon_deep",line:"ディープリム、平地の巡航がラクになるよ〜"},
   {kind:"part",id:"comp",opt:"ultegra",line:"アルテグラの変速、一度使うと戻れないよ"},
+  {kind:"bike",id:"carbon_hi",line:"PBPには高級カーボンロードを持っていきたいんだよね。4年に一度の晴れ舞台だし！"},
+  {kind:"gear",id:"hardcase",line:"飛行機輪行はハードケースが安心だよ。カーボンならなおさら"},
 ];
-function wishName(w){return w.kind==="gear"?GEAR.find(g=>g.id===w.id).name:w.kind==="tier"?WEAR_NAMES[w.id][2]:PARTS[w.id].opts.find(o=>o.id===w.opt).name}
-function wishPrice(w){return w.kind==="gear"?GEAR.find(g=>g.id===w.id).price:w.kind==="tier"?tierPrice(GEAR.find(g=>g.id===w.id),"pro"):PARTS[w.id].opts.find(o=>o.id===w.opt).price}
-function wishHave(w){return w.kind==="gear"?!!P.gear[w.id]:w.kind==="tier"?gearTier(w.id)==="pro":!!P.owned[w.id+":"+w.opt]}
+function wishName(w){return w.kind==="bike"?BIKES[w.id].name:w.kind==="gear"?GEAR.find(g=>g.id===w.id).name:w.kind==="tier"?WEAR_NAMES[w.id][2]:PARTS[w.id].opts.find(o=>o.id===w.opt).name}
+function wishPrice(w){return w.kind==="bike"?BIKES[w.id].price:w.kind==="gear"?GEAR.find(g=>g.id===w.id).price:w.kind==="tier"?tierPrice(GEAR.find(g=>g.id===w.id),"pro"):PARTS[w.id].opts.find(o=>o.id===w.opt).price}
+function wishHave(w){return w.kind==="bike"?(P.bikes||[]).includes(w.id):w.kind==="gear"?!!P.gear[w.id]:w.kind==="tier"?gearTier(w.id)==="pro":!!P.owned[w.id+":"+w.opt]}
 function wishTalk(){
   if(R.f.wished||!R.train.length)return;
   const m=R.train[Math.floor(Math.random()*R.train.length)],F=FRIENDS[m.id];P.wish=P.wish||[];
@@ -2141,7 +2145,7 @@ function wishCheck(){P.wish=P.wish||[];const got=P.wish.filter(wishHave);if(!got
   return `念願の${got.map(wishName).join("、")}を手に入れた！\n最大気力 +${n}（${P.spiMax}）`}
 function wishMenu(){P.wish=P.wish||[];
   const items=P.wish.map(w=>({label:wishName(w),note:yen(wishPrice(w)),disabled:P.money<wishPrice(w),desc:`${FRIENDS[w.by].name}のおすすめ。手に入れると最大気力+3。`,
-    fn:()=>{P.money-=wishPrice(w);if(w.kind==="gear")P.gear[w.id]=true;else if(w.kind==="tier")P.gear[w.id]="pro";else{P.owned[w.id+":"+w.opt]=true;P.parts[w.id]=w.opt}
+    fn:()=>{P.money-=wishPrice(w);if(w.kind==="bike")P.bikes.push(w.id);else if(w.kind==="gear")P.gear[w.id]=true;else if(w.kind==="tier")P.gear[w.id]="pro";else{P.owned[w.id+":"+w.opt]=true;P.parts[w.id]=w.opt}
       SFX.win();const m=wishCheck();save();say("買った！",m,wishMenu)}}));
   items.push({label:"リストから消す",disabled:!P.wish.length,fn:()=>menu({title:"どれを消す？",items:[...P.wish.map((w,i)=>({label:wishName(w),fn:()=>{P.wish.splice(i,1);save();wishMenu()}})),{label:"もどる",fn:wishMenu}],cancel:wishMenu})});
   items.push({label:"もどる",fn:hub});
@@ -2752,7 +2756,7 @@ function hub(){
   const wk=P.week,items=[],ev=weekItems(wk),fat=Math.round(P.fatigue||0);
   for(const it of ev){const c=costOf(it),done=it.kind==="brm"&&P.rec[it.id]&&P.rec[it.id].done;
     if(it.pbp){const q=pbpQual(),full=Object.values(q).every(Boolean),why=!P.pbpReg?"本登録していない。":!full?"資格のブルベ（200・300・400・600）がそろっていない。":P.money<c?`旅費が足りない（${yen(c)}）。`:"";
-      items.push({label:`【最終ステージ】PBP ${YEAR} パリ〜ブレスト〜パリ`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:!!why,desc:`${it.desc}\n旅費（航空券・輪行・ランブイエの宿）${yen(c)}${why?"\n出られない："+why:"\nいよいよフランスへ！"}`,fn:()=>{P.pbpSnap=null;enter(pbpStage(0,it.start,it.id),c)}});continue}
+      items.push({label:`【最終ステージ】PBP ${YEAR} パリ〜ブレスト〜パリ`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:!!why,desc:`${it.desc}\n旅費（航空券・輪行・ランブイエの宿）${yen(c)}${why?"\n出られない："+why:"\nいよいよフランスへ！"}`,fn:()=>pbpBike(it,c)});continue}
     // 連戦可: a later brevet this week starts after this one's time limit, so you can ride straight on from the finish.
     const next=it.kind==="brm"?ev.filter(n=>n.kind==="brm"&&(ymdDate(n.ymd)-ymdDate(it.ymd))/864e5>Math.floor(((it.start||420)+it.limit)/1440)):[];
     items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}${it.tent?"（仮）":""}${next.length?"【連戦可】":""}${QUAL_BY[YEAR]&&it.kind==="brm"&&it.ymd<=QUAL_BY[YEAR]?"【PBP資格】":""}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
@@ -2762,8 +2766,10 @@ function hub(){
     items.unshift({label:"PBPに本登録する",note:yen(PBP_FEE),disabled:n<3||P.money<PBP_FEE,desc:`本登録の受付は5/29〜7/4。資格のブルベ4本のうち3本以上の完走が必要（いま${n}本）。残りもPBPのスタートまでに完走すること。参加費は2027年分が未発表のため仮。`,
       fn:()=>{P.money-=PBP_FEE;P.pbpReg=true;SFX.win();save();say("本登録完了！","PBP 2027に登録した。8月22日、ランブイエのスタートラインへ。\nあとは旅費を貯めて、脚を仕上げよう。",hub)}})}}
   items.push({label:"トレーニングする",note:"疲労+12",desc:"ローラー・峠・ロング・ダイエットから選ぶ。トレーニングで上げた巡航は、4週間トレーニングしないと落ちはじめる（ブルベに出ると先延ばしできる）。",fn:trainingMenu});
-  {const m=weekMonth(wk),n=Object.values(P.overtime||{}).filter(v=>v===m+"/"+WEEKS[wk].getFullYear()).length;
-   items.push({label:"残業する",note:"+¥40,000",disabled:n>=2,desc:`機材費を稼ぐ。疲労+5。残業できるのは月2回まで（今月あと${2-n}回）。`,fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5;(P.overtime=P.overtime||{})[wk+"-"+(P.season||1)+"-"+YEAR]=m+"/"+WEEKS[wk].getFullYear()})})}
+  // overtime wears you down: fatigue builds week after week, and a tired body catches colds
+  items.push({label:"残業する",note:"+¥25,000",desc:`機材費を稼ぐ。疲労+35（疲労は毎週12ずつ抜ける）。疲れがたまっていると体調を崩しやすく、翌週は寝込むことも。${fat>=40?`\nいまの疲労 ${fat}：体調を崩す確率 約${Math.round(clamp((fat+35-40)/80,0,0.6)*100)}%`:""}`,
+    fn:()=>{P.money+=25000;P.fatigue=clamp(P.fatigue+35,0,100);const r=clamp((P.fatigue-40)/80,0,0.6),down=Math.random()<r;if(down)P.sickWeek=wk+1;SFX.ok();save();
+      say("残業した",`${yen(25000)} 稼いだ。疲労 ${Math.round(P.fatigue)}${down?"\n連日の残業で体調を崩した。来週は寝込みそうだ……。":P.fatigue>=60?"\n疲れがたまっている。そろそろ休んだほうがいい。":""}`,nextWeek)}});
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
   items.push({label:"友達とカフェライド",note:"疲労+4",desc:`近所を50〜60kmほど走って、${(CAFE[P.home]||CAFE.sapporo).dest}へ。一緒に行った仲間と仲良くなる。\n練習効果：${trainText(trainFx({id:"cafe",kind:"cafe",dist:(CAFE[P.home]||CAFE.sapporo).dist,gain:(CAFE[P.home]||CAFE.sapporo).gain}))}`,fn:()=>{if(missingGear("cafe").length)return say("ヘルメットがない","ヘルメットを買ってから出かけよう。",hub);
     const mates=Object.entries(FRIENDS).filter(([id])=>(P.trained||{})[id]&&P.fp[id]>0);if(!mates.length)return say("誘える仲間がいない","まだ一緒にトレインを組んだ仲間がいない。\nブルベやイベントで仲間を助けたり、PCで声をかけられたりしてトレインを組もう。",hub);
@@ -2775,7 +2781,7 @@ function hub(){
   items.push({label:"仲間",fn:friendsView});
   items.push({label:"タイトルへ",fn:title});
   const sick=P.sickWeek===wk,wl=winterWeek(wk);
-  for(const x of items){if(sick&&(/^【/.test(x.label)||/トレーニング|カフェライド/.test(x.label)))x.disabled=true;
+  for(const x of items){if(sick&&(/^【/.test(x.label)||/トレーニング|カフェライド|残業/.test(x.label)))x.disabled=true;
     if(wl&&/トレーニング/.test(x.label)&&!P.gear.trainer&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤかスマートトレーナーがないと自転車に乗れない。"}
     if(wl&&/カフェライド/.test(x.label)&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤがないと外を走れない。"}}
   menu({title:`${YEAR!==2026?`${new Date(WEEKS[wk].getFullYear(),WEEKS[wk].getMonth(),WEEKS[wk].getDate()+4).getFullYear()}年 `:P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
@@ -2829,6 +2835,17 @@ function enter(it,c){
   packing(C,false);
 }
 function weekAct(t,msg,fn){fn();SFX.ok();save();say(t,msg,nextWeek)}
+// Which bike goes to France: carbon is fast, but airline baggage handling is rough. The author took a chromoly bike for peace of mind.
+function pbpBike(it,c){
+  const go=()=>{const carbon=["carbon","carbon_hi"].includes(P.bike),hc=!!P.gear.hardcase,r=Math.random();let msg="";
+    if(carbon&&!hc&&r<0.04){P.bikeHome=P.bike;P.bike="alu";P.money-=20000;msg=`シャルル・ド・ゴール空港で輪行袋を開けたら、${BIKES[P.bikeHome].name}のフレームにクラックが……。\n現地でアルミロードを借りて走ることにした（レンタル ${yen(20000)}）。`}
+    else if(r<(carbon?(hc?0.03:0.15):(hc?0.02:0.05))){P.money-=8000;msg=`ホテルで組み立てたら、ディレイラーハンガーが曲がっていた。飛行機の荷物の扱いは荒い。\n近くの自転車屋で直してもらった（${yen(8000)}）。`}
+    else msg=hc?"ハードケースのおかげで、自転車は無事にフランスに着いた。":carbon?"輪行袋を開けるまで、気が気じゃなかった……。無事だった！":"クロモリやアルミは、少々ぶつけても安心。自転車は無事にフランスに着いた。";
+    P.pbpSnap=null;say("フランス到着",msg,()=>enter(pbpStage(0,it.start,it.id),c))};
+  const note=id=>["carbon","carbon_hi"].includes(id)?(P.gear.hardcase?"ハードケースで運ぶ":"飛行機で壊れないか心配"):id==="brompton"?"折りたたんで運べる":"輪行でも安心";
+  if((P.bikes||[]).length<2)return go();
+  menu({title:"PBPに持っていく自転車",text:`4年に一度の晴れ舞台。どの自転車で走る？\nカーボンは軽くて速いけど、飛行機輪行で壊れることがある。${P.gear.hardcase?"":"ハードケースがあると安心（ショップで¥40,000）。"}`,
+    items:[...P.bikes.map(id=>({label:BIKES[id].name,note:note(id),desc:`${BIKES[id].desc}\n${bikeStats(BIKES[id])}`,fn:()=>{P.bike=id;save();go()}})),{label:"もどる",fn:hub}],cancel:hub})}
 // December to March: no bike without spike tires or a smart trainer.
 function winterWeek(i=P.week){return YEAR!==2026&&[12,1,2,3].includes(weekMonth(i))}
 function spikeOn(){return !!(P.gear.spike||P.gear.spike_pro)}
