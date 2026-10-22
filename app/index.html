@@ -242,6 +242,8 @@ const STORE={
     {name:"温めたお弁当",price:550,min:10,fx:{hunger:45,stamina:8,spirit:6,sleepy:8,weight:0.05}},
     {name:"温めたパスタ",price:500,min:8,fx:{hunger:40,stamina:6,spirit:8,sleepy:5,weight:0.05}},
     {name:"冷やしうどん",price:400,min:5,fx:{hunger:28,temp:-6,stamina:5}},
+    {name:"冷やし中華",price:500,min:5,fx:{hunger:30,temp:-8,stamina:5}},
+    {name:"ざるそば",price:420,min:4,fx:{hunger:26,temp:-6,stamina:4}},
     {name:"肉まん",price:180,min:2,fx:{hunger:15,temp:10,stamina:3}},
   ],
   side:[
@@ -260,6 +262,8 @@ const STORE={
     {name:"野菜ジュース",price:130,min:1,fx:{hunger:5,stamina:4,spirit:2}},
     {name:"コーラ",price:180,min:1,fx:{stamina:5,spirit:8,sleepy:-4}},
     {name:"ホットココア",price:150,min:3,fx:{hunger:5,temp:12,spirit:6}},
+    {name:"ロックアイス（ボトルに詰める）",price:150,min:1,fx:{temp:-12,stamina:2}},
+    {name:"凍らせたスポーツドリンク",price:200,min:1,fx:{temp:-10,stamina:5}},
   ],
   caffeine:[
     {name:"ホットコーヒー",price:150,min:3,fx:{spirit:10,temp:10,sleepy:-12}},
@@ -270,6 +274,9 @@ const STORE={
   ],
   sweet:[
     {name:"アイスクリーム",price:180,min:2,fx:{spirit:10,stamina:4,temp:-10,weight:0.02}},
+    {name:"かき氷",price:250,min:3,fx:{spirit:8,hunger:3,temp:-14}},
+    {name:"ソーダ味の氷菓",price:100,min:1,fx:{spirit:6,temp:-8}},
+    {name:"冷たいフルーツゼリー",price:180,min:1,fx:{hunger:6,stamina:3,temp:-5}},
     {name:"シュークリーム",price:150,min:2,fx:{hunger:8,spirit:10,weight:0.03}},
     {name:"プリン",price:200,min:2,fx:{hunger:8,spirit:8,stamina:3}},
     {name:"どら焼き",price:160,min:2,fx:{hunger:12,spirit:6,stamina:3}},
@@ -1416,8 +1423,9 @@ function ymdOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2
 // A hot meal warms you up: anything hot and filling without its own temperature effect gets one.
 {const HOT=/温|ホット|ラーメン|そば|うどん|定食|丼|カレー|パスタ|スープ|ジンギスカン|焼肉|モーニング|朝ごはん|ガレット|ハンバーグ|カツ|肉まん|おでん|カップ麺|鍋|味噌|ステーキ|食堂|レストラン|ファミレス/,COLD=/冷|アイス|ソフト|ざる|シェイク|ジェラート|寿司|海鮮丼|サンド|バゲット|パン|ウニ|カニ|イクラ|いくら|サーモン|刺身|ちらし|しらす|ホタテ/;
  const warm=it=>{const f=it&&it.fx;if(!f||f.temp!==undefined||!((f.hunger||0)>=20)||!HOT.test(it.name||"")||COLD.test(it.name||""))return;f.temp=f.hunger>=45?12:8};
- for(const k in STORE)STORE[k].forEach(warm);for(const k in MEALS)MEALS[k].forEach(warm);
- for(const c of [...COURSES,...EVENTS])for(const e of c.events||[])if(e.type==="sight")warm(e)}
+ const ICY=/アイス|ソフト|かき氷|ジェラート|シェイク|パフェ|冷|ざる|生ビール|ビール/,cool=it=>{const f=it&&it.fx;if(!f||f.temp!==undefined||!ICY.test(it.name||""))return;f.temp=/冷|ざる/.test(it.name)?-6:-10};
+ for(const k in STORE)STORE[k].forEach(i=>{warm(i);cool(i)});for(const k in MEALS)MEALS[k].forEach(i=>{warm(i);cool(i)});
+ for(const c of [...COURSES,...EVENTS])for(const e of c.events||[])if(e.type==="sight"){warm(e);cool(e)}}
 applyYear(2026);
 function weekItems(i){const a=WEEKS[i],b=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6),A=ymdOf(a),B=ymdOf(b);
   return [...COURSES.filter(c=>c.ymd&&!c.memory&&c.ymd>=A&&c.ymd<=B),...EVENTS.filter(e=>e.ymd>=A&&e.ymd<=B)].sort((x,y)=>x.ymd<y.ymd?-1:1)}
