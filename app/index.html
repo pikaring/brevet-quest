@@ -1493,7 +1493,7 @@ let P=null;
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
 function newPlayer(){return {money:150000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastTrain:0,
   actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:Object.fromEntries(Object.keys(FRIENDS).map(id=>[id,0])),met:{},rec:{},tubeV2:true,pack:{kit:1,tube:1,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
-function save(){try{localStorage.setItem(P&&P.trial?SAVE_KEY+"-trial":P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
+function save(){try{if(P)migrate(P)}catch(e){}try{localStorage.setItem(P&&P.trial?SAVE_KEY+"-trial":P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
 // Saves from before slot-based parts stored {wheel:true,post:true,tubeless:true}.
 function migrate(p){
@@ -1503,7 +1503,7 @@ function migrate(p){
   if(p.pack&&p.pack.rain===undefined)p.pack.rain=0;
   if(p.week===undefined)Object.assign(p,{home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4});
   if(p.bike&&!p.gear.navi&&!p.test)p.gear.navi="cheap";
-  p.fp=p.fp||{};for(const id in FRIENDS)if(p.fp[id]==null)p.fp[id]=0;p.met=p.met||{};
+  p.fp=p.fp||{};for(const id in FRIENDS)if(!Number.isFinite(p.fp[id]))p.fp[id]=0;p.met=p.met||{};
   if(p.lastTrain===undefined)p.lastTrain=p.lastRide??p.week;if(!p.spiMax)p.spiMax=100;if(!p.sleepMax)p.sleepMax=100;
   // numbers missing from older saves (or broken by the old legCap bug) would turn speeds into NaN: fill them from a new player
   {const D=newPlayer();for(const k of ["leg","body","climb","staMax","spiMax","sleepMax","money","fatigue","km","week","season","lastMonth","lastTrain"])
@@ -1916,7 +1916,7 @@ function renderIdle(){
 function choose(i){
   const it=UI.items[i];if(!it||it.disabled||it.slider)return;
   SFX.sel();UI.open=false;
-  if(it.fn)it.fn();
+  try{if(it.fn)it.fn()}catch(e){recover(e);if(!UI.open&&G.mode!=="ride"&&P)return say("ごめんなさい","不具合が起きたので、自宅に戻った。セーブは直してある。",hub)}
   if(!UI.open)renderIdle();
 }
 function moveSel(d){
@@ -3244,12 +3244,19 @@ function draw(dt){
 }
 
 /* ================= MAIN LOOP ================= */
+// Self-repair: any NaN or a thrown error is fixed on the spot so the ride never freezes.
+function sanitize(){if(P)migrate(P);if(!R)return;
+  for(const [k,d] of R_DEFAULT)if(R[k]!==undefined&&R[k]!==null&&!Number.isFinite(R[k]))R[k]=d;
+  if(!Number.isFinite(R.km))R.km=0;if(!Number.isFinite(R.t))R.t=R.course.start;if(!Number.isFinite(R.evIdx))R.evIdx=0}
+function recover(e){try{console.error(e)}catch(_){}G.errs=(G.errs||0)+1;sanitize();
+  if(R&&G.mode==="ride"){const ev=R.events[R.evIdx];if(G.errs%3===0&&ev&&!["pc","check","goal"].includes(ev.type))R.evIdx++; // an event that keeps failing is skipped
+    if(!R.f.recovered){R.f.recovered=true;log("（不具合を見つけたので、自動で直して走り続ける）")}}}
 let last=performance.now();
 function frame(now){
   const dt=Math.min(0.1,(now-last)/1000);last=now;
-  if(G.mode==="ride"&&!UI.open&&R)rideTick(dt);
-  draw(dt);updateHUD(dt);
-  BQA.scene(bgmFor());
+  try{if(G.mode==="ride"&&!UI.open&&R)rideTick(dt)}catch(e){recover(e)}
+  try{draw(dt);updateHUD(dt)}catch(e){recover(e)}
+  try{BQA.scene(bgmFor())}catch(e){}
   requestAnimationFrame(frame);
 }
 (document.fonts&&document.fonts.load?document.fonts.load('16px "DotGothic16"').catch(()=>{}):Promise.resolve()).finally(()=>{});
