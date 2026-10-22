@@ -1345,7 +1345,14 @@ function startTrial(){
   P.leg=Math.max(P.leg||22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;
   Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,link:1});applyYear(2027);save();
   const B=COURSES.find(c=>c.id==="pbp2027"),d=QUAL_BY[2027];
-  say("2027年シーズン（仮）",`2026年11月、函館。ブルベのシーズンが終わった。\n来年8月は4年に一度のPBP。スタートは${B.date} ${fmt(B.start)}。参加費はプレレジで先に払う。\n${+d.slice(5,7)}月${+d.slice(8)}日までにSR（200・300・400・600）をそろえて、出発までに旅費 ${yen(PBP_TRIP)} を貯める。いまの貯金は ${yen(P.money)}、おこづかいは月 ${yen(60000)}。\n12〜3月は雪。スパイクタイヤかスマートトレーナーがないと自転車に乗れず、体重が増えていく。\n\n自転車はDHバー付きのクロモリロード。\n2027年の日程はまだ出ていないので、作者がPBPを目指した2023年の日程を、2027年の同じ週末に置いた（仮）。\n${s?"能力はいまのセーブデータから（足りないところは作者に合わせた）。":"能力は作者に合わせた。"}本編のセーブには影響しない。\nSRが取れなかったり、PBPで完走できなかったりしたら、11月からやり直せる。`,hub)}
+  say("2027年シーズン",`2026年11月から2027年シーズンが始まる。\n次の目標はPBP完走。6月末までにSRを取って、旅費をためて、足も鍛えなければならない。\n大変だけど頑張るぞ！`,winterPrep)}
+// Week 1: the snow is coming. Spikes, a smart trainer, or the city gym (can buy later at the shop).
+function winterPrep(){
+  const buy=(id,t)=>({label:GEAR.find(g=>g.id===id).name,note:yen(GEAR.find(g=>g.id===id).price),disabled:P.money<GEAR.find(g=>g.id===id).price,desc:GEAR.find(g=>g.id===id).desc,
+    fn:()=>{P.money-=GEAR.find(g=>g.id===id).price;P.gear[id]=true;SFX.ok();save();say("買った！",t,hub)}});
+  menu({title:"冬の準備",text:`冬の間、自転車に乗らないとなまってしまうな……。\n所持金 ${yen(P.money)}`,items:[
+    buy("spike","これで冬も外を走れる。凍った道も怖くない。"),buy("spike_pro","ピンの多い高級品。わだちで横すべりしにくい。"),buy("trainer","これで冬は家でZwift三昧だ。"),
+    {label:"買わずに、市の体育館で運動する",note:"1回 ¥500",desc:"エアロバイクと筋トレ。スマートトレーナーより効果は低いけど、体重が増えるのは抑えられる。",fn:()=>say("市の体育館","冬は市の体育館のトレーニングルームに通おう。\nスパイクタイヤやスマートトレーナーは、あとからショップでも買える。",hub)}],cancel:null})}
 function trialEnd(why){
   G.mode="hub";showRideUI(false);G.bg={scen:"village",tod:20*60+40,speed:0};
   const again={label:"2027年をもう一度",desc:"2026年11月の函館から。",fn:startTrial};
@@ -2756,7 +2763,7 @@ function hub(){
   if(YEAR===2027&&!P.pbpReg){const a=WEEKS[wk],e=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6);if(ymdOf(e)>="2027-05-29"&&ymdOf(a)<="2027-07-04"){const n=pbpQualCount();
     items.unshift({label:"PBPに本登録する",note:yen(PBP_FEE),disabled:n<3||P.money<PBP_FEE,desc:`本登録の受付は5/29〜7/4。資格のブルベ4本のうち3本以上の完走が必要（いま${n}本）。残りもPBPのスタートまでに完走すること。参加費は2027年分が未発表のため仮。`,
       fn:()=>{P.money-=PBP_FEE;P.pbpReg=true;SFX.win();save();say("本登録完了！","PBP 2027に登録した。8月22日、ランブイエのスタートラインへ。\nあとは旅費を貯めて、脚を仕上げよう。",hub)}})}}
-  items.push({label:"トレーニングする",note:"疲労+12",desc:"ローラー・峠・ロング・ダイエットから選ぶ。トレーニングで上げた巡航は、4週間トレーニングしないと落ちはじめる（ブルベに出ると先延ばしできる）。",fn:trainingMenu});
+  items.push({label:"トレーニングする",note:"疲労+24",desc:"ローラー・峠・ロング・ダイエットから選ぶ。トレーニングで上げた巡航は、4週間トレーニングしないと落ちはじめる（ブルベに出ると先延ばしできる）。",fn:trainingMenu});
   // overtime wears you down: fatigue builds week after week, and a tired body catches colds
   items.push({label:"残業する",note:"+¥25,000",desc:`機材費を稼ぐ。疲労+35（疲労は毎週12ずつ抜ける）。疲れがたまっていると体調を崩しやすく、翌週は寝込むことも。${fat>=40?`\nいまの疲労 ${fat}：体調を崩す確率 約${Math.round(clamp((fat+35-40)/80,0,0.6)*100)}%`:""}`,
     fn:()=>{P.money+=25000;P.fatigue=clamp(P.fatigue+35,0,100);const r=clamp((P.fatigue-40)/80,0,0.6),down=Math.random()<r;if(down)P.sickWeek=wk+1;SFX.ok();save();
@@ -2773,10 +2780,10 @@ function hub(){
   items.push({label:"タイトルへ",fn:title});
   const sick=P.sickWeek===wk,wl=winterWeek(wk);
   for(const x of items){if(sick&&(/^【/.test(x.label)||/トレーニング|カフェライド|残業/.test(x.label)))x.disabled=true;
-    if(wl&&/トレーニング/.test(x.label)&&!P.gear.trainer&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤかスマートトレーナーがないと自転車に乗れない。"}
+    if(wl&&/トレーニング/.test(x.label)&&!P.gear.trainer&&!spikeOn())x.desc="スパイクタイヤもスマートトレーナーもないので、市の体育館で運動する（効果は半分くらい、1回 ¥500）。";
     if(wl&&/カフェライド/.test(x.label)&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤがないと外を走れない。"}}
   menu({title:`${YEAR!==2026?`${new Date(WEEKS[wk].getFullYear(),WEEKS[wk].getMonth(),WEEKS[wk].getDate()+4).getFullYear()}年 `:P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
-    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${sick?"風邪で寝込んでいる。今週は自転車に乗れない。\n":""}${wl&&!P.gear.trainer&&!spikeOn()?"冬。スパイクタイヤかスマートトレーナーがないと自転車に乗れない。乗らない週は体重が増える。\n":""}${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
+    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${sick?"風邪で寝込んでいる。今週は自転車に乗れない。\n":""}${wl&&!P.gear.trainer&&!spikeOn()?"冬。自転車に乗れないので、運動しない週は体重が増える。\n":""}${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
 }
 function pbpLine(){if(YEAR===2026)return `来年2027年はPBP（パリ〜ブレスト〜パリ）の年。旅費の目安 ${yen(PBP_TRIP)}。\n`;
   const q=pbpQual(),d=QUAL_BY[YEAR];return `PBPへの道：資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}（${+d.slice(5,7)}/${+d.slice(8)}まで）　登録 ${P.pbpReg?"済":"まだ"}　旅費 ${yen(Math.min(P.money,PBP_TRIP))}/${yen(PBP_TRIP)}\n`}
@@ -2840,16 +2847,21 @@ function pbpBike(it,c){
 // December to March: no bike without spike tires or a smart trainer.
 function winterWeek(i=P.week){return YEAR!==2026&&[12,1,2,3].includes(weekMonth(i))}
 function spikeOn(){return !!(P.gear.spike||P.gear.spike_pro)}
+function gymWeek(){return winterWeek()&&!P.gear.trainer&&!spikeOn()}
 function winterRide(){
-  if(!winterWeek())return "";
+  if(!winterWeek()||gymWeek())return "";
   if(P.gear.trainer)return "\n"+["平日の朝6時から7時まで、Zwiftのグループライド。","Zwiftのレースで追い込んだ。","雪の日も、部屋の中なら関係ない。"][Math.floor(Math.random()*3)];
   let t="\nスパイクタイヤで雪の道を走った。";
   if(Math.random()<(P.gear.spike_pro?0.05:0.08)){P.fatigue+=10;t+="\n車のわだちで横すべりして転んだ。打ち身が痛い（疲労+10）。"}
   if(Math.random()<(hasGear("winter")?0.05:0.35)){P.sickWeek=P.week+1;t+=`\n${hasGear("winter")?"汗が冷えた。":"防寒着なしで走ったら体が冷え切った。"}風邪をひいた。来週は自転車に乗れない。`}
   return t}
 function trainingMenu(){
-  const it=(label,desc,fn)=>({label,desc,fn:()=>weekAct(label,fn()+winterRide()+"\n疲労+12",()=>{P.fatigue+=12;P.lastTrain=P.week})});
-  menu({title:winterWeek()?(P.gear.trainer?"トレーニング（スマートトレーナー）":"トレーニング（スパイクタイヤで外へ）"):"トレーニング",text:`巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}`,items:[
+  const gym=gymWeek(),it=(label,desc,fn)=>({label,desc:gym?desc+"\n市の体育館では、効果は半分くらい（1回 ¥500）。":desc,disabled:gym&&P.money<500,fn:()=>{
+    let msg;if(gym){const b={leg:P.leg,climb:P.climb,staMax:P.staMax};fn();P.leg=b.leg+(P.leg-b.leg)/2;P.climb=b.climb+(P.climb-b.climb)/2;P.staMax=Math.round(b.staMax+(P.staMax-b.staMax)/2);P.money-=500;
+      msg=`市の体育館のトレーニングルームで、エアロバイクと筋トレ（${yen(500)}）。\n巡航 ${P.leg.toFixed(2)}km/h　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}　体重 ${P.body.toFixed(1)}kg`}
+    else msg=fn()+winterRide();
+    weekAct(label,msg+"\n疲労+24",()=>{P.fatigue+=24;P.lastTrain=P.week})}});
+  menu({title:winterWeek()?(P.gear.trainer?"トレーニング（スマートトレーナー）":spikeOn()?"トレーニング（スパイクタイヤで外へ）":"トレーニング（市の体育館）"):"トレーニング",text:`巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　登坂 ${Math.round(P.climb*100)}%　持久力 ${P.staMax}`,items:[
     it("ローラー練","平地の巡航速度がほんの少し上がる。上がるほど伸びにくい。上げた分は、トレーニングしない週が4週続くと落ちていく（ブルベに出ると先延ばし。元の巡航より下がることはない）。",()=>{const g=gainLeg(0.12);return g<0.01?`巡航 ${P.leg.toFixed(2)}km/h。もう伸びしろがない。ここからは機材と走り方で。`:`巡航 ${P.leg.toFixed(2)}km/h になった（+${g.toFixed(2)}）。`}),
     it("峠練","登りで速度が落ちにくくなる。",()=>{P.climb=Math.min(0.3,P.climb+0.04);return `登坂力 ${Math.round(P.climb*100)}% になった。`}),
     it("ロング練","体力の最大値が上がる。",()=>{P.staMax=Math.min(160,P.staMax+10);return `持久力 ${P.staMax} になった。`}),
