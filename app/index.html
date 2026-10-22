@@ -271,12 +271,18 @@ const STORE={
     {name:"ゼリー飲料(持ち出し)",price:200,pocket:{name:"ゼリー飲料",hunger:12,stamina:6}},
     {name:"おにぎり(持ち出し)",price:150,pocket:{name:"おにぎり",hunger:14,stamina:3}},
   ],
+  pbp:[{name:"コントロールの食堂でパスタ",price:1500,min:15,fx:{hunger:50,stamina:8,spirit:10,sleepy:5}},
+   {name:"ハムとチーズのバゲットサンド",price:900,min:4,fx:{hunger:30,stamina:4}},{name:"クロワッサン",price:300,min:2,fx:{hunger:15,spirit:6,weight:0.02}},
+   {name:"そば粉のガレット",price:900,min:8,fx:{hunger:35,spirit:12}},{name:"ライスプディング",price:400,min:3,fx:{hunger:18,stamina:6}},
+   {name:"カフェオレ",price:300,min:3,fx:{spirit:8,temp:8,sleepy:-10}},{name:"エスプレッソ",price:250,min:2,fx:{spirit:6,sleepy:-15}},
+   {name:"オランジーナ",price:400,min:1,fx:{stamina:5,spirit:6,temp:-4}},{name:"パン・オ・ショコラ(持ち出し)",price:300,pocket:{name:"パン・オ・ショコラ",hunger:14,stamina:3}},
+   {name:"ガトー・ブルトン(持ち出し)",price:400,pocket:{name:"ガトー・ブルトン",hunger:16,stamina:3}},{name:"バナナ(持ち出し)",price:150,pocket:{name:"バナナ",hunger:10,stamina:4}}],
   goods:[{name:"カイロ",price:150,give:"kairo"},{name:"単4電池",price:400,give:"batteries"}],
   // Seicomart's in-store kitchen: sometimes something hot is ready
   seicomart:[{name:"ホットシェフのカツ丼",price:600,min:10,fx:{hunger:45,spirit:8,stamina:8,sleepy:8,weight:0.12}},{name:"ホットシェフのフライドチキン",price:250,min:3,fx:{hunger:18,spirit:8,weight:0.07}}],
 };
 const SHELF=[["staple",2],["side",1],["drink",2],["caffeine",1],["sweet",1],["carry",3]];
-function pickShelf(chain){const out=[];
+function pickShelf(chain){if(chain==="pbp")return [...STORE.pbp].sort(()=>Math.random()-0.5).slice(0,8).concat(STORE.goods);const out=[];
   for(const [k,n] of SHELF){const a=[...STORE[k]];for(let i=0;i<n&&a.length;i++)out.push(a.splice(Math.floor(Math.random()*a.length),1)[0])}
   if(STORE[chain]&&Math.random()<0.6)out.unshift(STORE[chain][Math.floor(Math.random()*STORE[chain].length)]);
   return [...out,...STORE.goods]}
@@ -301,7 +307,7 @@ const FRIENDS={
 };
 const HOME_REGION={hakodate:"道南",sapporo:"道央",asahikawa:"道北",obihiro:"道東"};
 // who turns up at this ride: locals often, travellers sometimes, the stay-at-home riders only at home
-function presentAt(C){const reg=C.region||HOME_REGION[P.home];
+function presentAt(C){if(C.pbp)return Object.keys(FRIENDS).filter(id=>(P.fp[id]||0)>=40&&Math.random()<0.5);const reg=C.region||HOME_REGION[P.home];
   const locals=Object.keys(FRIENDS).filter(id=>FRIENDS[id].home===reg).length,pl=Math.min(0.75,2.2/Math.max(1,locals));
   return Object.keys(FRIENDS).filter(id=>{const F=FRIENDS[id];return F.home===reg?Math.random()<pl:!F.only&&Math.random()<0.12})}
 function metFriends(){return Object.keys(FRIENDS).filter(id=>(P.fp[id]||0)>0||(P.met||{})[id])}
@@ -835,6 +841,48 @@ const SEG_EVENTS={
  susukino200:[{km:100,type:"sight",name:"石狩のはまなすの丘公園",text:"石狩川の河口。",min:6,price:0,fx:{spirit:12}},{km:145,type:"note",text:"青山の峠道。紅葉のトンネル。",spirit:10}],
 };
 for(const C of COURSES){const add=SEG_EVENTS[C.id];if(add){C.events.push(...add);C.events.sort((a,b)=>a.km-b.km)}}
+
+// ===== LAST STAGE: Paris-Brest-Paris 2027 (ACP). Start/finish Rambouillet, 1,220 km, 90-hour wave.
+// Controls from the 2027 stage table; distances other than Mortagne (119) and Brest (~590) are estimates until the route is published.
+COURSES.push(brm({id:"pbp2027",pbp:true,cls:1200,ymd:"2027-08-22",org:"ACP（フランス）",region:"フランス",url:"https://www.paris-brest-paris.org/en/",name:"PBP 2027 パリ〜ブレスト〜パリ",dist:1220,start:18*60+30,limit:90*60,fee:0,
+  startName:"ランブイエ城（ランブイエ）",estimated:true,sunrise:6*60+55,sunset:21*60,tDay:24,tNight:11,
+  desc:"4年に一度、世界中から6,000人以上のランドヌールが集まる最古のブルベ。ランブイエからブルターニュの港町ブレストへ行って戻る1,220km、獲得標高およそ11,000m。制限90時間。",
+  goalFood:"ランブイエ城の前でメダルを受け取った。あなたも「アンシエンヌ（PBP完走者）」の仲間入り。",
+  profile:[[0,170],[10,213],[20,206],[30,138],[40,78],[50,79],[60,124],[70,148],[80,112],[90,48],[100,28],[110,81],[120,159],[130,192],[140,158],[150,109],[160,107],[170,157],[180,197],[190,173],[200,136],[210,76],[220,86],[230,145],[240,184],[250,163],[260,115],[270,108],[280,165],[290,238],[300,256],[310,204],[320,138],[330,123],[340,162],[350,196],[360,172],[370,105],[380,62],[390,93],[400,169],[410,219],[420,202],[430,153],[440,139],[450,184],[460,307],[470,283],[480,189],[490,105],[500,119],[510,191],[520,255],[530,256],[540,300],[550,320],[560,340],[570,360],[580,268],[590,241],[600,330],[610,310],[620,290],[630,270],[640,250],[650,206],[660,126],[670,106],[680,144],[690,225],[700,252],[710,228],[720,216],[730,256],[740,316],[750,325],[760,254],[770,149],[780,88],[790,120],[800,170],[810,174],[820,125],[830,83],[840,105],[850,182],[860,243],[870,236],[880,177],[890,137],[900,156],[910,204],[920,213],[930,158],[940,84],[950,63],[960,113],[970,180],[980,198],[990,160],[1000,124],[1010,146],[1020,213],[1030,257],[1040,229],[1050,153],[1060,62],[1070,76],[1080,125],[1090,141],[1100,98],[1110,43],[1120,42],[1130,108],[1140,182],[1150,198],[1160,152],[1170,104],[1180,111],[1190,161],[1200,188],[1210,148],[1220,170]],
+  scenery:[[0,"village"],[15,"wheat"],[110,"village"],[125,"wheat"],[200,"village"],[215,"forest"],[290,"village"],[305,"wheat"],[345,"village"],[360,"forest"],[440,"village"],[455,"wheat"],[520,"village"],[540,"mountain"],[580,"sea"],[600,"village"],[620,"mountain"],[660,"village"],[680,"forest"],[740,"village"],[760,"wheat"],[825,"village"],[860,"sea"],[905,"village"],[925,"wheat"],[1010,"village"],[1025,"forest"],[1095,"village"],[1110,"wheat"],[1160,"village"],[1180,"wheat"],[1210,"village"]],
+  heading:[[0,240],[119,250],[205,270],[350,280],[450,280],[590,90],[740,70],[880,100],[1010,70],[1160,60]],rain:[[520,600]],deer:[],
+  lodges:[{km:450,name:"ポンティヴィの仮眠所（ドルトワール）",price:1800},{km:590,name:"ブレストの仮眠所（ドルトワール）",price:1800},{km:740,name:"ルデアックの仮眠所（ドルトワール）",price:1800},{km:925,name:"フジェールの仮眠所（ドルトワール）",price:1800}],
+  events:[{km:2,type:"note",text:"沿道に人垣。「ボン・クラージュ（がんばって）！」の声に送り出される。",spirit:10},
+   {km:60,type:"note",text:"夕暮れの麦畑。前も後ろも、テールライトの赤い川がどこまでも続く。",spirit:8},
+   {km:119,type:"sight",name:"モルターニュ＝オー＝ペルシュの補給所",text:"最初の補給所。食堂は大行列。",min:20,price:1200,fx:{hunger:40,stamina:8,spirit:8}},
+   {km:160,type:"sight",name:"真夜中の沿道のテーブル",text:"村の家族が庭先にテーブルを出して、無料のコーヒーとクレープを配っている。",min:5,price:0,fx:{hunger:10,spirit:20,sleepy:-10}},
+   {km:205,type:"pc",name:"コントロール ヴィレーヌ＝ラ＝ジュエル",chain:"pbp"},
+   {km:295,type:"pc",name:"コントロール フジェール",chain:"pbp"},
+   {km:330,type:"sight",name:"村のブーランジェリー",text:"焼きたてのクロワッサンの匂い。",min:8,price:500,fx:{hunger:20,spirit:12}},
+   {km:350,type:"pc",name:"コントロール タンテニアック",chain:"pbp"},
+   {km:400,type:"note",text:"子どもたちが手を出してハイタッチを待っている。",spirit:8},
+   {km:450,type:"pc",name:"コントロール ポンティヴィ",chain:"pbp"},
+   {km:530,type:"pc",name:"コントロール プレイバン",chain:"pbp"},
+   {km:560,type:"note",text:"アレー山地のロック・トレヴゼルへの登り。ブルターニュの霧雨。"},
+   {km:585,type:"sight",name:"ブレストのイロワーズ橋",text:"折り返しの港町ブレスト。橋の上で記念写真を撮っていく？",min:6,price:0,fx:{spirit:25}},
+   {km:590,type:"pc",name:"コントロール ブレスト（折り返し）",chain:"pbp"},
+   {km:630,type:"sight",name:"農家のおばあちゃんの差し入れ",text:"「ボン・クラージュ！」りんごとお水をもらった。",min:4,price:0,fx:{hunger:8,spirit:18,stamina:4}},
+   {km:670,type:"pc",name:"コントロール カラック",chain:"pbp"},
+   {km:740,type:"pc",name:"コントロール ルデアック",chain:"pbp"},
+   {km:780,type:"note",text:"道端の芝生で、たくさんのランドヌールが倒れるように眠っている。"},
+   {km:825,type:"pc",name:"コントロール タンテニアック",chain:"pbp"},
+   {km:875,type:"sight",name:"モン・サン＝ミシェル湾の眺め",text:"干潟の向こうに修道院のシルエット。",min:8,price:0,fx:{spirit:30}},
+   {km:880,type:"pc",name:"コントロール ロズ＝シュル＝クエノン",chain:"pbp"},
+   {km:925,type:"pc",name:"コントロール フジェール",chain:"pbp"},
+   {km:970,type:"sight",name:"沿道のクレープ屋台",text:"地元のボランティアがそば粉のガレットを焼いている。",min:12,price:600,fx:{hunger:30,spirit:15}},
+   {km:1010,type:"pc",name:"コントロール ヴィレーヌ＝ラ＝ジュエル",chain:"pbp"},
+   {km:1050,type:"note",text:"眠気と疲れで、看板の文字が漢字に見えてきた……。",spirit:-5},
+   {km:1100,type:"pc",name:"コントロール モルターニュ＝オー＝ペルシュ",chain:"pbp"},
+   {km:1165,type:"sight",name:"シャルトル大聖堂",text:"世界遺産の大聖堂。ステンドグラスの青。",min:8,price:0,fx:{spirit:30}},
+   {km:1170,type:"pc",name:"コントロール シャルトル",chain:"pbp"},
+   {km:1210,type:"note",text:"ランブイエの森。最後の数キロ、沿道の拍手が聞こえてきた。",spirit:20},
+   {km:1220,type:"goal",name:"ゴール ランブイエ城"}]}));
+
 // Episodes from the author's own ride reports (PikaCycling, 2021–2026).
 const BLOG_EVENTS={
  hako200:[{km:25,type:"sight",name:"旧戸井線の橋梁跡",text:"幻の鉄道のアーチ橋と「本州最短距離」の看板。",min:5,price:0,fx:{spirit:10}},
@@ -909,6 +957,9 @@ function mealCheck(){
   for(const [id,label,a,b] of MEAL_TIMES){if(d<a||d>=b)continue;const key=day+id;if(R.meals[key])continue;R.meals[key]=true;
     if(R.t-(R.lastMeal??-999)<90)return false;
     const soon=R.events.slice(R.evIdx).find(e=>e.type==="sight"&&e.fx&&e.fx.hunger>=30&&e.km-R.km<12);if(soon)return false;
+    if(R.course.pbp){const PM={breakfast:[{name:"村のカフェのクロワッサンとカフェオレ",min:20,price:900,fx:{hunger:35,spirit:15,sleepy:-12}}],lunch:[{name:"村のビストロのステーキフリット",min:40,price:2500,fx:{hunger:60,stamina:20,spirit:25,weight:0.1}},{name:"クレープリーのガレットとシードル",min:30,price:1800,fx:{hunger:45,spirit:25,sleepy:8}}],dinner:[{name:"ビストロの鴨のコンフィ",min:45,price:2800,fx:{hunger:60,stamina:20,spirit:25}},{name:"ピッツェリアのピザ",min:30,price:1800,fx:{hunger:55,spirit:15,weight:0.1}}]}[id];
+      const seated=m=>({...m.fx,stamina:(m.fx.stamina||0)+Math.round(m.min*1.2)});
+      return menu({title:`${label}の時間`,text:`${label}どき。フランスの村の店の前を通りかかった。\nゴールのクローズまで あと${dur(R.course.start+R.course.limit-R.t)}　満腹 ${Math.round(R.hunger)}`,items:[...PM.map(m=>({label:`${m.name}　<small>${describeFx(seated(m))}</small>`,note:`${yen(m.price)}・${m.min}分`,disabled:P.money<m.price,fn:()=>{R.t+=m.min;P.money-=m.price;fx(seated(m));R.lastMeal=R.t;log(`${m.name}。メルシー！`)}})),{label:"コントロールまでがまん",fn:()=>{}}]}),true}
     const sc=scenAt(R.km),pool=MEALS[id].filter(m=>(!m.scen||m.scen.includes(sc))&&(!m.region||m.region===R.course.region)).sort(()=>Math.random()-0.5).slice(0,1);
     const dish=id==="breakfast"?"朝定食":{sea:"海鮮丼",field:R.course.region==="道東"?"豚丼":"ジンギスカン",town:"ラーメン",lake:"手打ちそば",mountain:"手打ちそば",forest:"手打ちそば"}[sc]||"定食";
     pool.push({name:`ちょっと遠回りの絶品${dish}`,detour:20,min:35,price:2200,closed:0.3,fx:{hunger:60,spirit:35,stamina:10,weight:0.08},hint:"往復20分の寄り道。たまに臨時休業。"});
@@ -930,8 +981,21 @@ function mealCheck(){
 }
 
 // Weeks of the season run Tuesday → Monday, so a Monday holiday (5/4, 7/20, 9/21) stays with its weekend.
-const WEEKS=(()=>{const w=[];for(let d=new Date(2026,2,31);d<=new Date(2026,9,27);d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7))w.push(d);return w})();
+const WEEKS=[];
+// Seasons: 2026, then 2027 — the PBP year. AJ北海道/R札幌 2027 dates aren't out yet: same weekend as 2026, marked tentative.
+const Y2027={tsugaru200:"2027-05-08",gonou300:"2027-05-29",oirase400:"2027-07-03"};
+let YEAR=2026;
+function applyYear(y){YEAR=y;
+  for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.ymd;if(!c.y26||c.pbp)continue;
+    if(y===2026){c.ymd=c.y26;c.tent=false}else{const d=ymdDate(c.y26);d.setDate(d.getDate()+364);c.ymd=Y2027[c.id]||ymdOf(d);c.tent=!Y2027[c.id]}
+    if(c.kind==="brm")c.date=jpDate(c.ymd)}
+  WEEKS.length=0;const a=y===2026?new Date(2026,2,31):new Date(2027,2,30),z=y===2026?new Date(2026,9,27):new Date(2027,7,17);
+  for(let d=a;d<=z;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7))WEEKS.push(d)}
+function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300],400:!!q[400],600:!!(q[600]||q[1000])}}
+function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
+const PBP_TRIP=300000,PBP_FEE=20000;
 function ymdOf(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+applyYear(2026);
 function weekItems(i){const a=WEEKS[i],b=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6),A=ymdOf(a),B=ymdOf(b);
   return [...COURSES.filter(c=>c.ymd&&!c.memory&&c.ymd>=A&&c.ymd<=B),...EVENTS.filter(e=>e.ymd>=A&&e.ymd<=B)].sort((x,y)=>x.ymd<y.ymd?-1:1)}
 function weekLabel(i){const a=WEEKS[i],s=new Date(a.getFullYear(),a.getMonth(),a.getDate()+4),u=new Date(a.getFullYear(),a.getMonth(),a.getDate()+5);
@@ -1172,6 +1236,7 @@ function speed(){
   if(isNight(R.t)){v*=R.light>0?R.lightNight:1;if(R.light<=0)v=Math.min(v,P.gear.helmet_light?15:10)}
   v*=legFatigue()*(R.limp||1);
   v*=1+0.06*R.train.length;
+  if(R.course.pbp)v*=1.05; // thousands of riders: there is always a wheel to follow
   return Math.max(3,v);
 }
 
@@ -1227,7 +1292,7 @@ function drain(dm,g,night){
   if(R.temp<35)sp+=6;else if(R.temp>65)sp+=(R.temp-65)*0.3;
   if(R.hunger<15)sp+=5;
   const rz=zone(R.course.rough,R.km);if(rz&&!hasGear("bib"))sp+=rz[3]==="butt"?10:4;else if(rz&&tierOf("bib").t<0)sp+=2;
-  R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1),0,R.spiMax||100);
+  R.spirit=clamp(R.spirit-h*sp*(trait().spiritMul||1)*(R.course.pbp?0.8:1),0,R.spiMax||100);
   R.lo={sta:Math.min(R.lo?.sta??1,R.stamina/R.staMax),spi:Math.min(R.lo?.spi??1,R.spirit/(R.spiMax||100)),slp:Math.max(R.lo?.slp??0,R.sleepy/100)};
   let eff=amb+Math.max(0,g)*1.0+(R.pace==="hard"?2:0)-(g<-2?5:0)-Math.max(0,hw)*0.5-(rain?(R.rainOn?1:5):0);
   eff+=(hasGear("winter")?4+tierOf("winter").t*0.5:0)+(R.windOn?6+tierOf("wind").t*0.5:0);
@@ -1470,7 +1535,7 @@ function lodgeEvent(L,i){
   const hoursOpt=(price)=>[2,3,4,6].map(hh=>({label:`${hh}時間眠る`,note:`起きたら ${fmt(tod(R.t+hh*60))}`,disabled:price>P.money,fn:()=>{P.money-=price;sleepHotel(hh,L)}}));
   if(reserved){items.push(...hoursOpt(0));items.push({label:"泊まらずに先へ進む",desc:"予約代は戻らない。",fn:()=>log(`${L.name}を素通りした。もったいない……。`)});
     return menu({title:`予約した宿：${L.name}`,text:`チェックインできる。何時間眠る？\nゴールのクローズまで あと${dur(left)}　眠気 ${Math.round(R.sleepy)}`,items})}
-  const peak=/^2026-0[78]/.test(R.course.ymd||""),vacant=Math.random()<(peak?0.4:0.75),price=L.price+2000;
+  const peak=/^\d{4}-0[78]/.test(R.course.ymd||""),vacant=Math.random()<(peak?0.4:0.75),price=L.price+2000;
   if(vacant)items.push(...hoursOpt(price).map(o=>({...o,note:`${yen(price)}・${o.note}`})));
   items.push({label:"近くの公園の東屋で仮眠",note:"30分",desc:"屋根の下のベンチで横になる。体は冷える。",fn:()=>nap(30,"公園の東屋のベンチで30分眠った。")});
   items.push({label:"小屋付きのバス停で眠る",note:"90分",desc:"風をしのげる待合小屋。90分眠ると、たまった眠気と脚の疲れがかなり抜ける。",fn:()=>nap(90,"小屋付きのバス停で90分眠った。始発のバスが来る前に出発。")});
@@ -1736,6 +1801,7 @@ function startRun(C){
   R.present=present;P.met=P.met||{};present.forEach(id=>{P.met[id]=true;if(P.fp[id]==null)P.fp[id]=0});
   const buddies=present.filter(id=>P.fp[id]>=(C.kind==="brm"?40:15)&&Math.random()<0.6).slice(0,2);
   const steps=[];
+  if(C.pbp){P.pbpTried=true;steps.push(()=>{SFX.win();say("LAST STAGE","PARIS - BREST - PARIS\n\nランブイエ城の前の広場。世界中から集まったランドヌールの言葉が飛び交っている。\n日本から来たランドヌールも大勢いる。\n4年に一度のこの日のために、北海道で走ってきた。",next)})}
   if(present.length&&C.kind!=="cafe")steps.push(()=>say("スタート地点で",`${present.map(id=>FRIENDS[id].name).join("、")}の顔が見える。${present.some(id=>FRIENDS[id].only)?"\n地元のブルベでしか会えない人もいる。":""}`,next));
   if(C.kind==="brm"&&Math.random()<0.45)steps.push(()=>startTrouble(next));
   steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
@@ -1759,6 +1825,8 @@ function goal(ev){
   if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
   const r=recOf(C.id);r.done++;if(r.best==null||el<r.best)r.best=el;
   P.seasonDone[C.cls]=(P.seasonDone[C.cls]||0)+1;
+  if(YEAR===2027&&!C.pbp&&C.ymd<="2027-06-30"){P.qual=P.qual||{};P.qual[C.cls]=true}
+  if(C.pbp)P.pbpDone=true;
   SFX.win();G.mode="goal";
   endRun(`完走！ ${dur(el)}`,`${ev.name} ${fmt(tod(R.t))} 着。\n${C.goalFood}\n認定おめでとう！`,{fatigue:Math.round(C.dist/8),grow:C.dist});
 }
@@ -1893,21 +1961,27 @@ function shopMenu(){
     {label:"もどる",fn:hub}],cancel:hub});
 }
 function homeOf(){return HOMES.find(h=>h.id===P.home)||HOMES[1]}
-function travelCost(region,oneWay){const f=P.bike&&BIKES[P.bike]&&BIKES[P.bike].fold;return Math.round(((TRAVEL[homeOf().region][region]||10000)*(f?0.7:1)+(oneWay?(f?4000:8000):0))/100)*100}
+function travelCost(region,oneWay){if(region==="フランス")return PBP_TRIP;const f=P.bike&&BIKES[P.bike]&&BIKES[P.bike].fold;return Math.round(((TRAVEL[homeOf().region][region]||10000)*(f?0.7:1)+(oneWay?(f?4000:8000):0))/100)*100}
 function feeOf(it){return it.kind==="brm"?(it.fee||(it.org===RS?1700:3000)):it.fee}
 function costOf(it){return feeOf(it)+travelCost(it.region,it.oneWay)}
 function hub(){
   if(P.test)return testMenu();
-  if(P.week>=WEEKS.length)return seasonEnd();
+  if(YEAR!==(P.year||2026))applyYear(P.year||2026);
+  if(P.week>=WEEKS.length||(P.pbpTried&&YEAR===2027))return seasonEnd();
   {const m=wishCheck();if(m){save();SFX.win();return say("ほしい物リスト",m,hub)}}
   G.mode="hub";showRideUI(false);G.bg={scen:homeOf().scen,tod:12*60,speed:0};save();
   const wk=P.week,items=[],ev=weekItems(wk),fat=Math.round(P.fatigue||0);
   for(const it of ev){const c=costOf(it),done=it.kind==="brm"&&P.rec[it.id]&&P.rec[it.id].done;
+    if(it.pbp){const q=pbpQual(),full=Object.values(q).every(Boolean),why=!P.pbpReg?"本登録していない。":!full?"資格のブルベ（200・300・400・600）がそろっていない。":P.money<c?`旅費が足りない（${yen(c)}）。`:"";
+      items.push({label:"【最終ステージ】PBP 2027 パリ〜ブレスト〜パリ",note:"8/22(日)",disabled:!!why,desc:`${it.desc}\n旅費（航空券・輪行・ランブイエの宿）${yen(c)}${why?"\n出られない："+why:"\nいよいよフランスへ！"}`,fn:()=>enter(it,c)});continue}
     // 連戦可: a later brevet this week starts after this one's time limit, so you can ride straight on from the finish.
     const next=it.kind==="brm"?ev.filter(n=>n.kind==="brm"&&(ymdDate(n.ymd)-ymdDate(it.ymd))/864e5>Math.floor(((it.start||420)+it.limit)/1440)):[];
-    items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}${next.length?"【連戦可】":""}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
+    items.push({label:`【${KIND_LABEL[it.kind]}】${it.name.replace(/^BRM\d+ /,"")}${it.tent?"（仮）":""}${next.length?"【連戦可】":""}${YEAR===2027&&it.kind==="brm"&&it.ymd<="2027-06-30"?"【PBP資格】":""}`,note:jpDate(it.ymd).replace(/^\d+月/,""),disabled:P.money<c,
       desc:eventDesc(it,c)+(done?"　（認定済み）":"")+(next.length?`\n連戦可：完走後、そのまま「${next.map(n=>n.name.replace(/^BRM\d+ /,"")).join("」「")}」に出られる。`:""),fn:()=>enter(it,c)})}
   if(!ev.length)items.push({label:"今週はイベントなし",disabled:true});
+  if(YEAR===2027&&!P.pbpReg){const a=WEEKS[wk],e=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6);if(ymdOf(e)>="2027-05-29"&&ymdOf(a)<="2027-07-04"){const n=pbpQualCount();
+    items.unshift({label:"PBPに本登録する",note:yen(PBP_FEE),disabled:n<3||P.money<PBP_FEE,desc:`本登録の受付は5/29〜7/4。資格のブルベ4本のうち3本以上の完走が必要（いま${n}本）。残りもPBPのスタートまでに完走すること。参加費は2027年分が未発表のため仮。`,
+      fn:()=>{P.money-=PBP_FEE;P.pbpReg=true;SFX.win();save();say("本登録完了！","PBP 2027に登録した。8月22日、ランブイエのスタートラインへ。\nあとは旅費を貯めて、脚を仕上げよう。",hub)}})}}
   items.push({label:"トレーニングする",note:"疲労+12",desc:"ローラー・峠・ロング・ダイエットから選ぶ。トレーニングで上げた巡航は、4週間トレーニングしないと落ちはじめる（ブルベに出ると先延ばしできる）。",fn:trainingMenu});
   items.push({label:"残業する",note:"+¥40,000",desc:"機材費を稼ぐ。疲労+5。",fn:()=>weekAct("残業した",`${yen(40000)} 稼いだ。`,()=>{P.money+=40000;P.fatigue+=5})});
   items.push({label:"家でゆっくり過ごす",note:"疲労-40",desc:"積ん読を崩したり、昼寝したり。",fn:()=>weekAct("家でゆっくり過ごした",["積ん読を3冊読んだ。","昼まで寝て、夜はラーメン。","部屋の自転車を眺めながらコーヒー。","撮りためた録画を全部見た。"][Math.floor(Math.random()*4)]+"\n疲れが抜けた。",()=>{P.fatigue-=40})});
@@ -1921,8 +1995,10 @@ function hub(){
   items.push({label:"仲間",fn:friendsView});
   items.push({label:"タイトルへ",fn:title});
   menu({title:`${P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
-    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
+    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
 }
+function pbpLine(){if(YEAR===2026)return `来年2027年はPBP（パリ〜ブレスト〜パリ）の年。旅費の目安 ${yen(PBP_TRIP)}。\n`;
+  const q=pbpQual();return `PBPへの道：資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}（6/30まで）　登録 ${P.pbpReg?"済":"まだ"}　旅費 ${yen(Math.min(P.money,PBP_TRIP))}/${yen(PBP_TRIP)}\n`}
 function seasonSummary(){const d=P.seasonDone||{};const s=[200,300,400,600,1000].filter(k=>d[k]).map(k=>`${k}×${d[k]}`).join(" ");return s||"まだなし"}
 
 // Practice value of non-brevet rides. Derived from distance and climbing, then flavoured per event.
@@ -2010,11 +2086,22 @@ function calendarView(){
 }
 function seasonEnd(){
   G.mode="hub";showRideUI(false);
+  if(YEAR===2027)return finalEnd();
   const d=P.seasonDone||{},sr=d[200]&&d[300]&&d[400]&&d[600];
   const best=Object.entries(FRIENDS).sort((a,b)=>P.fp[b[0]]-P.fp[a[0]])[0];
   menu({title:`シーズン${P.season} 終了`,text:`11月。北海道のブルベシーズンが終わった。\n今季の認定：${seasonSummary()}${sr?"\n★ スーパーランドヌール（SR）達成！":""}${d[1000]?"\n★ 1000km完走！":""}\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\nいちばん仲良くなった仲間：${best[1].name}\n\n冬はローラーで脚を保とう。`,
-    items:[{label:"次のシーズンへ（同じ日程で）",fn:()=>{P.season++;P.week=0;P.seasonDone={};P.lastMonth=4;P.fatigue=0;save();say("4月",`シーズン${P.season}が始まる。`,hub)}},{label:"タイトルへ",fn:title}]});
+    items:[{label:"2027年シーズンへ（PBPの年）",fn:()=>{P.season++;P.year=2027;applyYear(2027);P.week=0;P.seasonDone={};P.qual={};P.pbpReg=false;P.pbpTried=false;P.pbpDone=false;P.lastMonth=4;P.fatigue=0;save();
+      say("2027年4月",`PBPの年がやってきた。\n6月30日までに200・300・400・600kmを完走して資格をそろえ、5/29〜7/4に本登録。旅費 ${yen(PBP_TRIP)} を貯めて、8月22日のランブイエへ。\n（AJ北海道とR札幌の2027年日程は未発表なので、2026年と同じ週に「（仮）」で置いている）`,hub)}},{label:"タイトルへ",fn:title}]});
 }
+function finalEnd(){
+  G.bg={scen:"village",tod:20*60+40,speed:0};const done=P.pbpDone,q=pbpQual();
+  const text=done?`PBP 2027 完走。\n1,220km、ランブイエからブレストへ行って帰ってきた。\nあなたはもう「アンシエンヌ」——パリ〜ブレスト〜パリの完走者だ。\n\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\n北海道の仲間たちと、また次のブルベで会おう。\n\n〜 THE END 〜`
+    :P.pbpTried?"PBP 2027は完走できなかった。\nでも、ランブイエのスタートラインに立った。\n次のPBPは4年後の2031年。北海道でまた脚を作ろう。"
+    :`2027年のシーズンが終わった。PBPのスタートラインには立てなかった。\n資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}　登録 ${P.pbpReg?"済":"まだ"}\n次のPBPは4年後。`;
+  if(done)SFX.win();
+  menu({title:done?"★ PARIS-BREST-PARIS 完走 ★":"2027年シーズン 終了",text,items:[
+    {label:"2027年をもう一度",fn:()=>{P.week=0;P.seasonDone={};P.qual={};P.pbpReg=false;P.pbpTried=false;P.pbpDone=false;P.lastMonth=4;P.fatigue=0;save();hub()}},
+    {label:"タイトルへ",fn:title}]})}
 function status(){
   const parts=Object.entries(PARTS).map(([sl,d])=>d.opts.find(o=>o.id===P.parts[sl]).name).join("、");
   const L=bestLight(),owned=GEAR.filter(g=>P.gear[g.id]).map(g=>WEAR_NAMES[g.id]?wearName(g.id):g.name).join("、")||"なし";
@@ -2086,7 +2173,8 @@ function ring(cx,cy,r,c){cx=Math.round(cx);cy=Math.round(cy);let x=r,y=0,e=1-r;c
   while(x>=y){for(const [a,b] of [[x,y],[y,x],[-y,x],[-x,y],[-x,-y],[-y,-x],[y,-x],[x,-y]])ctx.fillRect(cx+a,cy+b,1,1);y++;if(e<0)e+=2*y+1;else{x--;e+=2*(y-x)+1}}}
 const hash=n=>{const s=Math.sin(n*127.1)*43758.5453;return s-Math.floor(s)};
 
-function palette(t){
+function palette(t){const base=paletteBase(t);if(R&&R.course&&R.course.pbp&&["ride","pc","pre"].includes(G.mode)&&!base.night)Object.assign(base,{field:"#f8b800",field2:"#d88800",far:"#7c7c3c",bld:"#f0d0b0"});return base}
+function paletteBase(t){
   const d=tod(t),C=R?R.course:{sunrise:4*60+40,sunset:18*60+30};
   const wet=R&&["ride","pc","pre"].includes(G.mode)&&raining();
   const dusk=Math.abs(d-C.sunset)<45||Math.abs(d-C.sunrise)<45;
@@ -2113,6 +2201,14 @@ function drawFar(scen,p){
   else if(scen==="lake"){mountains(s*0.05,26,16,p.far,2,p.snow);mountains(s*0.1,12,8,p.far2,2);rect(0,HOR-6,W,26,p.sea);for(let i=0;i<14;i++){const x=((i*71-s*0.3)%W+W)%W;rect(x,HOR-3+(i%3)*6,8,1,p.wave)}}
   else if(scen==="mountain"){mountains(s*0.04,40,22,p.far,2,p.snow);mountains(s*0.1,22,12,p.far2,2);rect(0,HOR,W,20,p.tree)}
   else if(scen==="forest"){mountains(s*0.05,24,10,p.far,2);mountains(s*0.12,14,6,p.far2,2);rect(0,HOR,W,20,p.tree)}
+  else if(scen==="wheat"){mountains(s*0.03,8,5,p.far,2);for(let y=HOR;y<112;y+=4)rect(0,y,W,4,((y/4)|0)%2?p.field:p.field2);
+    for(let i=0;i<5;i++){const x=((i*71-s*0.6)%(W+40)+W+40)%(W+40)-20,y=99+(i%2)*5;rect(x,y,8,7,p.night?"#545454":"#ac7c00");rect(x+1,y+2,6,1,p.night?"#3c3c3c":"#f8d878")}}
+  else if(scen==="village"){mountains(s*0.03,10,5,p.far,2);for(let y=HOR;y<112;y+=4)rect(0,y,W,4,((y/4)|0)%2?p.field:p.field2);
+    for(let i=-1;i<9;i++){const wx=Math.floor(s*0.35/44)+i,x=wx*44-s*0.35,h=12+Math.floor(hash(wx)*8),stone=p.night?"#545454":"#d8c8a8";
+      rect(x,HOR+18-h,30,h,stone);for(let k=0;k<6;k++)rect(x-1+k,HOR+18-h-6+k,32-2*k,1,p.night?"#2c2c3c":"#3c4c6c");
+      rect(x+5,HOR+18-h+4,4,4,p.night?"#f8d878":"#503000");rect(x+20,HOR+18-h+4,4,4,p.night?"#f8d878":"#503000");
+      if(hash(wx+11)>0.75){rect(x+12,HOR+18-h-22,6,16,stone);for(let k=0;k<8;k++)rect(x+15-k*0.4,HOR+18-h-30+k,1+k*0.8,1,p.night?"#2c2c3c":"#3c4c6c")}}
+    rect(0,HOR+18,W,2,p.curb)}
   else if(scen==="field"){mountains(s*0.03,10,6,p.far,2,p.snow);for(let y=HOR;y<112;y+=4)rect(0,y,W,4,((y/4)|0)%2?p.field:p.field2);
     for(let i=0;i<6;i++){const x=((i*61-s*0.6)%(W+40)+W+40)%(W+40)-20,y=100+(i%2)*4;rect(x,y,7,6,p.night?"#545454":"#f0d0b0");rect(x+1,y+1,5,1,p.night?"#3c3c3c":"#ac7c00")}}
   else{ // town
@@ -2127,6 +2223,7 @@ function drawMid(scen,p){
   const gap=scen==="forest"||scen==="mountain"?36:64;
   for(let i=-1;i<W/gap+2;i++){const wx=Math.floor(s/gap)+i,x=wx*gap-s+hash(wx)*10;
     if(scen==="forest"||scen==="mountain"){const hh=18+hash(wx+3)*10;for(let k=0;k<hh;k+=3){const ww=2+k*0.55;rect(x-ww/2,112-hh+k,ww,3,p.tree)}rect(x-1,112,2,2,"#503000")}
+    else if(scen==="village"||scen==="wheat"){if(hash(wx+5)>0.6){rect(x,84,1,28,p.pole);rect(x+1,84,3,5,"#0058f8");rect(x+4,84,3,5,"#fcfcfc");rect(x+7,84,3,5,"#f83800")}}
     else{rect(x,82,2,30,p.pole);rect(x-5,84,12,1,p.pole)}}
 }
 function drawRoad(p){
@@ -2135,7 +2232,7 @@ function drawRoad(p){
   rect(0,145,W,15,p.ground);
   for(let i=0;i<20;i++){const x=((i*29-G.scroll)%W+W)%W;rect(x,148+(i%4)*3,2,1,p.night?"#004000":"#58d854")}
 }
-function drawStore(x,chain,p){
+function drawStore(x,chain,p){if(chain==="pbp"){const by=113;rect(x,by-26,56,26,p.night?"#bcbcbc":"#fcfcfc");for(let k=0;k<8;k++)rect(x-2+k*0,by-34+k,60,1,k%3===0?"#0058f8":k%3===1?"#fcfcfc":"#f83800");rect(x+20,by-18,16,18,p.night?"#f8d878":"#3c3c3c");rect(x+4,by-22,12,6,"#0058f8");rect(x+40,by-22,12,6,"#f83800");return}
   const by=113;rect(x,by-30,52,30,p.night?"#bcbcbc":"#fcfcfc");
   const st={seven:["#f83800","#00a800","#fca044"],lawson:["#0058f8","#0058f8","#fcfcfc"],daily:["#f83800","#fcfcfc","#f83800"],famima:["#0078f8","#00a800","#fcfcfc"],seicomart:["#fca044","#f83800","#fca044"]}[chain]||["#7c7c7c","#7c7c7c","#7c7c7c"];
   rect(x,by-30,52,3,st[0]);rect(x,by-27,52,3,st[1]);rect(x,by-24,52,2,st[2]);
