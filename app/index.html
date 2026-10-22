@@ -1049,19 +1049,53 @@ const PBP_BLOG=[
 {const B=COURSES.find(c=>c.id==="pbp2027");B.events.push(...PBP_BLOG.map(e=>({...e,blog:true})));B.events.sort((a,b)=>a.km-b.km);
  const m=B.events.find(e=>e.name==="モルターニュ＝オー＝ペルシュの補給所");Object.assign(m,{text:"最初の補給所。外のテントのソーセージサンドは炭みたいに固くて苦い……。体育館の作りたてハムチーズサンドで口直し。",min:30,price:1200});
  B.goalFood="ゲートをくぐると、急な雨で観客はもう帰り支度。少しさみしい。でも受付でブルベカードにハンコをもらい、その場でメダル。ミールチケットで最後の食事と「ラストビール」。\n「よく頑張ったよ、オレ。自分で自分をほめてあげたい」";}
+
+// ===== 体験版: PBP 2023 — the route the author rode (control distances from his blog), stages split at Loudéac.
+{const B27=COURSES.find(c=>c.id==="pbp2027");
+ // 2027 positions → 2023 positions of the same moments in the author's ride
+ const A=[[0,0],[119,119],[205,203],[295,292],[350,353],[400,400],[449,435],[530,514],[590,604],[670,697],[740,782],[825,867],[925,928],[1010,1017],[1100,1099],[1170,1176],[1220,1222]];
+ const map=k=>{for(let i=1;i<A.length;i++)if(k<=A[i][0]){const[a0,b0]=A[i-1],[a1,b1]=A[i];return Math.round((b0+(k-a0)/(a1-a0)*(b1-b0))*10)/10}return 1222};
+ const skip=/モン・サン＝ミシェル|シャルトル|ポンティヴィ|プレイバン|カラック|ロズ＝シュル|イロワーズ/;
+ const keep=B27.events.filter(e=>e.type!=="pc"&&e.type!=="goal"&&!skip.test(e.name||"")).map(e=>({...e,km:map(e.km)}));
+ const ctl=(km,name,type="pc")=>type==="pc"?{km,type:"pc",name,chain:"pbp"}:{km,type:"check",name,photo:"ブルベカードにスタンプをもらった。"};
+ const ev=[...keep,
+  ctl(203,"PC1 ヴィレーヌ＝ラ＝ジュエル"),ctl(292,"PC2 フジェール"),ctl(353,"PC3 タンテニアック"),ctl(378,"WP2 ケディヤック","check"),ctl(435,"PC4 ルデアック"),
+  ctl(475,"シークレットPC カニウエル","check"),ctl(482,"WP3 サン＝ニコラ＝デュ＝ペレム","check"),ctl(514,"PC5 カレ"),
+  {km:598,type:"sight",name:"プルガステル橋",text:"ブレストの手前の名物の橋。眺めがいい。",min:5,price:0,fx:{spirit:20}},
+  ctl(604,"PC6 ブレスト（折り返し）"),ctl(650,"シークレットPC プレイバン","check"),ctl(697,"PC7 カレ"),ctl(740,"WP グアレック","check"),ctl(782,"PC8 ルデアック"),
+  ctl(842,"WP5 ケディヤック","check"),ctl(867,"PC9 タンテニアック"),ctl(928,"PC10 フジェール"),ctl(1017,"PC11 ヴィレーヌ＝ラ＝ジュエル"),ctl(1099,"PC12 モルターニュ＝オー＝ペルシュ"),ctl(1176,"PC13 ドルー"),
+  {km:1222,type:"goal",name:"ゴール ランブイエ"}].sort((a,b)=>a.km-b.km);
+ COURSES.push({...B27,id:"pbp2023",trial:true,short:"PBP 2023 体験版",name:"PBP 2023 パリ〜ブレスト〜パリ（体験版）",ymd:"2023-08-20",date:"8月20日(日)",dist:1222,start:21*60,limit:90*60,
+  desc:"作者が実際に走った2023年のPBP。ランブイエ発着1,222km、制限90時間。最終組（21時スタート）。コントロールの距離は作者のブログの記録から。",
+  tDay:29,tNight:14,sunrise:7*60,sunset:21*60,rain:[[1212,1222]],
+  stages:[[0,435,"ランブイエ → ルデアック"],[435,782,"ルデアック → ブレスト → ルデアック"],[782,1222,"ルデアック → ランブイエ"]],
+  lodges:[{km:435,name:"ルデアックの仮眠所",price:1800},{km:514,name:"カレの仮眠所",price:1800},{km:604,name:"ブレストの仮眠所",price:1800},{km:928,name:"フジェールの仮眠所",price:1800}],
+  profile:B27.profile.map(([k,h])=>[map(k),h]),scenery:B27.scenery.map(([k,t])=>[map(k),t]),heading:B27.heading.map(([k,h])=>[map(k),h]),events:ev,
+  goalFood:"ゴールゲートをくぐると、急な雨で観客はもう帰り支度。少しさみしい。でも受付でブルベカードにハンコをもらい、その場でメダル。ミールチケットで最後の食事と「ラストビール」。\n「よく頑張ったよ、オレ。自分で自分をほめてあげたい」\n（作者の記録：88時間1分）"})}
+// The trial rider: the author's 2023 — a chromoly road bike with DH bar, after a season of Hokkaido brevets.
+function startTrial(){
+  const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,week:0,money:Math.max(s?s.money:0,150000)});
+  Object.assign(P.gear,STARTER,{navi:"mid",light_hi:true,jersey:"mid",bib:"mid"});P.bikes=[...new Set([...(P.bikes||[]),"cromo"])];P.bike="cromo";P.parts={...P.parts,dh:"dh",comp:P.parts&&P.parts.comp!=="stock"?P.parts.comp:"ultegra"};
+  P.leg=Math.max(P.leg||22,23.5);P.staMax=Math.max(P.staMax||100,115);P.spiMax=Math.max(P.spiMax||100,110);P.sleepMax=Math.max(P.sleepMax||100,110);P.fatigue=0;P.pbpSnap=null;
+  Object.assign(P.pack,{kit:1,tube:2,wind:1,rain:1,bank:1,link:1});
+  say("PBP 2023 体験版",`2023年8月、フランス。\n北海道のブルベで資格をそろえて、4年に一度のパリ〜ブレスト〜パリへ。\n自転車はDHバー付きのクロモリロード。1,222kmを3つのステージに分けて走る。\n${s?"能力はいまのセーブデータから（足りないところは2023年の作者に合わせた）。":"能力は2023年の作者に合わせた。"}本編のセーブには影響しない。`,
+    ()=>enter(pbpStage(0,COURSES.find(c=>c.id==="pbp2023").start,"pbp2023"),0))}
+function trialEnd(){
+  const done=P.pbpDone;
+  say(done?"★ PBP 2023 完走 ★":"PBP 2023 体験版",done?"体験版はここまで。\n2027年のPBPは、本編の続きとして原作開発中。\n来年はPBPだ！":"完走はならなかった。でも、ランブイエのスタートラインに立った。\nもう一度挑戦するなら、タイトルから。",title)}
 const PBP_TIPS=["PBPの「3つのD」：Di2、DHバー、ド根性。","コントロールのレストランで座って食べると、疲れも取れて栄養バランスもいい。いざとなればそのまま席で寝られる。","夜明け前は寒い。コントロールの中で日の出を待つのもあり。","水道水はカルキ臭がきつい。ミネラルウォーターを。","仮眠所の起床は遅れることがある。予備のアラームを。","最終組は前の組を追い越していけば制限を気にしなくていい。","コントロールの飲み物はコーラ、オランジーナ、レッドブルくらい。冷えているとは限らない。","往路600kmを40時間以内に走れれば、完走率がぐんと上がる。"];
 const PBP_STAGES=[[0,450,"ランブイエ → ポンティヴィ"],[450,825,"ポンティヴィ → ブレスト → タンテニアック"],[825,1220,"タンテニアック → ランブイエ"]];
-function pbpStage(i,startT){const B=COURSES.find(c=>c.id==="pbp2027"),[a,b,nm]=PBP_STAGES[i],close=B.start+B.limit,sh=k=>Math.round((k-a)*10)/10;
+function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id),ST=B.stages||PBP_STAGES,[a,b,nm]=ST[i],close=B.start+B.limit,sh=k=>Math.round((k-a)*10)/10;
   const cut=(arr)=>{let first=arr[0];for(const x of arr)if(x[0]<=a)first=x;return [[0,first[1]],...arr.filter(x=>x[0]>a&&x[0]<b).map(x=>[sh(x[0]),x[1]])]};
   const prof=[...B.profile.filter(x=>x[0]>=a&&x[0]<=b).map(x=>[sh(x[0]),x[1]])];
   const ev=B.events.filter(e=>e.km>a&&e.km<=b).map(e=>({...e,km:sh(e.km)}));
-  if(i<2){const last=ev[ev.length-1];ev[ev.length-1]={type:"goal",km:last.km,name:`第${i+1}ステージ ゴール：${last.name.replace(/^コントロール /,"")}`}}
-  return {...B,id:"pbp2027",stage:i,name:`PBP 2027 第${i+1}ステージ（${nm}）`,dist:b-a,start:startT,limit:close-startT,profile:prof,scenery:cut(B.scenery),heading:cut(B.heading),
+  if(i<ST.length-1){let li=ev.length-1;while(li>0&&ev[li].type!=="pc")li--;const last=ev[li];ev.splice(li,1);ev.push({type:"goal",km:sh(b),name:`第${i+1}ステージ ゴール：${last.name.replace(/^(コントロール|PC\d+) /,"")}`});ev.sort((x,y)=>x.km-y.km)}
+  return {...B,id:B.id,baseId:B.id,stage:i,name:`${B.short||"PBP 2027"} 第${i+1}ステージ（${nm}）`,dist:b-a,start:startT,limit:close-startT,profile:prof,scenery:cut(B.scenery),heading:cut(B.heading),
     rain:(B.rain||[]).filter(z=>z[1]>a&&z[0]<b).map(z=>[Math.max(0,sh(z[0])),sh(Math.min(b,z[1]))]),lodges:(B.lodges||[]).filter(L=>L.km>a&&L.km<b).map(L=>({...L,km:sh(L.km)})),events:ev,
     startName:i===0?B.startName:ev.length?`${nm.split(" → ")[0]}`:"",cont:i>0}}
 // what carries over from one stage to the next
 const CARRY=["t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
-function pbpNext(i){const snap={};for(const k of CARRY)snap[k]=JSON.parse(JSON.stringify(R[k]??null));const C=pbpStage(i,R.t);P.pbpSnap=snap;save();startRun(C)}
+function pbpNext(i){const snap={};for(const k of CARRY)snap[k]=JSON.parse(JSON.stringify(R[k]??null));const C=pbpStage(i,R.t,R.course.baseId||"pbp2027");P.pbpSnap=snap;save();startRun(C)}
 function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300],400:!!q[400],600:!!(q[600]||q[1000])}}
 function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
 const PBP_TRIP=300000,PBP_FEE=20000;
@@ -1131,7 +1165,7 @@ let P=null;
 const COLORS=[["赤","#d82800"],["オレンジ","#fc9838"],["黄","#f8b800"],["黄緑","#b8f818"],["緑","#00a800"],["水色","#3cbcfc"],["青","#0058f8"],["紫","#6844fc"],["ピンク","#f878f8"],["白","#fcfcfc"],["灰","#7c7c7c"],["黒","#1c1c1c"]];
 function newPlayer(){return {money:150000,bikes:[],bike:null,gear:{},parts:{comp:"stock",wheel:"stock",bar:"stock",post:"stock",tire:"stock",dh:"none"},owned:{},leg:22,body:72,climb:0,staMax:100,spiMax:100,sleepMax:100,lastTrain:0,
   actions:0,cycle:1,home:"sapporo",week:0,fatigue:0,season:1,seasonDone:{},km:0,lastMonth:4,fp:Object.fromEntries(Object.keys(FRIENDS).map(id=>[id,0])),met:{},rec:{},pack:{kit:1,tube:0,link:0,wind:0,rain:0,bank:0,battery:0,kairo:0,kibi:2,gel:0,whistle:0},breakfast:true}}
-function save(){try{localStorage.setItem(P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
+function save(){try{localStorage.setItem(P&&P.trial?SAVE_KEY+"-trial":P&&P.test?SAVE_KEY+"-test":SAVE_KEY,JSON.stringify(P))}catch(e){}}
 function load(){try{const s=localStorage.getItem(SAVE_KEY);return s?migrate(JSON.parse(s)):null}catch(e){return null}}
 // Saves from before slot-based parts stored {wheel:true,post:true,tubeless:true}.
 function migrate(p){
@@ -2208,7 +2242,7 @@ function startRun(C){
     kit:p.kit>0,tubes:(p.kit?1:0)+(p.tube||0),link:p.link>0,wind:p.wind>0,windOn:false,rainGear:p.rain>0,rainOn:false,batteries:p.battery||0,kairo:p.kairo||0,whistle:p.whistle>0,
     pocket,load:packWeight(p),receipts:{},train:[],events,evIdx:0,f:{},log:[],cool:3,deer:false,windDay:{dir:rnd(0,360),spd:rnd(1,6.5)},meals:{},lastMeal:C.start,lodge:C.lodges&&P.lodgePick>=0&&P.lodgePick<C.lodges.length?P.lodgePick:null,
     sleepy:C.start<5*60?30:C.start>=20*60?25:0,legKm:0,woke:C.start<5*60?C.start-90:Math.min(C.start-60,7*60)};
-  if(C.cont&&P.pbpSnap){for(const k of CARRY)if(P.pbpSnap[k]!==undefined&&P.pbpSnap[k]!==null)R[k]=P.pbpSnap[k];R.train=(R.train||[]).map(m=>({...m,until:Math.max(1,m.until-(PBP_STAGES[C.stage][0]-PBP_STAGES[C.stage-1][0]))}))}
+  if(C.cont&&P.pbpSnap){for(const k of CARRY)if(P.pbpSnap[k]!==undefined&&P.pbpSnap[k]!==null)R[k]=P.pbpSnap[k];const ST=C.stages||PBP_STAGES;R.train=(R.train||[]).map(m=>({...m,until:Math.max(1,m.until-(ST[C.stage][0]-ST[C.stage-1][0]))}))}
   if(C.rain)R.rainZones=C.rain;
   else if(Math.random()<(C.rainChance??0.25)){const a=rnd(0.05,0.7)*C.dist;R.rainZones=[[a,a+rnd(0.15,0.35)*C.dist]]}
   // Hill climbs, gravel and cyclocross are all-out: three levels of effort, a slower clock, and stamina to manage.
@@ -2220,7 +2254,7 @@ function startRun(C){
   const buddies=present.filter(id=>P.fp[id]>=(C.kind==="brm"?40:15)&&Math.random()<0.6).slice(0,2);
   const steps=[];
   if(C.cont){R.present=P.pbpSnap&&P.pbpSnap.present||[];G.mode="pre";G.ff=savedFF();$("#c-ff").textContent="×"+G.ff;setPaceLabels(false);showRideUI(true);updatePaceBtns();
-    return say(C.name,`${fmt(tod(R.t))}、${C.startName}のコントロールを出発。\nゴールのランブイエまで あと${1220-PBP_STAGES[C.stage][0]}km。制限まで ${dur(C.limit)}。\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,()=>{G.mode="ride";renderIdle()})}
+    return say(C.name,`${fmt(tod(R.t))}、${C.startName}のコントロールを出発。\nゴールのランブイエまで あと${COURSES.find(c=>c.id===C.baseId).dist-(C.stages||PBP_STAGES)[C.stage][0]}km。制限まで ${dur(C.limit)}。\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,()=>{G.mode="ride";renderIdle()})}
   if(C.pbp){P.pbpTried=true;
     steps.push(()=>menu({title:"前日：フランスにて",text:"自転車は無事に飛行機から降りてきた。ホテルで組み立ても終わった。明日はいよいよスタート。今日はどう過ごす？",items:[
       {label:"ヴェルサイユまで観光ライド",desc:"浮かれモード。でも道は木の根でボコボコ……。",fn:()=>{fx({spirit:20});if(Math.random()<0.35){fx({stamina:-10,spirit:-15});R.tubes=Math.max(0,R.tubes-1);say("前日に落車！","速い2人組を追いかけて歩道の段差に当たり、ライトのマウントが外れた。慌ててブレーキをかけて前輪ロック、ジャックナイフで落車。膝をすりむき、後輪もパンク。\n2人が戻ってきて薬局まで案内してくれた。予備チューブを1本使った。",next)}else say("ルイ14世の像の前で","記念撮影。完全に浮かれモード。",next)}},
@@ -2240,10 +2274,10 @@ function startRun(C){
 }
 function recOf(id){return P.rec[id]||(P.rec[id]={done:0,dnf:0,best:null})}
 function goal(ev){
-  const C=R.course,close=C.start+C.limit,el=R.t-C.start;
-  if(C.pbp&&C.stage!=null&&C.stage<2){if(R.t>close)return dnf(`${ev.name} ${fmt(tod(R.t))} 着。制限時間を過ぎてしまった……。`);const miss=controls().filter(c=>!R.receipts[c.km]&&c.type!=="goal");if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
-    SFX.win();G.mode="goal";const done=PBP_STAGES[C.stage][1],place=ev.name.replace(/^第\dステージ ゴール：/,""),B=COURSES.find(c=>c.id==="pbp2027");
-    const show=(msg)=>menu({title:`第${C.stage+1}ステージ クリア！`,text:`${msg?msg+"\n\n":""}${place} ${fmt(tod(R.t))}。　ヒント：${PBP_TIPS[Math.floor(Math.random()*PBP_TIPS.length)]}\n\n${done}km / 1,220km　スタートから ${dur(R.t-B.start)}\n制限まで あと ${dur(close-R.t)}\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,items:[
+  const C=R.course,close=C.start+C.limit,el=R.t-(C.baseId?COURSES.find(c=>c.id===C.baseId).start:C.start);
+  if(C.pbp&&C.stage!=null&&C.stage<(C.stages||PBP_STAGES).length-1){if(R.t>close)return dnf(`${ev.name} ${fmt(tod(R.t))} 着。制限時間を過ぎてしまった……。`);const miss=controls().filter(c=>!R.receipts[c.km]&&c.type!=="goal");if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
+    SFX.win();G.mode="goal";const done=(C.stages||PBP_STAGES)[C.stage][1],place=ev.name.replace(/^第\dステージ ゴール：/,""),B=COURSES.find(c=>c.id===C.baseId);
+    const show=(msg)=>menu({title:`第${C.stage+1}ステージ クリア！`,text:`${msg?msg+"\n\n":""}${place} ${fmt(tod(R.t))}。　ヒント：${PBP_TIPS[Math.floor(Math.random()*PBP_TIPS.length)]}\n\n${done}km / ${B.dist.toLocaleString("ja-JP")}km　スタートから ${dur(R.t-B.start)}\n制限まで あと ${dur(close-R.t)}\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,items:[
       {label:"コントロールの食堂で食べる　<small>満腹+50 体力+25</small>",note:"25分・¥1,500",disabled:P.money<1500,fn:()=>{R.t+=25;P.money-=1500;fx({hunger:50,stamina:25,spirit:10});R.lastMeal=R.t;show("パスタとチキン、デザートにライスプディング。")}},
       {label:"ドルトワールで1時間半眠る",note:"¥1,800",disabled:P.money<1800,fn:()=>{P.money-=1800;R.t+=90;rest(90);R.sleepy=clamp(R.sleepy-90*1.4,0,100);fx({spirit:30,stamina:30});show("体育館に並んだ簡易ベッドで眠った。ボランティアが時間どおりに起こしてくれた。")}},
       {label:"ドルトワールで3時間眠る",note:"¥1,800",disabled:P.money<1800,fn:()=>{P.money-=1800;sleepHotel(3,{name:`${place}のドルトワール`});show("ぐっすり3時間。脚が少し戻ってきた。")}},
@@ -2326,6 +2360,7 @@ function title(){
   menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道・ランドヌール札幌・AJたまがわ（青森）のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
     {label:"はじめから",fn:()=>{if(s)menu({title:"セーブデータを消して最初から？",items:[{label:"消して始める",fn:()=>{wipe();startNew()}},{label:"やめる",fn:title}],cancel:title});else startNew()}},
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
+    {label:"PBP 2023 体験版（3ステージ）",desc:"作者が実際に走った2023年のパリ〜ブレスト〜パリ 1,222km。本編のセーブには影響しない。",fn:startTrial},
     {label:"音の設定",fn:()=>menu({title:"音の設定",items:[...soundItems(title),{label:"もどる",fn:title}],cancel:title})},
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
@@ -2508,6 +2543,7 @@ function testMenu(){
     {label:"タイトルへ",fn:title}],keep:true,cancel:title});
 }
 function nextWeek(){
+  if(P.trial)return trialEnd();
   if(P.test){save();return testMenu()}
   P.week++;P.fatigue=clamp((P.fatigue||0)-12,0,100);
   const msgs=[];
