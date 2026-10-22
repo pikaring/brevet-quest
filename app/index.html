@@ -2701,9 +2701,8 @@ function endRun(title,text,o={}){
   // cold or wet for too long: a cold, and next week off the bike
   if(R&&!P.test){const risk=clamp((R.coldMin||0)/500+(R.wetMin||0)/300+(R.hypoMin>=30?0.5:0),0,0.7);
     if(risk>0.05&&Math.random()<risk){P.sickWeek=P.week+1;extra+=`\n帰ってから熱が出た。${R.wetMin>60?"雨に濡れたまま走ったのがいけなかった。":"体を冷やしすぎた。"}風邪をひいたらしい。来週は自転車に乗れない。`}}
-  // a brevet doesn't make you faster, but it keeps the training from fading for a while
-  if(o.grow&&R&&P.leg>legBase()+0.005){const wk=o.grow>=1000?3:o.grow>=400?2:1,before=P.lastTrain??P.week;P.lastTrain=Math.min(P.week,before+wk);
-    if(P.lastTrain>before)extra+=`\nトレーニングの効果が${P.lastTrain-before}週間長持ちする。`}
+  // riding keeps the legs: a brevet or a cafe ride counts like a training week (it doesn't make you faster)
+  if(R&&(R.course.kind==="brm"||R.course.kind==="cafe"))P.lastTrain=P.week;
   if(o.grow&&R&&R.lo){const n=Math.max(2,Math.round(3*o.grow/200)),lo=R.lo;
     const k=[["sta",1-lo.sta],["spi",1-lo.spi],["slp",lo.slp]].sort((a,b)=>b[1]-a[1])[0][0];
     if(k==="sta"){P.staMax=Math.min(160,P.staMax+n);extra+=`\n体力を使い切りかけた経験で、体力の上限が+${n}（${P.staMax}）。`}
@@ -2826,7 +2825,7 @@ function hub(){
   if(YEAR===2027&&!P.pbpReg){const a=WEEKS[wk],e=new Date(a.getFullYear(),a.getMonth(),a.getDate()+6);if(ymdOf(e)>="2027-05-29"&&ymdOf(a)<="2027-07-04"){const n=pbpQualCount();
     items.unshift({label:"PBPに本登録する",note:yen(PBP_FEE),disabled:n<3||P.money<PBP_FEE,desc:`本登録の受付は5/29〜7/4。資格のブルベ4本のうち3本以上の完走が必要（いま${n}本）。残りもPBPのスタートまでに完走すること。参加費は2027年分が未発表のため仮。`,
       fn:()=>{P.money-=PBP_FEE;P.pbpReg=true;SFX.win();save();say("本登録完了！","PBP 2027に登録した。8月22日、ランブイエのスタートラインへ。\nあとは旅費を貯めて、脚を仕上げよう。",hub)}})}}
-  items.push({label:"トレーニングする",note:"疲労+24",desc:"ローラー・峠・ロング・ダイエットから選ぶ。ローラー練には室内の機材（三本ローラーなど）が必要。トレーニングで上げた巡航は、4週間トレーニングしないと落ちはじめる（ブルベに出ると先延ばしできる）。",fn:trainingMenu});
+  items.push({label:"トレーニングする",note:"疲労+24",desc:"ローラー・峠・ロング・ダイエットから選ぶ。ローラー練には室内の機材（三本ローラーなど）が必要。トレーニングで上げた巡航は、トレーニングもカフェライドもブルベもしない週が4週続くと落ちはじめる。",fn:trainingMenu});
   // overtime wears you down: fatigue builds week after week, and a tired body catches colds
   items.push({label:"残業する",note:"+¥25,000",desc:`機材費を稼ぐ。疲労+35（疲労は毎週12ずつ抜ける）。疲れがたまっていると体調を崩しやすく、翌週は寝込むことも。${fat>=40?`\nいまの疲労 ${fat}：体調を崩す確率 約${Math.round(clamp((fat+35-40)/80,0,0.6)*100)}%`:""}`,
     fn:()=>{P.money+=25000;P.fatigue=clamp(P.fatigue+35,0,100);const r=clamp((P.fatigue-40)/80,0,0.6),down=Math.random()<r;if(down)P.sickWeek=wk+1;SFX.ok();save();
@@ -2846,7 +2845,7 @@ function hub(){
 
     if(wl&&/カフェライド/.test(x.label)&&!spikeOn()){x.disabled=true;x.desc="12〜3月は、スパイクタイヤがないと外を走れない。"}}
   menu({title:`${YEAR!==2026?`${new Date(WEEKS[wk].getFullYear(),WEEKS[wk].getMonth(),WEEKS[wk].getDate()+4).getFullYear()}年 `:P.season>1?P.season+"年目 ":""}第${wk+1}週　${weekLabel(wk)}`,
-    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${sick?"風邪で寝込んでいる。今週は自転車に乗れない。\n":""}${wl&&!indoorDev()&&!spikeOn()?"冬。自転車に乗れないので、運動しない週は体重が増える。\n":""}${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=2?`\n${P.week-P.lastTrain}週間トレーニングしていない。4週間あくと、トレーニングで上げた巡航が落ちはじめる。`:""}`,items});
+    text:`${homeOf().name}の自宅。所持金 ${yen(P.money)}　愛車 ${bikeOf().name}\n${sick?"風邪で寝込んでいる。今週は自転車に乗れない。\n":""}${wl&&!indoorDev()&&!spikeOn()?"冬。自転車に乗れないので、運動しない週は体重が増える。\n":""}${pbpLine()}巡航 ${P.leg.toFixed(1)}km/h　体重 ${P.body.toFixed(1)}kg　疲労 ${fat}${fat>=40?"（体力上限 -"+Math.round(fat/2.5)+"%）":""}\n今季の認定：${seasonSummary()}${P.leg>legBase()+0.005&&P.week-(P.lastTrain??P.week)>=3?`\n今週トレーニングかカフェライドかブルベをしないと、巡航が落ちはじめる。`:""}`,items});
 }
 function pbpLine(){if(YEAR===2026)return `来年2027年はPBP（パリ〜ブレスト〜パリ）の年。旅費の目安 ${yen(PBP_TRIP)}。\n`;
   const q=pbpQual(),d=QUAL_BY[YEAR];return `PBPへの道：資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}（${+d.slice(5,7)}/${+d.slice(8)}まで）　登録 ${P.pbpReg?"済":"まだ"}　旅費 ${yen(Math.min(P.money,PBP_TRIP))}/${yen(PBP_TRIP)}\n`}
@@ -2927,7 +2926,7 @@ function trainingMenu(){
   const legMsg=g=>g<0.01?`巡航 ${P.leg.toFixed(2)}km/h。もう伸びしろがない。ここからは機材と走り方で。`:`巡航 ${P.leg.toFixed(2)}km/h になった（+${g.toFixed(2)}）。`;
   const devName=dev&&GEAR.find(g=>g.id===dev[0]).name,outDesc=win?(spikeOn()?"スパイクタイヤで雪の道へ。転んだり、冷えて風邪をひいたりすることも。":sm?`${smName}で、家の中で。`:"12〜3月は、スパイクタイヤかスマートトレーナー（またはフィットネスバイク）がないとできない。"):sm?`外に走りに行くか、${smName}で。`:"外に走りに行く。";
   const items=[
-    {label:"ローラー練",note:dev?devName:"機材なし",disabled:!dev,desc:dev?`${devName}で、平地の巡航速度がほんの少し上がる。上がるほど伸びにくい。上げた分は、トレーニングしない週が4週続くと落ちていく（ブルベに出ると先延ばし。元の巡航より下がることはない）。`:"三本ローラー・スマートトレーナー・フィットネスバイクのどれかが必要。ショップで買える。",
+    {label:"ローラー練",note:dev?devName:"機材なし",disabled:!dev,desc:dev?`${devName}で、平地の巡航速度がほんの少し上がる。上がるほど伸びにくい。上げた分は、トレーニングもカフェライドもブルベもしない週が4週続くと落ちていく（元の巡航より下がることはない）。`:"三本ローラー・スマートトレーナー・フィットネスバイクのどれかが必要。ショップで買える。",
       fn:()=>{const g=gainLeg(0.12*dev[1]);go("ローラー練",legMsg(g)+"\n"+(dev[0]!=="roller3"?pick(["平日の朝6時から7時まで、Zwiftのグループライド。","Zwiftのレースで追い込んだ。","雨の日も雪の日も、部屋の中なら関係ない。"]):dev[0]==="roller3"?pick(["三本ローラーでバランスを取りながら回す。ペダリングがきれいになってきた気がする。","三本ローラーから落ちかけて、壁に手をついた。"]):pick(["三本ローラーで30分。集中しないと落ちる。"])))}},
     {label:"峠練",disabled:!outOK,desc:"登りで速度が落ちにくくなる。"+outDesc,fn:()=>{P.climb=Math.min(0.3,P.climb+0.04);go("峠練",`登坂力 ${Math.round(P.climb*100)}% になった。`+(inside()?`\n${smName}で、Zwiftの峠のコースを登った。`:outdoorRisk()))}},
     {label:"ロング練",disabled:!outOK,desc:"体力の最大値が上がる。"+outDesc,fn:()=>{P.staMax=Math.min(160,P.staMax+10);go("ロング練",`持久力 ${P.staMax} になった。`+(inside()?`\n${smName}で4時間。映画を2本見ながら漕いだ。`:outdoorRisk()))}},
@@ -2961,7 +2960,7 @@ function nextWeek(){
   P.week++;P.fatigue=clamp((P.fatigue||0)-12,0,100);
   // a month off the bike and the legs fade
   if(P.week-(P.lastTrain??P.week)>=4){const d=Math.min(0.2,Math.max(0,P.leg-legBase()));
-    if(d>0){P.leg-=d;msgs.push(["脚がなまった",`もう${P.week-P.lastTrain}週間、トレーニングしていない。巡航 ${P.leg.toFixed(2)}km/h に落ちた……。\nトレーニングで上げた分は、トレーニングかブルベで保てる。元の巡航より下がることはない。`])}}
+    if(d>0){P.leg-=d;msgs.push(["脚がなまった",`もう${P.week-P.lastTrain}週間、トレーニングもカフェライドもブルベもしていない。巡航 ${P.leg.toFixed(2)}km/h に落ちた……。\nトレーニングで上げた分は、トレーニング・カフェライド・ブルベで保てる。元の巡航より下がることはない。`])}}
   if(P.week<WEEKS.length){const m=weekMonth(P.week);if(m!==P.lastMonth){P.lastMonth=m;const pay=60000;P.money+=pay;msgs.push([`${m}月になった`,`今月のおこづかい ${yen(pay)} が入った。`])}}
   save();
   const show=()=>{const x=msgs.shift();x?say(x[0],x[1],show):hub()};show();
