@@ -810,7 +810,6 @@ const EVENTS=[
   desc:"凍った大沼の上を、ファットバイクで渡るガイドツアー（期間限定、2名から）。ファットバイクのレンタル込みなので、スパイクタイヤはいらない。氷の厚さは約30cm。氷の上に積もった雪が重くて、ずっと5%の坂を登っているみたい。",
   after:"帰りは森商店のスパイスチキンカレー。",
   events:[{km:0.3,type:"sight",name:"大沼の採氷場",text:"湖の氷を切り出している。",min:10,price:0,fx:{spirit:12}},
-   {km:0.5,type:"note",text:"自分のMTBで来たけど、雪に沈んで50mであきらめた。4インチのファットバイクに乗り換える。"},
    {km:2,type:"note",text:"踏切を渡って小沼へ。"},
    {km:3,type:"note",text:"水の流れで凍らないセバットは、歩いて渡る。足元で氷がミシミシ鳴る。ガイドのザックには長いロープ……。",spirit:-3},
    {km:4.5,type:"sight",name:"氷のグラスのシードル",text:"切り出した氷のブロックの上で、七飯のりんごのシードル。グラスも氷。",min:10,price:0,fx:{spirit:15,temp:-3}},
@@ -2902,7 +2901,8 @@ function enter(it,c){
   if(it.kind==="cx"&&P.bike!=="mtb"){P.bike="mtb";}
   P.money-=c;save();
   const C=it.kind==="brm"?it:eventCourse(it);
-  if(C.race)return startRun(C);
+  // events: no brevet-style kit check the night before
+  if(C.race||it.kind!=="brm")return startRun(C);
   packing(C,false);
 }
 function weekAct(t,msg,fn){fn();SFX.ok();save();say(t,msg,nextWeek)}
