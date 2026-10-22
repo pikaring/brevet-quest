@@ -991,6 +991,65 @@ function applyYear(y){YEAR=y;
     if(c.kind==="brm")c.date=jpDate(c.ymd)}
   WEEKS.length=0;const a=y===2026?new Date(2026,2,31):new Date(2027,2,30),z=y===2026?new Date(2026,9,27):new Date(2027,7,17);
   for(let d=a;d<=z;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7))WEEKS.push(d)}
+
+// The author's own PBP 2023 (PikaCycling「Road to PBP2023」), placed at the matching spots of the 2027 route.
+const PBP_BLOG=[
+ {km:5,type:"note",text:"スタート直後は大混雑。25km/hにも届かない。"},
+ {km:20,type:"note",text:"速い集団に乗った。段差のたびに先頭が「バンプ！」と叫んで教えてくれる。",spirit:5},
+ {km:40,type:"note",text:"夜の道は北海道並みに荒れている。前の人がよけた穴に自分だけ突っ込んだ。",spirit:-3},
+ {km:80,type:"sight",name:"集落はずれの街灯の下",text:"信号がないので足を休めるタイミングがない。トレインを抜けてひと休み。3回目の参加というドイツ人と「ホッカイドウ」というカボチャの話で盛り上がった。",min:5,price:0,fx:{spirit:12,stamina:4}},
+ {km:150,type:"note",text:"夜のフランスは15℃まで下がる。夏の北海道みたいだ。レインジャケットを着ても上半身が寒い。",fx:{temp:-10}},
+ {km:206,type:"sight",name:"向かいの建物のレストラン",text:"コントロールの軽食コーナーはチョコパンとコーヒーしかない。向かいの建物に行くと温かいスープとボロネーゼがあった。",min:25,price:1500,fx:{hunger:50,temp:10,spirit:8}},
+ {km:207,type:"note",text:"朝6時から案内係をしている子どもたちにバッジを渡したら「メルシー、ムッシュー」と笑ってくれた。",spirit:8},
+ {km:240,type:"note",text:"はじめての明るい時間の走行。牛、トウモロコシ畑、牧草ロール。写真を見せたら十勝と間違われそうだ。",spirit:12},
+ {km:260,type:"sight",name:"私設エイド",text:"村の人が水にシロップを混ぜたジュースを配っている。コーヒーも無料。",min:3,price:0,fx:{stamina:5,spirit:8,temp:-3}},
+ {km:270,type:"note",text:"水道水はカルキの匂いがきつすぎて、スポドリの粉を溶かしても飲めない。ミネラルウォーターを買おう。",spirit:-2},
+ {km:296,type:"sight",name:"コントロールのレストラン",text:"どでかいハムのジャンボンとフルーツ。肉を食うと元気が湧いてくる。食べたら芝生で昼寝していく？",min:45,price:1500,fx:{hunger:60,spirit:12,sleepy:-20}},
+ {km:320,type:"note",text:"13時を過ぎて気温は30℃超え。「暑熱順化が必要なレベルで熱いなんて聞いてないよ〜」",fx:{temp:12}},
+ {km:351,type:"sight",name:"キンキンに冷えた生ビール",text:"コントロールで確実に冷えている飲み物は生ビールだけ。生きていくために仕方なく……。",min:10,price:800,fx:{temp:-12,spirit:12,sleepy:8}},
+ {km:380,type:"note",text:"駐輪場の柵に立てかけていた自転車が倒され、DHバーが曲がってヘルメットのバイザーが消えた。西日が目に直撃する。",spirit:-8},
+ {km:400,type:"note",text:"PBP攻略の「3つのD」——Di2、DHバー、そしてド根性（どこでも寝る、混んだトイレには並ばない）。"},
+ {km:449,type:"sight",name:"コントロールのシャワー",text:"床はベコベコ、仕切りなし、天井からなまぬるいお湯。それでも汗が流せる。",min:15,price:0,fx:{spirit:5,temp:-5,sleepy:-5}},
+ {km:470,type:"note",text:"とにかく眠い。寒く、暗く、人も少ない。登りでマイクロスリープが頻発する。",fx:{sleepy:15}},
+ {km:480,type:"note",text:"大きく左に傾いた瞬間、後ろの参加者に「大丈夫ですか？」と声をかけられて一気に目が覚めた。",fx:{sleepy:-20},spirit:8},
+ {km:500,type:"sight",name:"峠の上の臨時カフェ",text:"真夜中の峠の頂上に臨時のカフェ。サイクリストが吸い寄せられている。",min:12,price:300,fx:{sleepy:-20,spirit:8,temp:5}},
+ {km:510,type:"note",text:"懐メロを大声で歌いながら登る。夜中は外国人も歌っている。",fx:{sleepy:-10},spirit:5},
+ {km:520,type:"note",text:"「PBPは平坦ステージだといったな、あれは嘘だ」。ブルターニュのアップダウンが続く。",spirit:-5},
+ {km:531,type:"sight",name:"コントロールの謎野菜スープ",text:"定番中の定番。胃が疲れていても飲めて、胃が動き出す。これがなければ完走できなかった。",min:10,price:400,fx:{hunger:20,temp:10,stamina:12}},
+ {km:575,type:"sight",name:"朝のブーランジェリー",text:"クロワッサンとコーヒー。サラダはジャージのポケットに差して走りながら。",min:8,price:700,fx:{hunger:25,sleepy:-8,spirit:6}},
+ {km:592,type:"note",text:"ブレストは人が一回しか通らないコントロール。最終組には料理がほとんど残っていない。ブラスバンドの演奏で芝生でも眠れない。"},
+ {km:600,type:"sight",name:"TABAC（タバコ屋）",text:"ジュースがガチンコで冷えている。コーラとオランジーナしかないけど、何物にも代えがたい。",min:3,price:400,fx:{temp:-10,spirit:15,stamina:4}},
+ {km:610,type:"note",text:"「ついに大西洋に辿り着いたぜ〜！！！」",spirit:15},
+ {km:640,type:"sight",name:"峠道の日陰",text:"山側の日陰で、たくさんのサイクリストがごろ寝している。真似していく？",min:20,price:0,fx:{sleepy:-15,temp:-10,stamina:8}},
+ {km:671,type:"sight",name:"温かいスープとパリ・ブレスト",text:"暑さで胃をやられ気味。名物のお菓子パリ・ブレストは……正直、日本のシュークリーム屋の方が美味い。",min:20,price:900,fx:{hunger:25,stamina:12,spirit:5}},
+ {km:700,type:"note",text:"50時間経過。集団のテールライトの点滅に幻惑されてくらくらする。",fx:{sleepy:10},spirit:-5},
+ {km:710,type:"note",text:"後ろから日本人の参加者に「もしかして、SNSの方ですか？」と声をかけられた。眠いときに日本語で話せるとめちゃくちゃ助かる。",fx:{sleepy:-20},spirit:15},
+ {km:720,type:"note",text:"「心拍を上げるためにルデアックまで一生懸命走ろう」。2人で鬼のように爆走した。",fx:{sleepy:-20,stamina:-8}},
+ {km:742,type:"note",text:"仮眠所では受付に起こしてもらう時刻を伝える。でも約束より20分遅れで起こされた。予備のアラームをかけておいて正解。"},
+ {km:760,type:"note",text:"レストランが混んで朝食を断念。水も買えずボトルが空っぽ。人のボトルを奪いたくなる。",spirit:-10,fx:{temp:3}},
+ {km:775,type:"sight",name:"やっと見つけたTABAC",text:"クロワッサンを一口で食べてコーラで流し込み、ボトル2本に水を補給。「足下を掘れ、そこに泉あり」",min:5,price:600,fx:{hunger:20,stamina:6,spirit:15}},
+ {km:800,type:"sight",name:"村の私設エイド",text:"チョコパンと温かいスープ。ハエもタライの水も、もう全然気にならない。",min:8,price:0,fx:{hunger:30,temp:8,spirit:8}},
+ {km:823,type:"sight",name:"ガッツリ系の昼ごはん",text:"タルタルステーキ（中が赤い。えいやっと食べた）、ご飯、ジャガイモ、オレンジ、野菜スープ、コーラ。",min:30,price:1800,fx:{hunger:70,spirit:10,stamina:10}},
+ {km:860,type:"note",text:"残り約300kmに27時間。「80時間でも楽勝」……と思ったのが運の尽き。"},
+ {km:926,type:"sight",name:"コントロール近くのハンバーガー屋",text:"コントロールのレストランは「最終組の呪い」で激混み。秒で諦めてファストフードへ。",min:20,price:1200,fx:{hunger:40,spirit:5}},
+ {km:950,type:"sight",name:"私設エイドの薄いジュース",text:"水にかき氷のシロップを混ぜたような常温のジュース。「水に味がついている！」「こーゆーのでいいんだよ！！！」",min:3,price:0,fx:{spirit:15,temp:-5,stamina:4}},
+ {km:1011,type:"note",text:"ヴィレーヌのコントロールはものすごい盛り上がり。ゴールより盛り上がってる説。",spirit:25},
+ {km:1030,type:"note",text:"走り出して1時間でまた眠い。暗くなると目に入る光が減るからかも。",fx:{sleepy:15}},
+ {km:1040,type:"sight",name:"天の川の下",text:"街灯の下、ほかのサイクリストも寝ている場所なら安全。「世界一豪華な帝国ホテル」で寝ていく？",min:30,price:0,fx:{sleepy:-30,temp:-10,hunger:-10,spirit:10}},
+ {km:1055,type:"sight",name:"深夜営業のケバブ屋",text:"混みすぎてジュースは売り切れ。ジャンキーな味が疲れ切った体には最高のごちそう。",min:20,price:1000,fx:{hunger:50,spirit:10,sleepy:5}},
+ {km:1070,type:"sight",name:"自転車博物館の私設エイド",text:"有名な大規模私設エイド。「コーラのカフェインと糖分がたまんねー！！！」",min:15,price:0,fx:{sleepy:-20,spirit:15,stamina:5}},
+ {km:1105,type:"note",ifSleepy:60,alert:"寝落ちして芝生へ",text:"「寝てた！ 転ぶ？ 右に芝生！ そっちだ！」右の芝生に滑り込み、溝で止まった。通りかかったカップルが心配してくれた。（帰国後、肋骨のひびが判明……）",fx:{stamina:-15,sleepy:-40,spirit:-10}},
+ {km:1120,type:"sight",name:"夜明けのTABAC",text:"エスプレッソをドッピオにしてもらって、クロワッサンと。",min:6,price:500,fx:{sleepy:-15,hunger:20}},
+ {km:1140,type:"note",text:"地平線まで続く畑をひたすらまっすぐ。帯広は山に囲まれているけど、ここは地平線まで畑。スケールが違う。",spirit:5},
+ {km:1150,type:"note",text:"「十勝に似てますね」と言ったら、常連の日本人に「だったら北海道で走ってろよ！」と言われた。",spirit:3},
+ {km:1185,type:"note",text:"イタリア人のトレインに「お前が引け」のジェスチャーをされて先頭を全力で引く。",fx:{stamina:-10}},
+ {km:1195,type:"note",text:"補給食が尽きたら、トレインの若者が食べかけのスニッカーズを譲ってくれた。",fx:{hunger:15},spirit:10},
+ {km:1205,type:"sight",name:"町のパティスリー",text:"ハンガーノック寸前。糖分を補給していく？",min:10,price:600,fx:{hunger:35,stamina:5}},
+];
+{const B=COURSES.find(c=>c.id==="pbp2027");B.events.push(...PBP_BLOG.map(e=>({...e,blog:true})));B.events.sort((a,b)=>a.km-b.km);
+ const m=B.events.find(e=>e.name==="モルターニュ＝オー＝ペルシュの補給所");Object.assign(m,{text:"最初の補給所。外のテントのソーセージサンドは炭みたいに固くて苦い……。体育館の作りたてハムチーズサンドで口直し。",min:30,price:1200});
+ B.goalFood="ゲートをくぐると、急な雨で観客はもう帰り支度。少しさみしい。でも受付でブルベカードにハンコをもらい、その場でメダル。ミールチケットで最後の食事と「ラストビール」。\n「よく頑張ったよ、オレ。自分で自分をほめてあげたい」";}
+const PBP_TIPS=["PBPの「3つのD」：Di2、DHバー、ド根性。","コントロールのレストランで座って食べると、疲れも取れて栄養バランスもいい。いざとなればそのまま席で寝られる。","夜明け前は寒い。コントロールの中で日の出を待つのもあり。","水道水はカルキ臭がきつい。ミネラルウォーターを。","仮眠所の起床は遅れることがある。予備のアラームを。","最終組は前の組を追い越していけば制限を気にしなくていい。","コントロールの飲み物はコーラ、オランジーナ、レッドブルくらい。冷えているとは限らない。","往路600kmを40時間以内に走れれば、完走率がぐんと上がる。"];
 const PBP_STAGES=[[0,450,"ランブイエ → ポンティヴィ"],[450,825,"ポンティヴィ → ブレスト → タンテニアック"],[825,1220,"タンテニアック → ランブイエ"]];
 function pbpStage(i,startT){const B=COURSES.find(c=>c.id==="pbp2027"),[a,b,nm]=PBP_STAGES[i],close=B.start+B.limit,sh=k=>Math.round((k-a)*10)/10;
   const cut=(arr)=>{let first=arr[0];for(const x of arr)if(x[0]<=a)first=x;return [[0,first[1]],...arr.filter(x=>x[0]>a&&x[0]<b).map(x=>[sh(x[0]),x[1]])]};
@@ -1912,7 +1971,7 @@ function troubleSpirit(){
 
 /* ================= EVENTS ================= */
 function trigger(ev){
-  if(ev.type==="note"){log(ev.text);if(ev.spirit)fx({spirit:ev.spirit});return}
+  if(ev.type==="note"){if(ev.ifSleepy&&R.sleepy<ev.ifSleepy)return;log(ev.text);if(ev.spirit)fx({spirit:ev.spirit});if(ev.fx)fx(ev.fx);if(ev.alert){SFX.bad();return say(ev.alert,ev.text)}return}
   if(ev.type==="pc")return arrivePC(ev);
   if(ev.type==="check"){SFX.ok();return say(ev.name,ev.photo?`${ev.photo}\nブルベカードに通過時刻を書いた。(2分)`:"ブルベカードに通過を記録した。(2分)",()=>{R.t+=2;R.receipts[ev.km]=true;log(`${ev.name} 通過 ${fmt(R.t)}`)})}
   if(ev.type==="sight")return sightEvent(ev);
@@ -2162,7 +2221,15 @@ function startRun(C){
   const steps=[];
   if(C.cont){R.present=P.pbpSnap&&P.pbpSnap.present||[];G.mode="pre";G.ff=savedFF();$("#c-ff").textContent="×"+G.ff;setPaceLabels(false);showRideUI(true);updatePaceBtns();
     return say(C.name,`${fmt(tod(R.t))}、${C.startName}のコントロールを出発。\nゴールのランブイエまで あと${1220-PBP_STAGES[C.stage][0]}km。制限まで ${dur(C.limit)}。\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,()=>{G.mode="ride";renderIdle()})}
-  if(C.pbp){P.pbpTried=true;steps.push(()=>{SFX.win();say("LAST STAGE","PARIS - BREST - PARIS\n\nランブイエ城の前の広場。世界中から集まったランドヌールの言葉が飛び交っている。\n日本から来たランドヌールも大勢いる。\n4年に一度のこの日のために、北海道で走ってきた。",next)})}
+  if(C.pbp){P.pbpTried=true;
+    steps.push(()=>menu({title:"前日：フランスにて",text:"自転車は無事に飛行機から降りてきた。ホテルで組み立ても終わった。明日はいよいよスタート。今日はどう過ごす？",items:[
+      {label:"ヴェルサイユまで観光ライド",desc:"浮かれモード。でも道は木の根でボコボコ……。",fn:()=>{fx({spirit:20});if(Math.random()<0.35){fx({stamina:-10,spirit:-15});R.tubes=Math.max(0,R.tubes-1);say("前日に落車！","速い2人組を追いかけて歩道の段差に当たり、ライトのマウントが外れた。慌ててブレーキをかけて前輪ロック、ジャックナイフで落車。膝をすりむき、後輪もパンク。\n2人が戻ってきて薬局まで案内してくれた。予備チューブを1本使った。",next)}else say("ルイ14世の像の前で","記念撮影。完全に浮かれモード。",next)}},
+      {label:"ホテルで昼寝して過ごす",desc:"観光はおあずけ。",fn:()=>{R.sleepy=Math.max(0,R.sleepy-20);say("昼寝","17時までぐっすり。",next)}}]}));
+    steps.push(()=>say("受付と車検","ランブイエ城で受付。ブルベカード、ICチップ入りのフレームバッジ、反射ベスト、PBPのボトル。\n車検は日本のブルベよりゆるい。バッジとライトの点灯確認だけ。",next));
+    steps.push(()=>menu({title:"スタート会場",text:"スタートまで、まだ時間がある。",items:[
+      {label:"ミールチケットで「最後の晩餐」",desc:"「ラストビールだよ！」の声につられて……。",fn:()=>{fx({hunger:40,spirit:10,sleepy:5});next()}},
+      {label:"芝生で仮眠",desc:"日没前で涼しくて気持ちいい。",fn:()=>{R.sleepy=Math.max(0,R.sleepy-20);next()}}]}));
+    steps.push(()=>{SFX.win();say("LAST STAGE","PARIS - BREST - PARIS\n\nランブイエ城の前の広場。世界中から集まったランドヌールの言葉が飛び交っている。\n日本から来たランドヌールも大勢いる。\n4年に一度のこの日のために、北海道で走ってきた。",next)})}
   if(present.length&&C.kind!=="cafe")steps.push(()=>say("スタート地点で",`${present.map(id=>FRIENDS[id].name).join("、")}の顔が見える。${present.some(id=>FRIENDS[id].only)?"\n地元のブルベでしか会えない人もいる。":""}`,next));
   if(C.kind==="brm"&&Math.random()<0.45)steps.push(()=>startTrouble(next));
   steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
@@ -2176,7 +2243,7 @@ function goal(ev){
   const C=R.course,close=C.start+C.limit,el=R.t-C.start;
   if(C.pbp&&C.stage!=null&&C.stage<2){if(R.t>close)return dnf(`${ev.name} ${fmt(tod(R.t))} 着。制限時間を過ぎてしまった……。`);const miss=controls().filter(c=>!R.receipts[c.km]&&c.type!=="goal");if(miss.length)return dnf(`通過証明が足りない：${miss.map(m=>m.name).join("、")}`);
     SFX.win();G.mode="goal";const done=PBP_STAGES[C.stage][1],place=ev.name.replace(/^第\dステージ ゴール：/,""),B=COURSES.find(c=>c.id==="pbp2027");
-    const show=(msg)=>menu({title:`第${C.stage+1}ステージ クリア！`,text:`${msg?msg+"\n\n":""}${place} ${fmt(tod(R.t))}。\n${done}km / 1,220km　スタートから ${dur(R.t-B.start)}\n制限まで あと ${dur(close-R.t)}\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,items:[
+    const show=(msg)=>menu({title:`第${C.stage+1}ステージ クリア！`,text:`${msg?msg+"\n\n":""}${place} ${fmt(tod(R.t))}。　ヒント：${PBP_TIPS[Math.floor(Math.random()*PBP_TIPS.length)]}\n\n${done}km / 1,220km　スタートから ${dur(R.t-B.start)}\n制限まで あと ${dur(close-R.t)}\n体力 ${Math.round(R.stamina)}　満腹 ${Math.round(R.hunger)}　気力 ${Math.round(R.spirit)}　眠気 ${Math.round(R.sleepy)}`,items:[
       {label:"コントロールの食堂で食べる　<small>満腹+50 体力+25</small>",note:"25分・¥1,500",disabled:P.money<1500,fn:()=>{R.t+=25;P.money-=1500;fx({hunger:50,stamina:25,spirit:10});R.lastMeal=R.t;show("パスタとチキン、デザートにライスプディング。")}},
       {label:"ドルトワールで1時間半眠る",note:"¥1,800",disabled:P.money<1800,fn:()=>{P.money-=1800;R.t+=90;rest(90);R.sleepy=clamp(R.sleepy-90*1.4,0,100);fx({spirit:30,stamina:30});show("体育館に並んだ簡易ベッドで眠った。ボランティアが時間どおりに起こしてくれた。")}},
       {label:"ドルトワールで3時間眠る",note:"¥1,800",disabled:P.money<1800,fn:()=>{P.money-=1800;sleepHotel(3,{name:`${place}のドルトワール`});show("ぐっすり3時間。脚が少し戻ってきた。")}},
