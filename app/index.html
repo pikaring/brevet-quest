@@ -1414,7 +1414,7 @@ function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id),ST=B
     rain:(B.rain||[]).filter(z=>z[1]>a&&z[0]<b).map(z=>[Math.max(0,sh(z[0])),sh(Math.min(b,z[1]))]),lodges:(B.lodges||[]).filter(L=>L.km>a&&L.km<b).map(L=>({...L,km:sh(L.km)})),events:ev,
     startName:i===0?B.startName:ev.length?`${nm.split(" → ")[0]}`:"",cont:i>0}}
 // what carries over from one stage to the next
-const CARRY=["tubesUsed","winterOn","rinko","t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
+const CARRY=["stuffed","tubesUsed","winterOn","rinko","t","stamina","staMax","hunger","spirit","spiMax","temp","sleepy","legKm","woke","light","lightMax","lightType","lightNight","backup","phone","bank","kit","tubes","link","wind","windOn","rainGear","rainOn","batteries","kairo","pocket","broken","limp","naviDead","train","present"];
 function pbpNext(i){const snap={};for(const k of CARRY)snap[k]=JSON.parse(JSON.stringify(R[k]??null));const C=pbpStage(i,R.t,R.course.baseId||"pbp2027");P.pbpSnap=snap;save();startRun(C)}
 function pbpQual(){const q=P.qual||{};return {200:!!(q[200]||q[300]),300:!!q[300],400:!!q[400],600:!!(q[600]||q[1000])}}
 function pbpQualCount(){return Object.values(pbpQual()).filter(Boolean).length}
@@ -2029,6 +2029,7 @@ function speed(){
   if(R.sleepy>=85)v*=0.8;else if(R.sleepy>=65)v*=0.92;
   if(raining())v*=0.96;
   if(R.hunger<=0)v*=0.45;
+  if(R.stuffed>0)v*=0.85;
   if(R.temp<30)v*=0.85;else if(R.temp>75)v*=0.92;
   if(R.spirit>=80)v*=1.03;else if(R.spirit<15)v*=0.8;else if(R.spirit<30)v*=0.9;else if(R.spirit<50)v*=0.95;
   if(isNight(R.t)){v*=R.light>0?R.lightNight:1;if(R.light<=0)v=Math.min(v,P.gear.helmet_light?15:10)}
@@ -2041,6 +2042,8 @@ function speed(){
 /* ================= RIDE LOOP ================= */
 function log(t){R.log.push(t);if(R.log.length>30)R.log.shift();if(!UI.open)renderIdle()}
 function fx(o){if(!o)return;
+  // eating past full: slow until it settles (2 minutes per point over, up to 2 hours)
+  if(o.hunger>0){const over=R.hunger+o.hunger-100;if(over>0){const was=R.stuffed||0;R.stuffed=Math.min(120,was+over*2);if(!was)log("食べすぎた……。お腹が苦しくて、消化するまで脚が回らない。")}}
   if(o.hunger)R.hunger=clamp(R.hunger+o.hunger,0,100);
   if(o.spirit)R.spirit=clamp(R.spirit+(o.spirit>0&&o.hunger?o.spirit*(trait().foodMul||1):o.spirit),0,R.spiMax||100);
   if(o.stamina)R.stamina=clamp(R.stamina+o.stamina,0,R.staMax);
@@ -2066,6 +2069,7 @@ function simStep(dm){
   checkStates(night);
 }
 function drain(dm,g,night){
+  if(R.stuffed>0){R.stuffed=Math.max(0,R.stuffed-dm);if(!R.stuffed)log("お腹が落ち着いてきた。")}
   const h=dm/60,B=bikeOf();
   const tr=R.train.length?1:0;
   const hw=windNow(),rain=raining(),amb=ambient(R.t,R.km);
@@ -3068,6 +3072,7 @@ function updateHUD(dt){
   if(raining())tags.push(R.rainOn?"雨（レインウェア着用）":"雨！");
   if(dhOn())tags.push("DHポジション");
   if(R.pace==="hard")tags.push("がんばり中");
+  if(R.stuffed>0)tags.push('<span class="warn">食べすぎて苦しい</span>');
   if(R.spirit>=80)tags.push("ノッてる！");else if(R.spirit<30)tags.push('<span class="warn">やる気が出ない</span>');
   if(R.train.length&&isNight(R.t))tags.push("おしゃべりで眠気まぎれ");
   if(R.stamina<30)tags.push('<span class="warn">へばり</span>');
