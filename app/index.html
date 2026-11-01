@@ -1046,16 +1046,20 @@ function mealCheck(){
 
 // Weeks of the season run Tuesday → Monday, so a Monday holiday (5/4, 7/20, 9/21) stays with its weekend.
 const WEEKS=[];
-// Seasons: the main game repeats 2026. 2027（仮）is the story up to PBP: AJ北海道/R札幌 2027 dates aren't out yet, so the 2023 calendar
-// moves to the same weekend of 2027 (+208 weeks), plus the dates already announced (AJたまがわ).
-const Y2027={tsugaru200:"2027-05-08",gonou300:"2027-05-29",oirase400:"2027-07-03"};
+// Seasons: the main game repeats 2026. 2027 is the story up to PBP. Announced dates come first: AJたまがわ, and ランドヌール札幌
+// (2027年開催BRM, announced 2026-10-27). AJ北海道 2027 isn't out yet, so its part is the 2023 calendar moved to the same weekend (+208 weeks, 仮).
+const Y2027={tsugaru200:"2027-05-08",gonou300:"2027-05-29",oirase400:"2027-07-03",
+  rs23_423:"2027-05-04",rs23_610:"2027-05-15",kogane400:"2027-05-29",furen200:"2027-06-27",shiribeshi300:"2027-07-17",dounan600:"2027-07-17",unitarako200:"2027-07-19",shakotan400:"2027-07-31"};
+const RS27_URL="https://randonneurssapporo.net/brmr%ef%bd%8d/brm2027/";
 let YEAR=2026;
 function applyYear(y){YEAR=y;
   for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.y23?null:c.ymd;if(c.name23===undefined)c.name23=c.name;if(c.pbp)continue;
-    if(y===2026){c.ymd=c.y26||null;c.tent=false;c.name=c.name23}
+    if(c.url26===undefined)c.url26=c.url;
+    if(y===2026){c.ymd=c.y26||null;c.tent=false;c.name=c.name23;c.url=c.url26}
+    else if(Y2027[c.id]){const d=ymdDate(Y2027[c.id]);c.ymd=Y2027[c.id];c.tent=false;c.name=c.name23.replace(/^BRM\d+/,`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`);if(c.org===RS)c.url=RS27_URL}
+    else if(c.org===RS&&c.y23)c.ymd=null; // R札幌 2027 is announced: the 2023 placeholders go
     else if(c.y27&&!c.y23){c.ymd=c.y27;c.tent=true}
     else if(c.y23){const d=ymdDate(c.y23);d.setDate(d.getDate()+1456);c.ymd=ymdOf(d);c.tent=true;c.name=c.name23.replace(/^BRM\d+/,`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`)}
-    else if(Y2027[c.id]){c.ymd=Y2027[c.id];c.tent=false}
     else if(c.y27){c.ymd=c.y27;c.tent=true}
     else c.ymd=null;
     if(c.kind==="brm"&&c.ymd)c.date=jpDate(c.ymd)}
@@ -1141,6 +1145,13 @@ c23({id:"rs23_423",cls:200,ymd:"2023-04-23",org:RS,region:"道央",url:RS23+"202
    {km:85,type:"pc",name:"PC2 鵡川",chain:"seicomart"},{km:103,type:"check",name:"通過チェック 日高門別",photo:"競走馬の牧場で、仔馬が跳ねていた。"},
    {km:104,type:"note",text:"門別は競走馬のふるさと。牧場の柵の向こうで、母馬と仔馬が草を食んでいる。",spirit:12},
    {km:145,type:"pc",name:"PC3 厚真",chain:"seicomart"},{km:175,type:"pc",name:"PC4 長沼",chain:"seven"},{km:200,type:"goal",name:"ゴール 平岡公園"}]});
+// R札幌 2027 new: 黄金400 (5/29, 札幌). The route isn't out yet — a placeholder out-and-back.
+COURSES.push(brm({id:"kogane400",cls:400,ymd:"2027-05-29",y26:null,org:RS,region:"道央",url:RS27_URL,name:"BRM529 黄金400",dist:400,startName:"札幌市",
+  desc:"ランドヌール札幌の2027年の新コース。札幌スタート。コースはまだ発表されていない（コースは推定）。",goalFood:"新コースの400、完走。",
+  profile:[[0,20],[40,30],[80,20],[120,60],[160,30],[200,40],[240,30],[280,60],[320,20],[360,30],[400,20]],
+  scenery:[[0,"town"],[15,"field"],[60,"sea"],[150,"field"],[250,"sea"],[340,"field"],[390,"town"]],heading:[[0,150],[200,330]],deer:[[150,380]],
+  events:[{km:50,type:"pc",name:"PC1",chain:"seicomart"},{km:120,type:"pc",name:"PC2",chain:"seven"},{km:200,type:"pc",name:"PC3（折り返し）",chain:"seicomart"},
+   {km:280,type:"pc",name:"PC4",chain:"lawson"},{km:350,type:"pc",name:"PC5",chain:"seicomart"},{km:400,type:"goal",name:"ゴール 札幌"}]}));
 c23({from:"shintotsukawa200",id:"aj23_429",ymd:"2023-04-29",url:AJ23,name:"BRM429 北海道200km 新十津川",rainChance:0.5,
   desc:"AJ北海道の初戦。春の日本海側はまだ寒く、風雨に苦しむことが多い。（コースは推定）",goalFood:"AJ北海道の初戦、完走。"});
 c23({from:"hako200",id:"aj23_504",ymd:"2023-05-04",cls:200,org:AJ,region:"道南",url:AJ23,blog:PB23+"05/09/180000",estimated:false,name:"BRM504 北海道200km 函館",rainChance:0.1,
@@ -2779,7 +2790,7 @@ function title(){
   menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道・ランドヌール札幌・AJたまがわ（青森）のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
     {label:"はじめから",fn:()=>{if(s)menu({title:"セーブデータを消して最初から？",items:[{label:"消して始める",fn:()=>{wipe();startNew()}},{label:"やめる",fn:title}],cancel:title});else startNew()}},
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
-    {label:"体験版：2027年シーズン（仮） → PBP",desc:"PBPを完走するまでのストーリー。作者がPBPを目指した2023年の日程（2027年の同じ週末に置いた仮）で北海道のブルベに出てSRをそろえ、8月のパリ〜ブレスト〜パリ 1,220kmへ。本編のセーブには影響しない。",fn:()=>{const t=trialLoad();if(!t)return startTrial();
+    {label:"体験版：2027年シーズン（仮） → PBP",desc:"PBPを完走するまでのストーリー。ランドヌール札幌とAJたまがわは2027年の公式日程、AJ北海道は作者がPBPを目指した2023年の日程を2027年の同じ週末に置いた仮の日程で、北海道のブルベに出てSRをそろえ、8月のパリ〜ブレスト〜パリ 1,220kmへ。本編のセーブには影響しない。",fn:()=>{const t=trialLoad();if(!t)return startTrial();
       menu({title:"体験版：2027年シーズン（仮）",items:[{label:"つづきから",note:`${t.year}年 第${t.week+1}週`,fn:()=>{P=t;hub()}},{label:"はじめから",fn:startTrial},{label:"もどる",fn:title}],cancel:title})}},
     {label:"音の設定",fn:()=>soundMenu(title)},
     // Test mode stays out of the public menu; open the page with #test to reach it.
