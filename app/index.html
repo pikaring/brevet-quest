@@ -1127,7 +1127,7 @@ const PBP_BLOG=[
 // ===== 2027年シーズン（仮）: the 2023 calendar (AJ北海道 2023 results page, R札幌 2023 event pages), moved to 2027 by applyYear;
 // the rides the author did (函館200, トトロ300, 様似400, 宗谷岬600, きのこの山300, 函館300, トカプチ朝駆400) follow his blog.
 const AJ23=AJ_URL+"pg180.html",RS23="https://randonneurssapporo.net/",PB23="https://pikacycling.hateblo.jp/entry/2023/";
-const QUAL_BY={2027:"2027-06-27"}; // 2023: SR by 7/2 (Sunday) → the same Sunday of 2027
+const QUAL_BY={2027:"2027-06-30"}; // PBP 2027 rules: qualifying brevets between 2026-11-01 and 2027-06-30
 // a course ridden the other way round
 function revCourse(B){const L=B.dist,f=k=>Math.round((L-k)*10)/10;
   const seg=(arr,g=v=>v)=>arr.map((x,i)=>[f(arr[i+1]?arr[i+1][0]:L),g(x[1])]).reverse();
@@ -1416,12 +1416,20 @@ function trialEnd(why){
     :P.pbpTried?"PBP 2027は完走できなかった。\nでも、ランブイエのスタートラインに立った。":"PBP 2027には出なかった。",items:[again,{label:"タイトルへ",fn:title}]})}
 const PBP_TIPS=["PBPの「3つのD」：Di2、DHバー、ド根性。","コントロールのレストランで座って食べると、疲れも取れて栄養バランスもいい。いざとなればそのまま席で寝られる。","夜明け前は寒い。コントロールの中で日の出を待つのもあり。","水道水はカルキ臭がきつい。ミネラルウォーターを。","仮眠所の起床は遅れることがある。予備のアラームを。","最終組は前の組を追い越していけば制限を気にしなくていい。","コントロールの飲み物はコーラ、オランジーナ、レッドブルくらい。冷えているとは限らない。","往路600kmを40時間以内に走れれば、完走率がぐんと上がる。"];
 const PBP_STAGES=[[0,450,"ランブイエ → ポンティヴィ"],[450,825,"ポンティヴィ → ブレスト → タンテニアック"],[825,1220,"タンテニアック → ランブイエ"]];
-function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id),ST=B.stages||PBP_STAGES,[a,b,nm]=ST[i],close=B.start+B.limit,sh=k=>Math.round((k-a)*10)/10;
+// PBP 2027 start waves (rules, Article on departures): the wave sets the time limit
+const PBP_WAVES=[{id:"fast",label:"日曜16:00の速い組（A〜D）",start:16*60,limit:80*60,desc:"制限80時間。速い人向け。"},
+  {id:"std",label:"日曜18:30の組（G〜U）",start:18*60+30,limit:90*60,desc:"制限90時間。いちばん人が多い。"},
+  {id:"last",label:"日曜21:15の最終組（U）",start:21*60+15,limit:90*60,desc:"制限90時間。作者がPBP 2023で選んだ最終組と同じ。後ろから追いついてくる人がいない。"},
+  {id:"mon",label:"月曜5:00の朝の組（V〜Y）",start:24*60+5*60,limit:84*60,desc:"制限84時間。夜明けからスタートして、最初の夜は寝てから。"}];
+function pbpStage(i,startT,id="pbp2027"){const B=COURSES.find(c=>c.id===id);
+  if(id==="pbp2027"&&typeof P!=="undefined"&&P&&P.pbpWave){const W=PBP_WAVES.find(w=>w.id===P.pbpWave);if(W){if(i===0&&startT===B.start)startT=W.start;B.start=W.start;B.limit=W.limit}}
+  const ST=B.stages||PBP_STAGES,[a,b,nm]=ST[i],close=B.start+B.limit,sh=k=>Math.round((k-a)*10)/10;
   const cut=(arr)=>{let first=arr[0];for(const x of arr)if(x[0]<=a)first=x;return [[0,first[1]],...arr.filter(x=>x[0]>a&&x[0]<b).map(x=>[sh(x[0]),x[1]])]};
   const prof=[...B.profile.filter(x=>x[0]>=a&&x[0]<=b).map(x=>[sh(x[0]),x[1]])];
   const ev=B.events.filter(e=>e.km>a&&e.km<=b).map(e=>({...e,km:sh(e.km)}));
   if(i<ST.length-1){let li=ev.length-1;while(li>0&&ev[li].type!=="pc")li--;const last=ev[li];ev.splice(li,1);ev.push({type:"goal",km:sh(b),name:`第${i+1}ステージ ゴール：${last.name.replace(/^(コントロール|PC\d+) /,"")}`});ev.sort((x,y)=>x.km-y.km)}
-  return {...B,id:B.id,baseId:B.id,stage:i,name:`${B.short||"PBP 2027"} 第${i+1}ステージ（${nm}）`,dist:b-a,start:startT,limit:close-startT,profile:prof,scenery:cut(B.scenery),heading:cut(B.heading),
+  const day=Math.floor(startT/1440),date=day&&B.ymd&&i===0?(()=>{const d=ymdDate(B.ymd);d.setDate(d.getDate()+day);return jpDate(ymdOf(d))})():B.date; // the Monday wave starts the next day
+  return {...B,date,id:B.id,baseId:B.id,stage:i,name:`${B.short||"PBP 2027"} 第${i+1}ステージ（${nm}）`,dist:b-a,start:startT,limit:close-startT,profile:prof,scenery:cut(B.scenery),heading:cut(B.heading),
     rain:(B.rain||[]).filter(z=>z[1]>a&&z[0]<b).map(z=>[Math.max(0,sh(z[0])),sh(Math.min(b,z[1]))]),lodges:(B.lodges||[]).filter(L=>L.km>a&&L.km<b).map(L=>({...L,km:sh(L.km)})),events:ev,
     startName:i===0?B.startName:ev.length?`${nm.split(" → ")[0]}`:"",cont:i>0}}
 // what carries over from one stage to the next
@@ -2670,7 +2678,7 @@ function startRun(C){
   if(C.kind==="brm"&&Math.random()<0.45)steps.push(()=>startTrouble(next));
   steps.unshift(()=>say(`${C.date} ${C.startName}`,`${breakfastOf().text}\n${C.kind==="brm"?`スタート受付で車検を受ける。ヘルメットよし、ベルよし、前照灯${frontLights().length>=2?"2灯":""}よし、尾灯よし、反射ベストよし${C.cls>=400?"、ヘルメット尾灯よし":""}！`:C.kind==="cafe"?(C.friend?`近所の公園で${FRIENDS[C.friend].name}と待ち合わせ。のんびり行こう。`:"今日はひとりで、のんびり行こう。"):C.race?"ゼッケンをつけてスタートラインに並ぶ。":"受付でゼッケンとおみやげ引換券をもらった。"}${fat>=40?`\n疲れが残っている（疲労${Math.round(fat)}）。体力の上限が下がっている。`:""}`,next));
   for(const id of buddies)steps.push(()=>{SFX.friend();menu({title:"トレインのお誘い",text:`${FRIENDS[id].name}「一緒に行きませんか？」`,items:[{label:"一緒に走る",fn:()=>{R.train.push({id,until:rnd(30,90)});markTrained(id);next()}},{label:"今日はソロで",fn:next}]})});
-  steps.push(()=>say("ブリーフィング終了",`${fmt(C.start)} スタート！ 制限時間 ${dur(C.limit)}。\nゴールクローズは ${fmt(tod(C.start+C.limit))}。\n今日の風：${compass(R.windDay.dir)}の風 ${R.windDay.spd.toFixed(1)}m/s${R.rainZones?"\n予報：途中から雨":"\n予報：晴れ"}${R.winterOn?`\n寒いので、${wearName("winter")}を着けてスタート。`:""}${C.race?"\nレースだ。「がんばる」で行こう！":""}`,()=>{R.t=C.start;G.mode="ride";for(const m of R.train)log(`${FRIENDS[m.id].name}とトレインを組んでスタート！`);log("スタート！ 安全第一で。");SFX.ok()}));
+  steps.push(()=>say("ブリーフィング終了",`${fmt(tod(C.start))} スタート！ 制限時間 ${dur(C.limit)}。\nゴールクローズは ${fmt(tod(C.start+C.limit))}。\n今日の風：${compass(R.windDay.dir)}の風 ${R.windDay.spd.toFixed(1)}m/s${R.rainZones?"\n予報：途中から雨":"\n予報：晴れ"}${R.winterOn?`\n寒いので、${wearName("winter")}を着けてスタート。`:""}${C.race?"\nレースだ。「がんばる」で行こう！":""}`,()=>{R.t=C.start;G.mode="ride";for(const m of R.train)log(`${FRIENDS[m.id].name}とトレインを組んでスタート！`);log("スタート！ 安全第一で。");SFX.ok()}));
   let si=0;function next(){const s=steps[si++];if(s)s()}
   showRideUI(true);updatePaceBtns();next();
 }
@@ -2961,7 +2969,10 @@ function enter(it,c){
 function weekAct(t,msg,fn){fn();SFX.ok();save();say(t,msg,nextWeek)}
 // Which bike goes to France: carbon is fast, but airline baggage handling is rough. The author took a chromoly bike for peace of mind.
 function pbpBike(it,c){
-  const go=()=>{const carbon=["carbon","carbon_hi"].includes(P.bike),hc=!!P.gear.hardcase,r=Math.random();let msg="";
+  // choose the start wave first (it sets the time limit), then fly
+  const go=()=>menu({title:"スタートの組を選ぶ",text:"PBP 2027は、スタートの時間で制限時間が変わる。プレ登録のときに選んだ組は？",
+    items:[...PBP_WAVES.map(w=>({label:w.label,note:`${w.limit/60}時間`,desc:w.desc,fn:()=>{P.pbpWave=w.id;save();fly()}})),{label:"もどる",fn:hub}],cancel:hub});
+  const fly=()=>{const carbon=["carbon","carbon_hi"].includes(P.bike),hc=!!P.gear.hardcase,r=Math.random();let msg="";
     if(carbon&&!hc&&r<0.04){P.bikeHome=P.bike;P.bike="alu";P.money-=20000;msg=`シャルル・ド・ゴール空港で輪行袋を開けたら、${BIKES[P.bikeHome].name}のフレームにクラックが……。\n現地でアルミロードを借りて走ることにした（レンタル ${yen(20000)}）。`}
     else if(r<(carbon?(hc?0.03:0.15):(hc?0.02:0.05))){P.money-=8000;msg=`ホテルで組み立てたら、ディレイラーハンガーが曲がっていた。飛行機の荷物の扱いは荒い。\n近くの自転車屋で直してもらった（${yen(8000)}）。`}
     else msg=hc?"ハードケースのおかげで、自転車は無事にフランスに着いた。":carbon?"輪行袋を開けるまで、気が気じゃなかった……。無事だった！":"クロモリやアルミは、少々ぶつけても安心。自転車は無事にフランスに着いた。";
