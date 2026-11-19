@@ -1037,18 +1037,21 @@ function mealCheck(){
 
 // Weeks of the season run Tuesday → Monday, so a Monday holiday (5/4, 7/20, 9/21) stays with its weekend.
 const WEEKS=[];
-// Seasons: the main game repeats 2026. 2027 is the story up to PBP. Announced dates come first: AJたまがわ, and ランドヌール札幌
-// (2027年開催BRM, announced 2026-10-27). AJ北海道 2027 isn't out yet, so its part is the 2023 calendar moved to the same weekend (+208 weeks, 仮).
+// Seasons: the main game repeats 2026. 2027 is the story up to PBP, on the announced 2027 dates: AJたまがわ, ランドヌール札幌
+// (announced 2026-10-27) and AJ北海道 (AJ event calendar, 2026-11). Courses reuse the closest known route; new ones are estimated.
 const Y2027={tsugaru200:"2027-05-08",gonou300:"2027-05-29",oirase400:"2027-07-03",
-  rs23_423:"2027-05-04",rs23_610:"2027-05-15",kogane400:"2027-05-29",furen200:"2027-06-27",shiribeshi300:"2027-07-17",dounan600:"2027-07-17",unitarako200:"2027-07-19",shakotan400:"2027-07-31"};
+  rs23_423:"2027-05-04",rs23_610:"2027-05-15",kogane400:"2027-05-29",furen200:"2027-06-27",shiribeshi300:"2027-07-17",dounan600:"2027-07-17",unitarako200:"2027-07-19",shakotan400:"2027-07-31",
+  aj23_504:"2027-04-11",biei300:"2027-04-24",aj23_506:"2027-05-01",aj23_513:"2027-05-08",ishikari400:"2027-05-22",aj23_603:"2027-06-05",hidaka600:"2027-06-19",aj23_722:"2027-07-03"};
+// 2027 names that differ from the course the route was taken from
+const N2027={aj23_506:"北海道200km 十勝スイーツ",aj23_722:"北海道400km 十勝朝駆"};
 const RS27_URL="https://randonneurssapporo.net/brmr%ef%bd%8d/brm2027/";
 let YEAR=2026;
 function applyYear(y){YEAR=y;
   for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.y23?null:c.ymd;if(c.name23===undefined)c.name23=c.name;if(c.pbp)continue;
     if(c.url26===undefined)c.url26=c.url;
     if(y===2026){c.ymd=c.y26||null;c.tent=false;c.name=c.name23;c.url=c.url26}
-    else if(Y2027[c.id]){const d=ymdDate(Y2027[c.id]);c.ymd=Y2027[c.id];c.tent=false;c.name=c.name23.replace(/^BRM\d+/,`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`);if(c.org===RS)c.url=RS27_URL}
-    else if(c.org===RS&&c.y23)c.ymd=null; // R札幌 2027 is announced: the 2023 placeholders go
+    else if(Y2027[c.id]){const d=ymdDate(Y2027[c.id]),n=`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`;c.ymd=Y2027[c.id];c.tent=false;c.name=N2027[c.id]?`${n} ${N2027[c.id]}`:c.name23.replace(/^BRM\d+/,n);if(c.org===RS)c.url=RS27_URL;if(c.org===AJ)c.url=AJ_URL}
+    else if((c.org===RS||c.org===AJ)&&c.y23)c.ymd=null; // 2027 is announced: the 2023 placeholders go
     else if(c.y27&&!c.y23){c.ymd=c.y27;c.tent=true}
     else if(c.y23){const d=ymdDate(c.y23);d.setDate(d.getDate()+1456);c.ymd=ymdOf(d);c.tent=true;c.name=c.name23.replace(/^BRM\d+/,`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`)}
     else if(c.y27){c.ymd=c.y27;c.tent=true}
@@ -1115,7 +1118,7 @@ const PBP_BLOG=[
  const m=B.events.find(e=>e.name==="モルターニュ＝オー＝ペルシュの補給所");Object.assign(m,{text:"最初の補給所。外のテントのソーセージサンドは炭みたいに固くて苦い……。体育館の作りたてハムチーズサンドで口直し。",min:30,price:1200});
  B.goalFood="ゲートをくぐると、急な雨で観客はもう帰り支度。少しさみしい。でも受付でブルベカードにハンコをもらい、その場でメダル。ミールチケットで最後の食事と「ラストビール」。\n「よく頑張ったよ、オレ。自分で自分をほめてあげたい」\n（作者の2023年の記録：88時間1分）";}
 
-// ===== 2027年シーズン（仮）: the 2023 calendar (AJ北海道 2023 results page, R札幌 2023 event pages), moved to 2027 by applyYear;
+// ===== 2027年シーズン: courses from the author's 2023 season (AJ北海道 2023 results page, R札幌 2023 event pages); applyYear puts them on the announced 2027 dates;
 // the rides the author did (函館200, トトロ300, 様似400, 宗谷岬600, きのこの山300, 函館300, トカプチ朝駆400) follow his blog.
 const AJ23=AJ_URL+"pg180.html",RS23="https://randonneurssapporo.net/",PB23="https://pikacycling.hateblo.jp/entry/2023/";
 const QUAL_BY={2027:"2027-06-30"}; // PBP 2027 rules: qualifying brevets between 2026-11-01 and 2027-06-30
@@ -1136,6 +1139,23 @@ c23({id:"rs23_423",cls:200,ymd:"2023-04-23",org:RS,region:"道央",url:RS23+"202
    {km:85,type:"pc",name:"PC2 鵡川",chain:"seicomart"},{km:103,type:"check",name:"通過チェック 日高門別",photo:"競走馬の牧場で、仔馬が跳ねていた。"},
    {km:104,type:"note",text:"門別は競走馬のふるさと。牧場の柵の向こうで、母馬と仔馬が草を食んでいる。",spirit:12},
    {km:145,type:"pc",name:"PC3 厚真",chain:"seicomart"},{km:175,type:"pc",name:"PC4 長沼",chain:"seven"},{km:200,type:"goal",name:"ゴール 平岡公園"}]});
+// AJ北海道 2027 new: 石狩平野400 (5/22, 札幌) and ぐるり日高山脈600 (6/19, 札幌). Routes not out yet — estimated.
+COURSES.push(brm({id:"ishikari400",cls:400,ymd:"2027-05-22",y26:null,org:AJ,region:"道央",url:AJ_URL,name:"BRM522 北海道400km 石狩平野",dist:400,startName:"札幌市",
+  desc:"AJ北海道の2027年の新コース。札幌発着で石狩平野を走る400km。平坦基調だけど、そのぶん風が強い。（コースは推定）",goalFood:"石狩平野の400、完走。",
+  profile:[[0,20],[40,20],[80,40],[120,60],[160,80],[200,100],[240,60],[280,40],[320,30],[360,20],[400,20]],
+  scenery:[[0,"town"],[15,"field"],[190,"town"],[205,"field"],[390,"town"]],heading:[[0,30],[100,10],[200,200],[300,180],[360,220]],gust:[[60,340,2]],deer:[[150,330]],
+  events:[{km:50,type:"pc",name:"PC1 当別",chain:"seicomart"},{km:120,type:"pc",name:"PC2 滝川",chain:"seicomart"},{km:200,type:"pc",name:"PC3 深川（折り返し）",chain:"seven"},
+   {km:120.5,type:"note",text:"見わたすかぎりの田んぼ。石狩平野は広い。",spirit:8},{km:280,type:"pc",name:"PC4 美唄",chain:"seven"},{km:350,type:"pc",name:"PC5 岩見沢",chain:"lawson"},{km:400,type:"goal",name:"ゴール 札幌"}]}));
+COURSES.push(brm({id:"hidaka600",cls:600,ymd:"2027-06-19",y26:null,org:AJ,region:"道央",url:AJ_URL,name:"BRM619 北海道600km ぐるり日高山脈",dist:600,startName:"札幌市",
+  desc:"AJ北海道の2027年の新コース。札幌から日高、えりも岬、十勝を回り、日勝峠を越えて戻る、日高山脈ひと回りの600km。SRの期限前、最後の600。（コースは推定）",goalFood:"日高山脈をぐるりと一周、完走。",
+  profile:[[0,20],[60,20],[110,10],[150,10],[200,20],[230,40],[270,60],[300,40],[340,90],[380,60],[420,300],[450,1022],[480,400],[520,300],[560,200],[600,20]],
+  scenery:[[0,"town"],[20,"field"],[60,"sea"],[290,"field"],[370,"town"],[385,"field"],[420,"mountain"],[480,"forest"],[560,"field"],[590,"town"]],
+  heading:[[0,150],[60,120],[230,90],[260,20],[370,330],[450,270],[520,300],[560,340]],gust:[[200,300,3]],deer:[[100,600]],
+  lodges:[{km:380,name:"帯広のビジネスホテル",price:7500}],
+  events:[{km:60,type:"pc",name:"PC1 苫小牧",chain:"seicomart"},{km:150,type:"pc",name:"PC2 新ひだか",chain:"seicomart"},
+   {km:232,type:"check",name:"通過チェック えりも岬",photo:"風の岬。強風で自転車ごと押し戻される。"},{km:240,type:"note",text:"黄金道路。海に迫る断崖の下をトンネルでつないでいく。",spirit:12},
+   {km:300,type:"pc",name:"PC3 広尾",chain:"seicomart"},{km:380,type:"pc",name:"PC4 帯広",chain:"seven"},{km:381,type:"sight",name:"帯広の豚丼",text:"甘辛いタレの豚丼。",min:25,price:1200,fx:{hunger:55,spirit:20,temp:12}},
+   {km:450,type:"check",name:"通過チェック 日勝峠",photo:"1,022m。夜の峠は冷える。"},{km:490,type:"pc",name:"PC5 日高町",chain:"seicomart"},{km:545,type:"pc",name:"PC6 夕張",chain:"seicomart"},{km:600,type:"goal",name:"ゴール 札幌"}]}));
 // R札幌 2027 new: 黄金400 (5/29, 札幌). The route isn't out yet — a placeholder out-and-back.
 COURSES.push(brm({id:"kogane400",cls:400,ymd:"2027-05-29",y26:null,org:RS,region:"道央",url:RS27_URL,name:"BRM529 黄金400",dist:400,startName:"札幌市",
   desc:"ランドヌール札幌の2027年の新コース。札幌スタート。コースはまだ発表されていない（コースは推定）。",goalFood:"新コースの400、完走。",
@@ -1373,7 +1393,7 @@ c23({id:"rs23_805",cls:200,ymd:"2023-08-05",org:RS,region:"道央",url:RS23+"202
    {km:75,type:"pc",name:"PC1 喜茂別",chain:"seicomart"},{km:100,type:"pc",name:"PC2 大滝",chain:"seicomart"},
    {km:125,type:"note",text:"美笛峠で夜明け。",spirit:12,fx:{sleepy:-15}},{km:140,type:"note",text:"朝の支笏湖。湖面が光っている。",spirit:15},
    {km:165,type:"pc",name:"PC3 千歳",chain:"lawson"},{km:200,type:"goal",name:"ゴール 札幌"}]});
-// 体験版「2027年シーズン（仮）」: the author's way to PBP — a chromoly road bike with DH bar, living in Hakodate. SR by the deadline, then PBP 2027.
+// 体験版「2027年シーズン」: the author's way to PBP — a chromoly road bike with DH bar, living in Hakodate. SR by the deadline, then PBP 2027.
 function trialLoad(){try{const s=localStorage.getItem(SAVE_KEY+"-trial"),raw=s&&JSON.parse(s);if(raw&&!Number.isFinite(raw.leg))raw.leg=23.5;const t=raw&&migrate(raw);return t&&t.year===2027?t:null}catch(e){return null}}
 function startTrial(){
   const s=load();P=Object.assign(s?JSON.parse(JSON.stringify(s)):newPlayer(),{trial:true,test:false,year:2027,week:0,season:1,seasonDone:{},qual:{},pbpReg:true,pbpTried:false,pbpDone:false,pbpSnap:null,lastMonth:10,lastTrain:0,rodeWeek:-1,sickWeek:-1,home:"hakodate",money:50000});
@@ -1403,7 +1423,7 @@ function trialEnd(why){
   if(P.bikeHome){P.bike=P.bikeHome;delete P.bikeHome}
   if(P.pbpDone){SFX.win();return menu({title:"★ PARIS-BREST-PARIS 完走 ★",text:`PBP 2027 完走。\n1,220km、ランブイエからブレストへ行って帰ってきた。\nあなたはもう「アンシエンヌ」——パリ〜ブレスト〜パリの完走者だ。\n\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\n北海道の仲間たちと、また次のブルベで会おう。\n\n〜 THE END 〜`,items:[again,{label:"タイトルへ",fn:title}]})}
   const q=pbpQual(),d=QUAL_BY[2027];
-  menu({title:"2027年シーズン（仮） 終了",text:why==="sr"?`${+d.slice(5,7)}月${+d.slice(8)}日が過ぎた。SRがそろわなかった。\n資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}\nPBP 2027のスタートラインには立てない……。`
+  menu({title:"2027年シーズン 終了",text:why==="sr"?`${+d.slice(5,7)}月${+d.slice(8)}日が過ぎた。SRがそろわなかった。\n資格 ${[200,300,400,600].map(k=>k+(q[k]?"✓":"・")).join(" ")}\nPBP 2027のスタートラインには立てない……。`
     :P.pbpTried?"PBP 2027は完走できなかった。\nでも、ランブイエのスタートラインに立った。":"PBP 2027には出なかった。",items:[again,{label:"タイトルへ",fn:title}]})}
 const PBP_TIPS=["PBPの「3つのD」：Di2、DHバー、ド根性。","コントロールのレストランで座って食べると、疲れも取れて栄養バランスもいい。いざとなればそのまま席で寝られる。","夜明け前は寒い。コントロールの中で日の出を待つのもあり。","水道水はカルキ臭がきつい。ミネラルウォーターを。","仮眠所の起床は遅れることがある。予備のアラームを。","最終組は前の組を追い越していけば制限を気にしなくていい。","コントロールの飲み物はコーラ、オランジーナ、レッドブルくらい。冷えているとは限らない。","往路600kmを40時間以内に走れれば、完走率がぐんと上がる。"];
 const PBP_STAGES=[[0,450,"ランブイエ → ポンティヴィ"],[450,825,"ポンティヴィ → ブレスト → タンテニアック"],[825,1220,"タンテニアック → ランブイエ"]];
@@ -2789,8 +2809,8 @@ function title(){
   menu({title:"ブルベクエスト 北海道",text:"2026年4月〜10月、AJ北海道・ランドヌール札幌・AJたまがわ（青森）のブルベ日程で1シーズンを過ごすゲーム。\n毎週、ブルベ・ヒルクライム・グラベル・ファンライド・トレーニング・おやすみから選ぼう。",items:[
     {label:"はじめから",fn:()=>{if(s)menu({title:"セーブデータを消して最初から？",items:[{label:"消して始める",fn:()=>{wipe();startNew()}},{label:"やめる",fn:title}],cancel:title});else startNew()}},
     {label:"つづきから",disabled:!s,fn:()=>{P=s;hub()}},
-    {label:"体験版：2027年シーズン（仮） → PBP",desc:"PBPを完走するまでのストーリー。ランドヌール札幌とAJたまがわは2027年の公式日程、AJ北海道は作者がPBPを目指した2023年の日程を2027年の同じ週末に置いた仮の日程で、北海道のブルベに出てSRをそろえ、8月のパリ〜ブレスト〜パリ 1,220kmへ。本編のセーブには影響しない。",fn:()=>{const t=trialLoad();if(!t)return startTrial();
-      menu({title:"体験版：2027年シーズン（仮）",items:[{label:"つづきから",note:`${t.year}年 第${t.week+1}週`,fn:()=>{P=t;hub()}},{label:"はじめから",fn:startTrial},{label:"もどる",fn:title}],cancel:title})}},
+    {label:"体験版：2027年シーズン → PBP",desc:"PBPを完走するまでのストーリー。AJ北海道・ランドヌール札幌・AJたまがわの2027年の公式日程で、北海道のブルベに出てSRをそろえ、8月のパリ〜ブレスト〜パリ 1,220kmへ。本編のセーブには影響しない。",fn:()=>{const t=trialLoad();if(!t)return startTrial();
+      menu({title:"体験版：2027年シーズン",items:[{label:"つづきから",note:`${t.year}年 第${t.week+1}週`,fn:()=>{P=t;hub()}},{label:"はじめから",fn:startTrial},{label:"もどる",fn:title}],cancel:title})}},
     {label:"音の設定",fn:()=>soundMenu(title)},
     // Test mode stays out of the public menu; open the page with #test to reach it.
     ...(location.hash==="#test"?[{label:"テストモード",desc:"日付に関係なく全ブルベ・イベントを選べる。お金と装備はそろった状態。通常のセーブとは別に保存される。",fn:startTest}]:[])]});
@@ -3040,7 +3060,7 @@ function seasonEnd(){
   const d=P.seasonDone||{},sr=d[200]&&d[300]&&d[400]&&d[600];
   const best=Object.entries(FRIENDS).sort((a,b)=>P.fp[b[0]]-P.fp[a[0]])[0];
   menu({title:`シーズン${P.season} 終了`,text:`11月。北海道のブルベシーズンが終わった。\n今季の認定：${seasonSummary()}${sr?"\n★ スーパーランドヌール（SR）達成！":""}${d[1000]?"\n★ 1000km完走！":""}\n総走行距離 ${P.km.toLocaleString("ja-JP")}km\nいちばん仲良くなった仲間：${best[1].name}\n\n来年はPBPだ！`,
-    items:[{label:"2027年シーズンへ（来年はPBPだ！）",desc:"このまま2027年（仮）へ。所持金・自転車・装備・仲間を引き継いで、PBP完走を目指す。体験版のセーブに保存され、2026年のセーブはそのまま残る。",fn:continueTo2027},{label:"2026年をもう一度",fn:()=>{P.season++;P.week=0;P.seasonDone={};P.lastMonth=4;P.fatigue=0;save();say("4月",`シーズン${P.season}が始まる。`,hub)}},{label:"タイトルへ",fn:title}]});
+    items:[{label:"2027年シーズンへ（来年はPBPだ！）",desc:"このまま2027年へ。所持金・自転車・装備・仲間を引き継いで、PBP完走を目指す。体験版のセーブに保存され、2026年のセーブはそのまま残る。",fn:continueTo2027},{label:"2026年をもう一度",fn:()=>{P.season++;P.week=0;P.seasonDone={};P.lastMonth=4;P.fatigue=0;save();say("4月",`シーズン${P.season}が始まる。`,hub)}},{label:"タイトルへ",fn:title}]});
 }
 function status(){
   const parts=Object.entries(PARTS).map(([sl,d])=>d.opts.find(o=>o.id===P.parts[sl]).name).join("、");
