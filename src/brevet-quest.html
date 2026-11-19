@@ -2963,7 +2963,7 @@ function eventDesc(it,c){
   const head=C?`${C.org}　${C.dist}km　制限 ${dur(C.limit)}　${fmt(C.start)}スタート（${C.startName}）`:`${it.dist}km・獲得標高 約${it.gain}m${it.off?"・未舗装あり":""}`;
   const link=it.blog?`<br><a href="${it.blog}" target="_blank" rel="noopener">走行記（PikaCycling）</a>`:"";
   const link2=it.url?`<br><a href="${it.url}" target="_blank" rel="noopener">主催者のページ</a>`:"";
-  return `${head}\n${it.desc||""}${!C?"\n練習効果："+trainText(trainFx(it)):""}${C&&C.estimated?"\n（PCの位置と標高はゲーム用の推定）":""}\n費用 ${yen(c)}（参加費 ${yen(feeOf(it))}＋交通・宿 ${yen(c-feeOf(it))}${it.oneWay?"、片道なので帰りの輪行代込み":""}）${link}${link2}`;
+  return `${head}\n${it.desc||""}${!C?"\n練習効果："+trainText(trainFx(it)):""}${C&&YEAR===2027&&C.ymd&&C.ymd.startsWith("2027")?"\n※2027年のキューシートはまだ出ていない。日程は公式、コースは過去の開催（新コースは推定）のもの。":C&&C.estimated?"\n（PCの位置と標高はゲーム用の推定）":""}\n費用 ${yen(c)}（参加費 ${yen(feeOf(it))}＋交通・宿 ${yen(c-feeOf(it))}${it.oneWay?"、片道なので帰りの輪行代込み":""}）${link}${link2}`;
 }
 function enter(it,c){
   const miss=missingGear(it.kind,it.cls||0);
