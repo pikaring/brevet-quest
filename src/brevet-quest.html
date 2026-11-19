@@ -1042,6 +1042,8 @@ const WEEKS=[];
 const Y2027={tsugaru200:"2027-05-08",gonou300:"2027-05-29",oirase400:"2027-07-03",
   rs23_423:"2027-05-04",rs23_610:"2027-05-15",kogane400:"2027-05-29",furen200:"2027-06-27",shiribeshi300:"2027-07-17",dounan600:"2027-07-17",unitarako200:"2027-07-19",shakotan400:"2027-07-31",
   aj23_504:"2027-04-11",biei300:"2027-04-24",aj23_506:"2027-05-01",aj23_513:"2027-05-08",ishikari400:"2027-05-22",aj23_603:"2027-06-05",hidaka600:"2027-06-19",aj23_722:"2027-07-03"};
+// 2027 cue sheets published (course updated to match): until then the brevet shows （仮）
+const CUE2027={};
 // 2027 names that differ from the course the route was taken from
 const N2027={aj23_506:"北海道200km 十勝スイーツ",aj23_722:"北海道400km 十勝朝駆"};
 const RS27_URL="https://randonneurssapporo.net/brmr%ef%bd%8d/brm2027/";
@@ -1050,7 +1052,7 @@ function applyYear(y){YEAR=y;
   for(const c of [...COURSES,...EVENTS]){if(c.y26===undefined)c.y26=c.y23?null:c.ymd;if(c.name23===undefined)c.name23=c.name;if(c.pbp)continue;
     if(c.url26===undefined)c.url26=c.url;
     if(y===2026){c.ymd=c.y26||null;c.tent=false;c.name=c.name23;c.url=c.url26}
-    else if(Y2027[c.id]){const d=ymdDate(Y2027[c.id]),n=`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`;c.ymd=Y2027[c.id];c.tent=false;c.name=N2027[c.id]?`${n} ${N2027[c.id]}`:c.name23.replace(/^BRM\d+/,n);if(c.org===RS)c.url=RS27_URL;if(c.org===AJ)c.url=AJ_URL}
+    else if(Y2027[c.id]){const d=ymdDate(Y2027[c.id]),n=`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`;c.ymd=Y2027[c.id];c.tent=!CUE2027[c.id];c.name=N2027[c.id]?`${n} ${N2027[c.id]}`:c.name23.replace(/^BRM\d+/,n);if(c.org===RS)c.url=RS27_URL;if(c.org===AJ)c.url=AJ_URL}
     else if((c.org===RS||c.org===AJ)&&c.y23)c.ymd=null; // 2027 is announced: the 2023 placeholders go
     else if(c.y27&&!c.y23){c.ymd=c.y27;c.tent=true}
     else if(c.y23){const d=ymdDate(c.y23);d.setDate(d.getDate()+1456);c.ymd=ymdOf(d);c.tent=true;c.name=c.name23.replace(/^BRM\d+/,`BRM${d.getMonth()+1}${String(d.getDate()).padStart(2,"0")}`)}
@@ -2963,7 +2965,7 @@ function eventDesc(it,c){
   const head=C?`${C.org}　${C.dist}km　制限 ${dur(C.limit)}　${fmt(C.start)}スタート（${C.startName}）`:`${it.dist}km・獲得標高 約${it.gain}m${it.off?"・未舗装あり":""}`;
   const link=it.blog?`<br><a href="${it.blog}" target="_blank" rel="noopener">走行記（PikaCycling）</a>`:"";
   const link2=it.url?`<br><a href="${it.url}" target="_blank" rel="noopener">主催者のページ</a>`:"";
-  return `${head}\n${it.desc||""}${!C?"\n練習効果："+trainText(trainFx(it)):""}${C&&YEAR===2027&&C.ymd&&C.ymd.startsWith("2027")?"\n※2027年のキューシートはまだ出ていない。日程は公式、コースは過去の開催（新コースは推定）のもの。":C&&C.estimated?"\n（PCの位置と標高はゲーム用の推定）":""}\n費用 ${yen(c)}（参加費 ${yen(feeOf(it))}＋交通・宿 ${yen(c-feeOf(it))}${it.oneWay?"、片道なので帰りの輪行代込み":""}）${link}${link2}`;
+  return `${head}\n${it.desc||""}${!C?"\n練習効果："+trainText(trainFx(it)):""}${C&&YEAR===2027&&C.ymd&&C.ymd.startsWith("2027")&&!CUE2027[C.id]?"\n※2027年のキューシートが出るまでは仮。日程は公式、コースは過去の開催（新コースは推定）のもの。":C&&C.estimated?"\n（PCの位置と標高はゲーム用の推定）":""}\n費用 ${yen(c)}（参加費 ${yen(feeOf(it))}＋交通・宿 ${yen(c-feeOf(it))}${it.oneWay?"、片道なので帰りの輪行代込み":""}）${link}${link2}`;
 }
 function enter(it,c){
   const miss=missingGear(it.kind,it.cls||0);
